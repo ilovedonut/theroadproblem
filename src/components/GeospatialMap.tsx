@@ -90,7 +90,13 @@ export function GeospatialMap({
 }: GeospatialMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const signalPopupRef = useRef<maplibregl.Popup | null>(null);
+  const roadPopupRef = useRef<maplibregl.Popup | null>(null);
+  const signalsRef = useRef<MultiSourceSignal[]>(signals);
+  signalsRef.current = signals;
+  const onSelectSignalRef = useRef(onSelectSignal);
+  onSelectSignalRef.current = onSelectSignal;
+
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isGlobe, setIsGlobe] = useState(true);
 
@@ -187,7 +193,8 @@ export function GeospatialMap({
 
     return () => {
       resizeObserver.disconnect();
-      markersRef.current.forEach(m => m.remove());
+      if (signalPopupRef.current) signalPopupRef.current.remove();
+      if (roadPopupRef.current) roadPopupRef.current.remove();
       map.remove();
       mapRef.current = null;
     };
@@ -359,75 +366,272 @@ export function GeospatialMap({
         }
       });
 
-      map.on('mouseenter', 'roads-line', () => {
+      map.on('mouseenter', 'roads-line', (e) => {
         map.getCanvas().style.cursor = 'pointer';
+        if (!e.features || e.features.length === 0) return;
+        const props = e.features[0].properties;
+
+        if (!roadPopupRef.current) {
+          roadPopupRef.current = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            offset: 10,
+            className: 'deck-telemetry-popup'
+          });
+        }
+
+        roadPopupRef.current
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div class="px-2.5 py-1.5 rounded-lg bg-slate-950/95 border border-slate-700/80 shadow-2xl text-slate-100 font-sans max-w-xs backdrop-blur-md pointer-events-none">
+              <p class="font-bold text-xs text-white leading-tight">${props.name}</p>
+              <p class="text-[10px] font-mono text-cyan-400 mt-0.5">${props.ref ? props.ref + ' • ' : ''}${props.authority}</p>
+            </div>
+          `)
+          .addTo(map);
+      });
+
+      map.on('mousemove', 'roads-line', (e) => {
+        if (roadPopupRef.current) {
+          roadPopupRef.current.setLngLat(e.lngLat);
+        }
       });
 
       map.on('mouseleave', 'roads-line', () => {
         map.getCanvas().style.cursor = '';
+        if (roadPopupRef.current) {
+          roadPopupRef.current.remove();
+        }
       });
     }
   }, [roads, mapLoaded, selectedRoadId, activeLayerFilters, onSelectRoad]);
 
-  // Update Multi-Source Intelligence Markers
+  // Update Multi-Source Intelligence & Incidents via Native WebGL Layers (Glued to 3D Globe)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
+    const features: any[] = [];
 
-    if (!activeLayerFilters.newsSocial) return;
+    // 1. Multi-source public signals (News, Reddit, X, Field Photos)
+    if (activeLayerFilters.newsSocial) {
+      signals.forEach((sig) => {
+        let color = '#22d3ee'; // cyan default
+        let haloColor = '#0891b2';
+        let categoryLabel = 'SIGNAL';
 
-    signals.forEach((sig) => {
-      const el = document.createElement('div');
-      el.className = 'group cursor-pointer relative';
+        if (sig.type === 'news_media') {
+          color = '#c084fc'; // purple
+          haloColor = '#7e22ce';
+          categoryLabel = 'NEWS';
+        } else if (sig.type === 'reddit_community') {
+          color = '#fb923c'; // orange
+          haloColor = '#c2410c';
+          categoryLabel = 'REDDIT';
+        } else if (sig.type === 'twitter_signal') {
+          color = '#38bdf8'; // sky
+          haloColor = '#0284c7';
+          categoryLabel = 'INTEL';
+        } else if (sig.type === 'field_evidence') {
+          color = '#34d399'; // emerald
+          haloColor = '#059669';
+          categoryLabel = 'PHOTO';
+        }
 
-      let bgClass = 'bg-cyan-950/90 border-cyan-400 text-cyan-300';
-      let svgIcon = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
-
-      if (sig.type === 'news_media') {
-        bgClass = 'bg-purple-950/90 border-purple-400 text-purple-300';
-        svgIcon = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>';
-      } else if (sig.type === 'reddit_community') {
-        bgClass = 'bg-orange-950/90 border-orange-400 text-orange-300';
-        svgIcon = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-      } else if (sig.type === 'twitter_signal') {
-        bgClass = 'bg-sky-950/90 border-sky-400 text-sky-300';
-        svgIcon = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>';
-      } else if (sig.type === 'field_evidence') {
-        bgClass = 'bg-emerald-950/90 border-emerald-400 text-emerald-300';
-        svgIcon = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>';
-      }
-
-      el.innerHTML = `
-        <div class="w-6 h-6 rounded-full border-2 ${bgClass} flex items-center justify-center shadow-lg transform transition-transform hover:scale-125 hover:z-50">
-          ${svgIcon}
-        </div>
-        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-slate-950 border border-slate-700 text-slate-100 text-[10px] font-mono px-2 py-1 rounded shadow-2xl whitespace-nowrap pointer-events-none z-50">
-          <p class="font-bold text-white">${sig.source}</p>
-          <p class="text-slate-400">${sig.title.slice(0, 32)}...</p>
-        </div>
-      `;
-
-      el.addEventListener('click', () => {
-        onSelectSignal(sig);
-        map.flyTo({
-          center: [sig.lon, sig.lat],
-          zoom: 13,
-          pitch: 45,
-          speed: 1.1,
-          essential: true
+        features.push({
+          type: 'Feature',
+          id: sig.id,
+          properties: {
+            id: sig.id,
+            is_signal: true,
+            type: sig.type,
+            source: sig.source,
+            title: sig.title,
+            road_name: sig.road_name,
+            date: sig.date,
+            color,
+            halo_color: haloColor,
+            category_label: categoryLabel,
+            lat: sig.lat,
+            lon: sig.lon
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [sig.lon, sig.lat]
+          }
         });
       });
+    }
 
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([sig.lon, sig.lat])
-        .addTo(map);
+    // 2. Active ground excavation bubbles
+    if (activeLayerFilters.excavations) {
+      roads.forEach((road) => {
+        if (road.incidents && road.incidents.length > 0) {
+          road.incidents.forEach((inc) => {
+            if (inc.lat && inc.lon) {
+              features.push({
+                type: 'Feature',
+                id: inc.incident_id,
+                properties: {
+                  id: inc.incident_id,
+                  is_signal: false,
+                  type: 'ground_excavation',
+                  source: 'Verified Dig',
+                  title: `${inc.category.replace(/_/g, ' ').toUpperCase()}`,
+                  road_name: road.name,
+                  date: inc.last_observed_at ? inc.last_observed_at.split('T')[0] : 'Recent',
+                  color: '#f59e0b', // amber
+                  halo_color: '#b45309',
+                  category_label: 'EXCAVATION',
+                  lat: inc.lat,
+                  lon: inc.lon
+                },
+                geometry: {
+                  type: 'Point',
+                  coordinates: [inc.lon, inc.lat]
+                }
+              });
+            }
+          });
+        }
+      });
+    }
 
-      markersRef.current.push(marker);
-    });
-  }, [signals, mapLoaded, activeLayerFilters.newsSocial, onSelectSignal]);
+    const geojsonData = {
+      type: 'FeatureCollection',
+      features
+    };
+
+    if (map.getSource('signals-intel')) {
+      (map.getSource('signals-intel') as maplibregl.GeoJSONSource).setData(geojsonData as any);
+    } else {
+      map.addSource('signals-intel', {
+        type: 'geojson',
+        data: geojsonData as any
+      });
+
+      // Outer radar halo circle (interpolated with zoom)
+      map.addLayer({
+        id: 'signals-halo',
+        type: 'circle',
+        source: 'signals-intel',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            2, 5,
+            8, 11,
+            14, 18
+          ],
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.35,
+          'circle-blur': 0.4
+        }
+      });
+
+      // Solid core bubble
+      map.addLayer({
+        id: 'signals-bubble',
+        type: 'circle',
+        source: 'signals-intel',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            2, 3.5,
+            8, 6.5,
+            14, 10
+          ],
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#020617',
+          'circle-opacity': 1
+        }
+      });
+
+      // Center bright telemetry core
+      map.addLayer({
+        id: 'signals-center',
+        type: 'circle',
+        source: 'signals-intel',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            2, 1,
+            8, 2,
+            14, 3.5
+          ],
+          'circle-color': '#ffffff',
+          'circle-opacity': 0.95
+        }
+      });
+
+      // Hover Tooltip: Anchored precisely to coordinate in 3D WebGL space
+      map.on('mouseenter', 'signals-bubble', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        map.getCanvas().style.cursor = 'pointer';
+        const props = e.features[0].properties;
+        const coordinates = (e.features[0].geometry as any).coordinates.slice();
+
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+
+        if (!signalPopupRef.current) {
+          signalPopupRef.current = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            offset: 14,
+            className: 'deck-telemetry-popup'
+          });
+        }
+
+        signalPopupRef.current
+          .setLngLat(coordinates)
+          .setHTML(`
+            <div class="px-3 py-2 rounded-xl bg-slate-950/95 border border-slate-700/80 shadow-2xl text-slate-100 font-sans max-w-[280px] backdrop-blur-xl pointer-events-none">
+              <div class="flex items-center justify-between gap-2 font-mono text-[10px] pb-1 border-b border-slate-800">
+                <span class="font-bold text-cyan-300 uppercase">${props.source}</span>
+                <span class="text-slate-400 font-semibold">${props.date || 'SIGNAL'}</span>
+              </div>
+              <p class="font-bold text-xs text-white mt-1 leading-snug line-clamp-2">${props.title}</p>
+              <p class="text-[11px] font-mono text-cyan-400 mt-1 truncate">${props.road_name}</p>
+              <div class="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                <span>Click to inspect</span>
+                <span class="text-cyan-400 font-semibold">Dossier →</span>
+              </div>
+            </div>
+          `)
+          .addTo(map);
+      });
+
+      map.on('mouseleave', 'signals-bubble', () => {
+        map.getCanvas().style.cursor = '';
+        if (signalPopupRef.current) {
+          signalPopupRef.current.remove();
+        }
+      });
+
+      // Click: Selects signal / incident and flies camera in 3D orbit
+      map.on('click', 'signals-bubble', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        if (signalPopupRef.current) {
+          signalPopupRef.current.remove();
+        }
+        const props = e.features[0].properties;
+        const matchedSig = signalsRef.current.find((s) => s.id === props.id);
+        if (matchedSig) {
+          onSelectSignalRef.current(matchedSig);
+          map.flyTo({
+            center: [matchedSig.lon, matchedSig.lat],
+            zoom: 13.5,
+            pitch: 48,
+            bearing: -15,
+            speed: 1.1,
+            essential: true
+          });
+        }
+      });
+    }
+  }, [signals, roads, mapLoaded, activeLayerFilters]);
 
   return (
     <div className="absolute inset-0 w-full h-full bg-slate-950 overflow-hidden select-none">

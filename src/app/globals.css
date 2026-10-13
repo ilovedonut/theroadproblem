@@ -45,3 +45,18 @@ button, a, input, select {
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* MapLibre Dark Telemetry Popup Styling */
+.deck-telemetry-popup .maplibregl-popup-content {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0.75rem !important;
+}
+
+.deck-telemetry-popup .maplibregl-popup-tip {
+  border-top-color: #020617 !important;
+  border-bottom-color: #020617 !important;
+  border-left-color: #020617 !important;
+  border-right-color: #020617 !important;
+}
