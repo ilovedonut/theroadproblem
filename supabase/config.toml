@@ -14,3 +14,8 @@ major_version = 15
 [storage]
 enabled = true
 file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3001"
+additional_redirect_urls = ["https://localhost:3001"]
