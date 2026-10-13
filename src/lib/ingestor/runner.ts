@@ -36,9 +36,11 @@ export async function runAllIngestors() {
     // 3. Run PMGSY OMMAS Rural Road Ingestion (Ramanagara District)
     console.log('\n[3/3] Ingesting Official PMGSY OMMAS Rural Road Records (Ramanagara)...');
     const { runPmgsyIngestion } = await import('./adapters/pmgsy-adapter.ts');
+    const { getPmgsyRepresentativeRecords } = await import('../../app/api/v1/sources/pmgsy/ramanagara/route.ts');
+    const pmgsyRecords = getPmgsyRepresentativeRecords();
     const pmgsySummary = await runPmgsyIngestion(client, {
       district: 'Ramanagara',
-      endpointUrl: 'http://localhost:3000/api/v1/sources/pmgsy/ramanagara'
+      directRecords: pmgsyRecords
     });
     summaryReport.runs.push(pmgsySummary);
     console.log(`  Discovered: ${pmgsySummary.total_discovered} | Inserted: ${pmgsySummary.new_inserted} | Updated: ${pmgsySummary.updated} | Skipped (No Change): ${pmgsySummary.unchanged_skipped} | Archived to R2: ${pmgsySummary.r2_archived}`);
@@ -53,16 +55,19 @@ export async function runAllIngestors() {
     return summaryReport;
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
 // Direct execution via CLI
 if (process.argv[1] && process.argv[1].endsWith('runner.ts')) {
   runAllIngestors()
-    .then(() => process.exit(0))
-    .catch((err) => {
+    .then(async () => {
+      await pool.end();
+      process.exit(0);
+    })
+    .catch(async (err) => {
       console.error('FATAL: Ingestion run failed:', err);
+      await pool.end();
       process.exit(1);
     });
 }

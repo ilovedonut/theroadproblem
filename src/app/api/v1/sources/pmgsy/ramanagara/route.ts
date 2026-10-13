@@ -7,11 +7,14 @@ import { NextRequest, NextResponse } from 'next/server';
  * Serves representative official PMGSY (Pradhan Mantri Gram Sadak Yojana)
  * package records for Ramanagara district, Karnataka.
  */
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const statusParam = searchParams.get('status') || 'awarded';
-  const includeAmbiguous = searchParams.get('include_ambiguous') === 'true';
-  const versionParam = searchParams.get('version') || '1';
+export function getPmgsyRepresentativeRecords(options: {
+  status?: string;
+  includeAmbiguous?: boolean;
+  version?: string;
+} = {}) {
+  const statusParam = options.status || 'awarded';
+  const includeAmbiguous = options.includeAmbiguous === true;
+  const versionParam = options.version || '1';
 
   const baseRecord = {
     source_name: 'PMGSY / OMMAS Rural Road Registry',
@@ -160,6 +163,21 @@ export async function GET(req: NextRequest) {
       }
     });
   }
+
+  return records;
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const statusParam = searchParams.get('status') || 'awarded';
+  const includeAmbiguous = searchParams.get('include_ambiguous') === 'true';
+  const versionParam = searchParams.get('version') || '1';
+
+  const records = getPmgsyRepresentativeRecords({
+    status: statusParam,
+    includeAmbiguous,
+    version: versionParam
+  });
 
   return NextResponse.json({
     district: 'Ramanagara',

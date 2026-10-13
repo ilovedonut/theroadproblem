@@ -24,6 +24,7 @@ export default function GeospatialDeckPage() {
   const [isDeckCollapsed, setIsDeckCollapsed] = useState(false);
   const [activeDossierTab, setActiveDossierTab] = useState<'overview' | 'contractor' | 'timeline'>('overview');
   const [copied, setCopied] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const [activeLayerFilters, setActiveLayerFilters] = useState({
     officialWorks: true,
@@ -57,20 +58,31 @@ export default function GeospatialDeckPage() {
   const fetchDeckData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/map/deck');
+      const res = await fetch(`/api/v1/map/deck?_t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setRoads(data.roads || []);
         setSignals(data.signals || []);
         setSummary(data.summary || null);
-
-        // Default selectedRoad to null on load so the user sees all indexed corridors immediately
-        setSelectedRoad(null);
       }
     } catch (err) {
       console.error('Failed to load deck telemetry', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncSources = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/v1/ingest/refresh', { method: 'POST' });
+      if (res.ok) {
+        await fetchDeckData();
+      }
+    } catch (err) {
+      console.error('Failed to sync sources', err);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -116,6 +128,128 @@ export default function GeospatialDeckPage() {
   const spendCr = primaryWork?.contract_value_inr 
     ? (parseFloat(String(primaryWork.contract_value_inr)) / 10000000).toFixed(2)
     : null;
+
+  // Dynamic multi-source timeline aggregated for the selected corridor
+  const roadTimelineEvents = React.useMemo(() => {
+    if (!selectedRoad) return [];
+
+    const events: Array<{
+      id: string;
+      date: string;
+      timestamp: number;
+      sourceBadge: string;
+      badgeStyle: 'cyan' | 'purple' | 'orange' | 'emerald' | 'amber';
+      title: string;
+      description: string;
+      url?: string;
+    }> = [];
+
+    // 1. Works events (official tenders & contracts)
+    if (selectedRoad.works && selectedRoad.works.length > 0) {
+      for (const w of selectedRoad.works) {
+        const startDate = w.start_date ? new Date(w.start_date) : null;
+        events.push({
+          id: `work-award-${w.work_id}`,
+          date: startDate && !isNaN(startDate.getTime())
+            ? startDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            : 'Awarded',
+          timestamp: startDate && !isNaN(startDate.getTime()) ? startDate.getTime() : 0,
+          sourceBadge: `[OFFICIAL PORTAL • ${(w.authority_name || 'Procurement').toUpperCase()}]`,
+          badgeStyle: 'cyan',
+          title: `Work Sanctioned: ${w.contractor_name}`,
+          description: `Sanctioned under ${w.tender_id || w.contract_id || 'Tender'} for ₹${(Number(w.contract_value_inr || 0) / 10000000).toFixed(2)} Cr. ${w.package_name}`
+        });
+
+        if (w.defect_liability_end_date) {
+          const dlDate = new Date(w.defect_liability_end_date);
+          events.push({
+            id: `work-warranty-${w.work_id}`,
+            date: dlDate && !isNaN(dlDate.getTime())
+              ? dlDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+              : 'Statutory Warranty',
+            timestamp: dlDate && !isNaN(dlDate.getTime()) ? dlDate.getTime() : Date.now(),
+            sourceBadge: '[STATUTORY WARRANTY]',
+            badgeStyle: 'emerald',
+            title: 'Defect Liability Period Enforced',
+            description: `Mandatory contractor maintenance liability legally enforced through ${w.defect_liability_end_date}.`
+          });
+        }
+      }
+    }
+
+    // 2. Multi-source signals matching this road
+    const rNameLower = selectedRoad.name.toLowerCase();
+    const rRefLower = selectedRoad.ref?.toLowerCase();
+    const matchingSignals = signals.filter((sig) => {
+      if (!sig.road_name) return false;
+      const sLower = sig.road_name.toLowerCase();
+      return (
+        sLower.includes(rNameLower) ||
+        rNameLower.includes(sLower) ||
+        (rRefLower && sLower.includes(rRefLower))
+      );
+    });
+
+    for (const sig of matchingSignals) {
+      const sigDate = sig.date ? new Date(sig.date) : null;
+      const isNews = sig.type === 'news' || sig.status === 'publisher_reported';
+      const isSocial = sig.type === 'social' || sig.type === 'citizen';
+      events.push({
+        id: `sig-${sig.id}`,
+        date: sigDate && !isNaN(sigDate.getTime())
+          ? sigDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+          : 'Reported',
+        timestamp: sigDate && !isNaN(sigDate.getTime()) ? sigDate.getTime() : 0,
+        sourceBadge: isNews
+          ? `[NEWS • ${(sig.source || 'Media').toUpperCase()}]`
+          : isSocial
+          ? `[COMMUNITY • ${(sig.source || 'Civic').toUpperCase()}]`
+          : `[SIGNAL • ${(sig.source || 'Feed').toUpperCase()}]`,
+        badgeStyle: isNews ? 'purple' : isSocial ? 'orange' : 'cyan',
+        title: sig.title,
+        description: sig.details,
+        url: sig.source_url
+      });
+    }
+
+    // 3. Incidents / Ground observations
+    if (selectedRoad.incidents && selectedRoad.incidents.length > 0) {
+      for (const inc of selectedRoad.incidents) {
+        const incDate = inc.last_observed_at ? new Date(inc.last_observed_at) : null;
+        events.push({
+          id: `inc-${inc.incident_id}`,
+          date: incDate && !isNaN(incDate.getTime())
+            ? incDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            : 'Field Report',
+          timestamp: incDate && !isNaN(incDate.getTime()) ? incDate.getTime() : 0,
+          sourceBadge: `[FIELD OBSERVATION • ${inc.verification_state.toUpperCase()}]`,
+          badgeStyle: inc.verification_state === 'corroborated' ? 'emerald' : 'amber',
+          title: `Excavation / Defect Reported: ${inc.category.replace(/_/g, ' ')}`,
+          description: `Lifecycle status: ${inc.lifecycle_status}. Corroboration state: ${inc.verification_state}.`
+        });
+      }
+    }
+
+    // Sort newest first
+    events.sort((a, b) => b.timestamp - a.timestamp);
+    return events;
+  }, [selectedRoad, signals]);
+
+  const getTimelineBadgeClasses = (style: 'cyan' | 'purple' | 'orange' | 'emerald' | 'amber') => {
+    switch (style) {
+      case 'cyan':
+        return { dotBg: 'bg-cyan-950 border-cyan-400', dotFill: 'bg-cyan-400', text: 'text-cyan-400' };
+      case 'purple':
+        return { dotBg: 'bg-purple-950 border-purple-400', dotFill: 'bg-purple-400', text: 'text-purple-400' };
+      case 'orange':
+        return { dotBg: 'bg-orange-950 border-orange-400', dotFill: 'bg-orange-400', text: 'text-orange-400' };
+      case 'emerald':
+        return { dotBg: 'bg-emerald-950 border-emerald-400', dotFill: 'bg-emerald-400', text: 'text-emerald-400' };
+      case 'amber':
+      default:
+        return { dotBg: 'bg-amber-950 border-amber-400', dotFill: 'bg-amber-400', text: 'text-amber-400' };
+    }
+  };
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-slate-950 text-slate-100 select-none">
@@ -279,9 +413,20 @@ export default function GeospatialDeckPage() {
                 ))}
               </div>
 
-              {/* Telemetry Count */}
+              {/* Telemetry Count & Sync Trigger */}
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-0.5">
-                <span>{filteredRoads.length} Corridors Indexed</span>
+                <div className="flex items-center gap-2">
+                  <span>{filteredRoads.length} Corridors Indexed</span>
+                  <button
+                    onClick={handleSyncSources}
+                    disabled={isSyncing}
+                    title="Trigger automated government ingestion and update database"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/40 text-[10px] text-cyan-300 hover:bg-cyan-900 transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-2.5 h-2.5 ${isSyncing ? 'animate-spin text-cyan-400' : ''}`} />
+                    <span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
+                  </button>
+                </div>
                 {summary && (
                   <span className="text-cyan-300 font-bold">₹{summary.total_spend_tracked_cr} Cr Tracked</span>
                 )}
@@ -498,7 +643,7 @@ export default function GeospatialDeckPage() {
                         </div>
 
                         <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-500 font-mono flex items-center justify-between">
-                          <span>Provenance: MoRTH / CPPP</span>
+                          <span>Provenance: {primaryWork.authority_name || 'MoRTH / CPPP'}</span>
                           <span className="text-cyan-400 font-semibold">GODL India 1.0</span>
                         </div>
                       </div>
@@ -513,70 +658,46 @@ export default function GeospatialDeckPage() {
                 {activeDossierTab === 'timeline' && (
                   <div className="space-y-2.5">
                     <p className="text-[11px] text-slate-400 font-mono mb-2">
-                      Multi-source intelligence aggregated across government portals, regional news, Reddit, and field observations:
+                      Multi-source intelligence aggregated across government portals, regional news, community feeds, and field observations:
                     </p>
 
-                    <div className="space-y-2 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-800">
-                      {/* Timeline Item 1 */}
-                      <div className="relative pl-6 text-xs">
-                        <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-cyan-950 border border-cyan-400 flex items-center justify-center">
-                          <span className="w-1 h-1 rounded-full bg-cyan-400"></span>
-                        </div>
-                        <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800">
-                          <div className="flex items-center justify-between font-mono text-[10px]">
-                            <span className="text-cyan-400 font-bold">[OFFICIAL PORTAL]</span>
-                            <span className="text-slate-500">Nov 2025</span>
-                          </div>
-                          <p className="font-semibold text-white mt-0.5 text-xs">Work Order Issued & Awarded to KNR Constructions</p>
-                          <p className="text-slate-400 text-[11px] mt-0.5">Sanctioned under BBMP/2025-26/RD/5401 for ₹48.50 Cr.</p>
-                        </div>
+                    {roadTimelineEvents.length === 0 ? (
+                      <div className="p-4 text-center text-slate-400 font-mono bg-slate-900/50 rounded-lg border border-slate-800 text-xs">
+                        No multi-source intelligence reports recorded for this corridor yet.
                       </div>
-
-                      {/* Timeline Item 2 */}
-                      <div className="relative pl-6 text-xs">
-                        <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-purple-950 border border-purple-400 flex items-center justify-center">
-                          <span className="w-1 h-1 rounded-full bg-purple-400"></span>
-                        </div>
-                        <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800">
-                          <div className="flex items-center justify-between font-mono text-[10px]">
-                            <span className="text-purple-400 font-bold">[NEWS MEDIA • DECCAN HERALD]</span>
-                            <span className="text-slate-500">Mar 2026</span>
-                          </div>
-                          <p className="font-semibold text-white mt-0.5 text-xs">Pipeline Excavation Trench Reported Across Lane</p>
-                          <p className="text-slate-400 text-[11px] mt-0.5">BWSSB utility line digging initiated without inter-agency barricade.</p>
-                        </div>
+                    ) : (
+                      <div className="space-y-2 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-800">
+                        {roadTimelineEvents.map((evt) => {
+                          const cls = getTimelineBadgeClasses(evt.badgeStyle);
+                          return (
+                            <div key={evt.id} className="relative pl-6 text-xs">
+                              <div className={`absolute left-1.5 top-1.5 w-3 h-3 rounded-full ${cls.dotBg} border flex items-center justify-center`}>
+                                <span className={`w-1 h-1 rounded-full ${cls.dotFill}`}></span>
+                              </div>
+                              <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800 space-y-1">
+                                <div className="flex items-center justify-between font-mono text-[10px]">
+                                  <span className={`${cls.text} font-bold`}>{evt.sourceBadge}</span>
+                                  <span className="text-slate-500">{evt.date}</span>
+                                </div>
+                                <p className="font-semibold text-white text-xs">{evt.title}</p>
+                                <p className="text-slate-400 text-[11px] leading-relaxed">{evt.description}</p>
+                                {evt.url && (
+                                  <a
+                                    href={evt.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 font-mono pt-0.5"
+                                  >
+                                    <span>Source Record</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-
-                      {/* Timeline Item 3 */}
-                      <div className="relative pl-6 text-xs">
-                        <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-orange-950 border border-orange-400 flex items-center justify-center">
-                          <span className="w-1 h-1 rounded-full bg-orange-400"></span>
-                        </div>
-                        <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800">
-                          <div className="flex items-center justify-between font-mono text-[10px]">
-                            <span className="text-orange-400 font-bold">[REDDIT r/bangalore]</span>
-                            <span className="text-slate-500">Apr 2026</span>
-                          </div>
-                          <p className="font-semibold text-white mt-0.5 text-xs">Commuter Photo Thread: Unbarricaded pits</p>
-                          <p className="text-slate-400 text-[11px] mt-0.5">Dashcam photos show loose gravel causing two-wheeler skids.</p>
-                        </div>
-                      </div>
-
-                      {/* Timeline Item 4 */}
-                      <div className="relative pl-6 text-xs">
-                        <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-emerald-950 border border-emerald-400 flex items-center justify-center">
-                          <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
-                        </div>
-                        <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800">
-                          <div className="flex items-center justify-between font-mono text-[10px]">
-                            <span className="text-emerald-400 font-bold">[FIELD EVIDENCE #882]</span>
-                            <span className="text-slate-500">Jun 2026</span>
-                          </div>
-                          <p className="font-semibold text-white mt-0.5 text-xs">Geotagged Photo Submitted & Corroborated</p>
-                          <p className="text-slate-400 text-[11px] mt-0.5">Verified by 2 independent neighborhood observers.</p>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
