@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#ea580c',
+  themeColor: '#020617',
 };
 
 export default function RootLayout({
@@ -25,16 +25,16 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className="min-h-screen bg-slate-50 flex flex-col text-slate-900">
+      <body className="min-h-screen bg-slate-950 flex flex-col text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
         <Navigation />
-        <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6">{children}</main>
-        <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-          <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-            <p>© 2026 theroadproblem.quest • Civic Infrastructure Watch</p>
+        <main className="flex-1 w-full flex flex-col">{children}</main>
+        <footer className="bg-slate-950/95 border-t border-slate-900 py-3 text-center text-xs text-slate-500">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <p>© 2026 theroadproblem.quest • Nationwide Public Infrastructure Observability Deck</p>
             <div className="flex gap-4">
-              <a href="/attributions" className="underline hover:text-slate-800">Data Sources & Attributions</a>
-              <a href="/attributions#terms" className="underline hover:text-slate-800">Terms & Privacy</a>
-              <a href="/attributions#grievance" className="underline hover:text-slate-800">Grievance Redressal</a>
+              <a href="/attributions" className="underline hover:text-slate-300 transition-colors">Data Sources & Provenance</a>
+              <a href="/attributions#terms" className="underline hover:text-slate-300 transition-colors">Terms & Privacy</a>
+              <a href="/attributions#grievance" className="underline hover:text-slate-300 transition-colors">Grievance Redressal</a>
             </div>
           </div>
         </footer>

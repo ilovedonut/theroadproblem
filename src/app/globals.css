@@ -1,10 +1,12 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #020617;
+  --foreground: #f8fafc;
 }
 
 body {
@@ -14,15 +16,32 @@ body {
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
-/* Ensure accessible focus visible ring across keyboard navigation */
+/* Accessible focus visible ring */
 *:focus-visible {
-  outline: 2px solid #ea580c;
+  outline: 2px solid #06b6d4;
   outline-offset: 2px;
 }
 
-/* Touch targets at least 44px for accessible mobile interaction */
+/* Touch targets at least 44px */
 button, a, input, select {
   min-height: 44px;
+}
+
+/* Custom dark scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }

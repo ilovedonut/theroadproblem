@@ -2,262 +2,260 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, AlertTriangle, ShieldCheck, MapPin, Construction, Layers, RefreshCw } from 'lucide-react';
+import { 
+  Search, ShieldCheck, AlertTriangle, Layers, Building2, 
+  Banknote, Calendar, RefreshCw, Compass, MapPin, Database, 
+  ExternalLink, ChevronRight, Activity, Newspaper, MessageSquare, Twitter, PlusCircle
+} from 'lucide-react';
+import { GeospatialMap, RoadFeature, MultiSourceSignal } from '@/components/GeospatialMap';
+import { RoadDossierDrawer } from '@/components/RoadDossierDrawer';
 import enMessages from '../messages/en.json';
 import hiMessages from '../messages/hi.json';
 
-interface RoadItem {
-  id: string;
-  name: string;
-  ref: string | null;
-  road_class: string;
-  authority_name: string | null;
-  state: string;
-  district: string;
-  active_incidents_count: string;
-  total_length_m: string;
-}
-
-interface IncidentItem {
-  id: string;
-  category: string;
-  lifecycle_status: string;
-  verification_state: string;
-  road_name: string | null;
-  road_ref: string | null;
-  last_observed_at: string;
-}
-
-export default function ExplorePage() {
+export default function GeospatialDeckPage() {
   const [locale, setLocale] = useState<'en' | 'hi'>('en');
   const [lowData, setLowData] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [roads, setRoads] = useState<RoadItem[]>([]);
-  const [incidents, setIncidents] = useState<IncidentItem[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'works' | 'excavated' | 'completed'>('all');
+  
+  const [roads, setRoads] = useState<RoadFeature[]>([]);
+  const [signals, setSignals] = useState<MultiSourceSignal[]>([]);
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const [selectedRoad, setSelectedRoad] = useState<RoadFeature | null>(null);
+  const [selectedSignal, setSelectedSignal] = useState<MultiSourceSignal | null>(null);
+
+  const [activeLayerFilters, setActiveLayerFilters] = useState({
+    officialWorks: true,
+    excavations: true,
+    newsSocial: true,
+    verifiedIntact: true
+  });
 
   useEffect(() => {
     const savedLocale = (localStorage.getItem('app_locale') as 'en' | 'hi') || 'en';
     setLocale(savedLocale);
     setLowData(localStorage.getItem('app_low_data') === 'true');
 
-    const onLocaleChanged = () => {
-      setLocale((localStorage.getItem('app_locale') as 'en' | 'hi') || 'en');
-    };
-    const onLowDataChanged = () => {
-      setLowData(localStorage.getItem('app_low_data') === 'true');
-    };
-
-    window.addEventListener('locale_changed', onLocaleChanged);
-    window.addEventListener('low_data_changed', onLowDataChanged);
-
-    fetchData();
-
-    return () => {
-      window.removeEventListener('locale_changed', onLocaleChanged);
-      window.removeEventListener('low_data_changed', onLowDataChanged);
-    };
+    fetchDeckData();
   }, []);
 
-  const fetchData = async (search = '') => {
+  const fetchDeckData = async () => {
     setLoading(true);
     try {
-      const [roadsRes, incRes] = await Promise.all([
-        fetch(`/api/v1/roads${search ? `?search=${encodeURIComponent(search)}` : ''}`),
-        fetch(`/api/v1/incidents${selectedFilter !== 'all' ? `?category=${selectedFilter}` : ''}`),
-      ]);
-
-      if (roadsRes.ok) {
-        const data = await roadsRes.json();
+      const res = await fetch('/api/v1/map/deck');
+      if (res.ok) {
+        const data = await res.json();
         setRoads(data.roads || []);
-      }
-      if (incRes.ok) {
-        const data = await incRes.json();
-        setIncidents(data.incidents || []);
+        setSignals(data.signals || []);
+        setSummary(data.summary || null);
+
+        // Auto-select Outer Ring Road on initial load if available so the user sees the dossier immediately
+        if (data.roads && data.roads.length > 0) {
+          const defaultRoad = data.roads.find((r: any) => r.name.includes('Outer Ring Road')) || data.roads[0];
+          setSelectedRoad(defaultRoad);
+        }
       }
     } catch (err) {
-      console.error('Failed to load explore data', err);
+      console.error('Failed to load deck telemetry', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchData(searchQuery);
+  const handleToggleFilter = (key: 'officialWorks' | 'excavations' | 'newsSocial' | 'verifiedIntact') => {
+    setActiveLayerFilters(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
-  const t = locale === 'en' ? enMessages : hiMessages;
+  const filteredRoads = roads.filter(road => {
+    const matchesSearch = 
+      road.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (road.ref && road.ref.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (road.district && road.district.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (road.works?.[0]?.contractor_name && road.works[0].contractor_name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    if (selectedFilter === 'works') {
+      return road.works && road.works.length > 0;
+    }
+    if (selectedFilter === 'excavated') {
+      return road.incidents && road.incidents.length > 0;
+    }
+    if (selectedFilter === 'completed') {
+      return road.works && road.works.some(w => w.official_status === 'officially_completed');
+    }
+
+    return true;
+  });
 
   return (
-    <div className="space-y-6">
-      {/* Coverage Boundary Notification */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4 text-xs sm:text-sm text-amber-900 flex items-start gap-3">
-        <Layers className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <span className="font-semibold block">{t.explore.coverageNotice}</span>
-          <p className="text-amber-800 mt-0.5">
-            Independent basemap, canonical PostGIS road network, and official procurement records are separate layers. Unindexed roads use coordinate fallbacks.
-          </p>
+    <div className="flex flex-col flex-1 w-full min-h-[calc(100vh-80px)] bg-slate-950 text-slate-100 relative">
+      {/* Top Search & Filter Bar */}
+      <div className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 z-30">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+          {/* Omni-search */}
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search highway, road, contractor (L&T, KNR) or district..."
+              className="w-full pl-9 pr-4 py-1.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+            />
+          </div>
+
+          {/* Quick Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto text-xs font-mono py-1">
+            <span className="text-slate-500 text-[11px] hidden lg:inline mr-1">FILTER:</span>
+            {[
+              { id: 'all', label: 'All Corridors' },
+              { id: 'works', label: 'Active Tenders' },
+              { id: 'excavated', label: 'Ground Digs' },
+              { id: 'completed', label: 'Warranty Active' }
+            ].map((pill) => (
+              <button
+                key={pill.id}
+                onClick={() => setSelectedFilter(pill.id as any)}
+                className={`px-2.5 py-1 rounded-md border text-[11px] whitespace-nowrap transition-colors ${
+                  selectedFilter === pill.id
+                    ? 'bg-cyan-950 border-cyan-500 text-cyan-300 font-bold'
+                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+
+          {/* HUD Summary Pill */}
+          {summary && (
+            <div className="hidden xl:flex items-center gap-3 text-xs font-mono text-slate-400">
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                <strong className="text-white">{summary.total_roads_indexed}</strong> corridors
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                <strong className="text-white">₹{summary.total_spend_tracked_cr} Cr</strong> tracked
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Search Header */}
-      <form onSubmit={handleSearchSubmit} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t.explore.searchPlaceholder}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          />
-        </div>
-        <button
-          type="submit"
-          className="px-4 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-semibold hover:bg-brand-700 transition-colors"
-        >
-          {locale === 'en' ? 'Search' : 'खोजें'}
-        </button>
-      </form>
+      {/* Main Geospatial Workspace */}
+      <div className="flex flex-1 relative overflow-hidden">
+        {/* Left Drawer / Corridor Ticker (Desktop) */}
+        <div className="hidden lg:flex flex-col w-80 bg-slate-950/90 border-r border-slate-800/80 z-20 overflow-y-auto">
+          <div className="p-3 border-b border-slate-800/80 bg-slate-900/40 flex items-center justify-between text-xs font-mono text-slate-400">
+            <span className="font-bold text-slate-300">INDEXED CORRIDORS</span>
+            <span>({filteredRoads.length})</span>
+          </div>
 
-      {/* Filter Pills */}
-      <div className="flex flex-wrap gap-2 text-xs">
-        {[
-          { id: 'all', label: t.explore.all },
-          { id: 'pothole', label: t.explore.pothole },
-          { id: 'dug_open', label: t.explore.dug_open },
-          { id: 'damaged_surface', label: t.explore.damaged_surface },
-          { id: 'flooded', label: t.explore.flooded },
-        ].map((pill) => (
-          <button
-            key={pill.id}
-            onClick={() => {
-              setSelectedFilter(pill.id);
-            }}
-            className={`px-3 py-1.5 rounded-full border transition-colors ${
-              selectedFilter === pill.id
-                ? 'bg-slate-900 border-slate-900 text-white font-semibold'
-                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            {pill.label}
-          </button>
-        ))}
-      </div>
+          <div className="divide-y divide-slate-800/60 flex-1">
+            {filteredRoads.map((road) => {
+              const isSelected = selectedRoad?.id === road.id;
+              const hasWorks = road.works && road.works.length > 0;
+              const hasIncidents = road.incidents && road.incidents.length > 0;
 
-      {/* Main Content Grid: Indexed Roads & Active Incidents */}
-      {loading ? (
-        <div className="py-12 text-center text-slate-500 flex flex-col items-center gap-2">
-          <RefreshCw className="w-6 h-6 animate-spin text-brand-600" />
-          <span>{locale === 'en' ? 'Loading civic road data...' : 'सड़क डेटा लोड हो रहा है...'}</span>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column: Indexed Canonical Roads */}
-          <div className="space-y-3">
-            <h2 className="text-base font-bold text-slate-800 flex items-center justify-between">
-              <span>{locale === 'en' ? 'Indexed Canonical Roads' : 'पंजीकृत सड़कें'}</span>
-              <span className="text-xs font-normal text-slate-500">({roads.length})</span>
-            </h2>
-
-            {roads.length === 0 ? (
-              <p className="text-sm text-slate-500 italic p-4 bg-white rounded-lg border border-slate-200">
-                {t.explore.noResults}
-              </p>
-            ) : (
-              roads.map((road) => (
-                <Link
+              return (
+                <button
                   key={road.id}
-                  href={`/roads/${road.id}`}
-                  className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-brand-500 hover:shadow-sm transition-all"
+                  onClick={() => {
+                    setSelectedRoad(road);
+                    setSelectedSignal(null);
+                  }}
+                  className={`w-full text-left p-3 rounded-md transition-colors flex items-start justify-between gap-2 ${
+                    isSelected 
+                      ? 'bg-cyan-950/30 ring-1 ring-cyan-500/40 text-white shadow-[inset_0_1px_0_0_rgba(6,182,212,0.15)]' 
+                      : 'hover:bg-slate-900/50 text-slate-300'
+                  }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 hover:text-brand-600 flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-brand-600 flex-shrink-0" />
-                        <span>{road.name}</span>
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {road.ref ? `${road.ref} • ` : ''}{road.district}, {road.state}
-                      </p>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-xs text-white">{road.name}</span>
                     </div>
-                    {parseInt(road.active_incidents_count) > 0 ? (
-                      <span className="text-xs font-bold px-2 py-1 rounded bg-amber-100 text-amber-800 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
-                        {road.active_incidents_count}
-                      </span>
-                    ) : (
-                      <span className="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700">
-                        {locale === 'en' ? 'No damage reported' : 'कोई समस्या नहीं'}
-                      </span>
+                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                      {road.ref ? `${road.ref} • ` : ''}{road.district}
+                    </p>
+                    {hasWorks && (
+                      <p className="text-[10px] text-cyan-400 font-mono mt-1 truncate max-w-[210px]">
+                        Contractor: {road.works?.[0].contractor_name}
+                      </p>
                     )}
                   </div>
 
-                  <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span>{t.road.authority}: {road.authority_name || 'Public Authority'}</span>
-                    <span>{Math.round(parseFloat(road.total_length_m))}m</span>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-
-          {/* Right Column: Active Community Observations */}
-          <div className="space-y-3">
-            <h2 className="text-base font-bold text-slate-800 flex items-center justify-between">
-              <span>{locale === 'en' ? 'Recent Community Observations' : 'हाल की नागरिक रिपोर्ट'}</span>
-              <span className="text-xs font-normal text-slate-500">({incidents.length})</span>
-            </h2>
-
-            {incidents.length === 0 ? (
-              <p className="text-sm text-slate-500 italic p-4 bg-white rounded-lg border border-slate-200">
-                {t.explore.noResults}
-              </p>
-            ) : (
-              incidents.map((inc) => (
-                <Link
-                  key={inc.id}
-                  href={`/incidents/${inc.id}`}
-                  className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-brand-500 hover:shadow-sm transition-all"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-800 capitalize">
-                        {inc.category.replace('_', ' ')}
+                  <div className="flex flex-col items-end gap-1">
+                    {hasIncidents ? (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800/60 font-semibold">
+                        Excavated
                       </span>
-                      <h3 className="font-semibold text-slate-900 mt-1 text-sm">
-                        {inc.road_name || 'Unmatched Road Location'}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {new Date(inc.last_observed_at).toLocaleDateString(locale === 'en' ? 'en-IN' : 'hi-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </p>
-                    </div>
-
-                    <span
-                      className={`text-xs px-2 py-1 rounded font-medium ${
-                        inc.verification_state === 'corroborated'
-                          ? 'bg-blue-100 text-blue-800'
-                          : inc.verification_state === 'resolved'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {inc.verification_state === 'corroborated' ? 'Corroborated' : inc.verification_state === 'resolved' ? 'Resolved' : 'Unverified'}
+                    ) : hasWorks ? (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60">
+                        Work Active
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                        Indexed
+                      </span>
+                    )}
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {(parseFloat(road.total_length_m || '0') / 1000).toFixed(1)} km
                     </span>
                   </div>
-                </Link>
-              ))
-            )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-3 border-t border-slate-800/80 bg-slate-900/30 text-[10px] text-slate-500 font-mono leading-tight">
+            Data sourced from MoRTH, BBMP, PMGSY, and OSM. Tap any row to zoom and inspect the full dossier.
           </div>
         </div>
-      )}
+
+        {/* Center: Full Geospatial Map Canvas */}
+        <div className="flex-1 relative h-full">
+          {loading ? (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/80 text-cyan-400 font-mono gap-3">
+              <RefreshCw className="w-8 h-8 animate-spin" />
+              <span>INITIALIZING GEOSPATIAL OBSERVATORY...</span>
+            </div>
+          ) : (
+            <GeospatialMap
+              roads={roads}
+              signals={signals}
+              selectedRoadId={selectedRoad?.id || null}
+              onSelectRoad={(road) => {
+                setSelectedRoad(road);
+                setSelectedSignal(null);
+              }}
+              onSelectSignal={(signal) => {
+                setSelectedSignal(signal);
+                setSelectedRoad(null);
+              }}
+              activeLayerFilters={activeLayerFilters}
+              onToggleFilter={handleToggleFilter}
+            />
+          )}
+        </div>
+
+        {/* Right: Slide-out Public Road Dossier Drawer */}
+        <RoadDossierDrawer
+          road={selectedRoad}
+          signal={selectedSignal}
+          onClose={() => {
+            setSelectedRoad(null);
+            setSelectedSignal(null);
+          }}
+        />
+      </div>
     </div>
   );
 }
