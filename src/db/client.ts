@@ -19,9 +19,14 @@ function resolveDatabaseUrl(): string {
 }
 
 const connectionString = resolveDatabaseUrl();
+const isRemoteSsl = connectionString.includes('supabase') || connectionString.includes('sslmode=require');
+if (isRemoteSsl) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 export const pool = new Pool({
   connectionString,
+  ssl: isRemoteSsl ? { rejectUnauthorized: false } : undefined,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

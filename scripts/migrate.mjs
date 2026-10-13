@@ -22,7 +22,14 @@ function resolveDatabaseUrl() {
 }
 
 const connectionString = resolveDatabaseUrl();
-const pool = new Pool({ connectionString });
+const isRemoteSsl = connectionString.includes('supabase') || connectionString.includes('sslmode=require');
+if (isRemoteSsl) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+const pool = new Pool({
+  connectionString,
+  ssl: isRemoteSsl ? { rejectUnauthorized: false } : undefined
+});
 
 async function runMigrations() {
   const isReset = process.argv.includes('--reset');

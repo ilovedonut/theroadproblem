@@ -18,7 +18,15 @@ function resolveDatabaseUrl() {
   return process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/theroadproblem';
 }
 
-const pool = new Pool({ connectionString: resolveDatabaseUrl() });
+const connectionString = resolveDatabaseUrl();
+const isRemoteSsl = connectionString.includes('supabase') || connectionString.includes('sslmode=require');
+if (isRemoteSsl) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+const pool = new Pool({
+  connectionString,
+  ssl: isRemoteSsl ? { rejectUnauthorized: false } : undefined
+});
 
 export async function importRoadsAndLocalities(client) {
   console.log('[seed] Seeding data sources...');
