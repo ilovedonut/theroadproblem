@@ -1,0 +1,31 @@
+{
+  "test": "R14: Offline Drafts and Idempotent Sync",
+  "timestamp": "2026-10-13T10:46:11.045Z",
+  "verifications": [
+    {
+      "case": "1_draft_created_offline",
+      "status": "PASS",
+      "draft_id": "5537e0fa-49cd-4cb8-8743-a60b03d00413",
+      "idempotency_key": "offline-key-1791888371064"
+    },
+    {
+      "case": "2_draft_persisted_across_restart",
+      "status": "PASS",
+      "rehydrated": true
+    },
+    {
+      "case": "3_initial_reconnect_sync",
+      "status": "PASS",
+      "report_id": "62321bc6-5e8d-44bd-92e1-efed939c1e8f",
+      "incident_id": "84efe79c-ea8e-418f-99d9-68955b71e450",
+      "is_idempotent_replay": false
+    },
+    {
+      "case": "4_flapping_retry_idempotency",
+      "status": "PASS",
+      "replayed_report_id": "62321bc6-5e8d-44bd-92e1-efed939c1e8f",
+      "is_idempotent_replay": true,
+      "duplicate_prevented": true
+    }
+  ]
+}

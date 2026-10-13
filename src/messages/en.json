@@ -1,0 +1,88 @@
+{
+  "brand": "theroadproblem.quest",
+  "tagline": "Civic Road History & Public Works Observability for India",
+  "nav": {
+    "explore": "Explore",
+    "report": "Report Issue",
+    "drafts": "My Drafts",
+    "moderate": "Moderation",
+    "attributions": "Attributions & Terms",
+    "language": "Language",
+    "lowData": "Low-Data Mode"
+  },
+  "explore": {
+    "searchPlaceholder": "Search city, road name, or NH/SH ref (e.g. Outer Ring Road, NH-44)...",
+    "all": "All",
+    "pothole": "Potholes",
+    "dug_open": "Dug Open",
+    "damaged_surface": "Damaged",
+    "flooded": "Flooded",
+    "works": "Official Works",
+    "mapView": "Map View",
+    "listView": "List View (Low-Data)",
+    "noResults": "No road incidents matching this filter.",
+    "webglUnavailable": "Map rendering is unavailable on this device/connection. Displaying responsive list view below.",
+    "coverageNotice": "Road Network Coverage: Verified in pilot districts (Bengaluru Urban & Ramanagara, Karnataka). Unindexed areas support coordinate-level reporting."
+  },
+  "road": {
+    "authority": "Authority",
+    "length": "Length",
+    "district": "District",
+    "activeIncidents": "Active Observations",
+    "officialWorks": "Official Public Works & Packages",
+    "timeline": "Chronological Road Audit Timeline",
+    "noIncidents": "No active observations recorded on this road.",
+    "noWorks": "No imported official contracts recorded for this road yet.",
+    "contractor": "Contractor",
+    "contractValue": "Contract Value",
+    "status": "Status",
+    "coexistenceBanner": "Official work marked completed, but subsequent community observations report carriageway damage."
+  },
+  "incident": {
+    "category": "Category",
+    "verification": "Verification Level",
+    "unverified": "Unverified (1 Citizen Observation)",
+    "corroborated": "Corroborated (Multiple Independent Citizens)",
+    "field_reviewed": "Field Reviewed",
+    "disputed": "Disputed / Under Review",
+    "resolved": "Resolved / Surface Restored",
+    "corroborateBtn": "Corroborate Problem",
+    "reportRepairBtn": "Report Repair",
+    "recurrenceNotice": "Recurrent Problem: This road previously had a repaired incident at this location."
+  },
+  "report": {
+    "title": "Report Road Infrastructure Problem",
+    "locationStep": "1. Pick Location",
+    "roadStep": "2. Confirm Road Segment",
+    "duplicateStep": "3. Check Existing Issues",
+    "detailsStep": "4. Describe & Evidence",
+    "detectLocation": "Use Device GPS",
+    "manualSearch": "Or search landmark / locality...",
+    "unmatchedNotice": "No registered canonical road within 100 metres. You can still submit this as an unmatched point report.",
+    "confirmCandidate": "Select this road segment",
+    "sameProblemWarning": "Nearby active issues detected. Is your observation one of these?",
+    "sameProblemBtn": "Yes, this is the same problem (Corroborate)",
+    "differentProblemBtn": "No, this is a separate problem (New Incident)",
+    "categoryLabel": "Problem Category",
+    "statusLabel": "Observed Condition",
+    "descriptionLabel": "Description",
+    "photoLabel": "Add Photo Evidence (Max 2 photos, EXIF metadata will be stripped)",
+    "submitBtn": "Submit Report",
+    "saveDraftBtn": "Save as Offline Draft",
+    "saving": "Submitting observation...",
+    "successMsg": "Observation successfully saved to durable civic record!"
+  },
+  "drafts": {
+    "title": "Offline Drafts & Queue",
+    "empty": "No pending offline drafts on this device.",
+    "syncAll": "Sync All Pending Drafts Now",
+    "deleteDraft": "Discard Draft"
+  },
+  "compliance": {
+    "operator": "Operator",
+    "grievance": "Grievance Officer",
+    "terms": "Terms of Use & Privacy Policy",
+    "dataSources": "Data Source Attributions",
+    "deleteAccount": "Request Personal Data Erasure"
+  }
+}

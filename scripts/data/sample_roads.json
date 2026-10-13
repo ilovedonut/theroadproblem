@@ -1,0 +1,139 @@
+[
+  {
+    "road_name": "Outer Ring Road",
+    "ref": "ORR / NH-44",
+    "road_class": "primary",
+    "authority_name": "BBMP / BDA",
+    "state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "segments": [
+      {
+        "osm_id": 1000101,
+        "chainage_from": 0.0,
+        "chainage_to": 1.2,
+        "coordinates": [
+          [77.6226, 12.9174],
+          [77.6255, 12.9205],
+          [77.6300, 12.9238],
+          [77.6345, 12.9262]
+        ]
+      },
+      {
+        "osm_id": 1000102,
+        "chainage_from": 1.2,
+        "chainage_to": 2.5,
+        "coordinates": [
+          [77.6345, 12.9262],
+          [77.6380, 12.9280],
+          [77.6435, 12.9312],
+          [77.6502, 12.9350]
+        ]
+      }
+    ]
+  },
+  {
+    "road_name": "Hosur Road (Elevated Tollway)",
+    "ref": "NH-44",
+    "road_class": "motorway",
+    "authority_name": "NHAI",
+    "state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "segments": [
+      {
+        "osm_id": 1000201,
+        "chainage_from": 12.0,
+        "chainage_to": 15.5,
+        "coordinates": [
+          [77.6280, 12.8980],
+          [77.6350, 12.8750],
+          [77.6520, 12.8510],
+          [77.6650, 12.8390]
+        ]
+      }
+    ]
+  },
+  {
+    "road_name": "Hosur Road (Surface Service Carriageway)",
+    "ref": "Service Lane NH-44",
+    "road_class": "secondary",
+    "authority_name": "BBMP",
+    "state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "segments": [
+      {
+        "osm_id": 1000202,
+        "chainage_from": 12.0,
+        "chainage_to": 15.5,
+        "coordinates": [
+          [77.6282, 12.8980],
+          [77.6352, 12.8750],
+          [77.6522, 12.8510],
+          [77.6652, 12.8390]
+        ]
+      }
+    ]
+  },
+  {
+    "road_name": "Mahatma Gandhi Road",
+    "ref": "MG Road",
+    "road_class": "primary",
+    "authority_name": "BBMP",
+    "state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "segments": [
+      {
+        "osm_id": 1000301,
+        "chainage_from": 0.0,
+        "chainage_to": 1.8,
+        "coordinates": [
+          [77.6070, 12.9750],
+          [77.6120, 12.9745],
+          [77.6180, 12.9740],
+          [77.6240, 12.9735]
+        ]
+      }
+    ]
+  },
+  {
+    "road_name": "Ramanagara Kanakapura Rural Road",
+    "ref": "MDR-104",
+    "road_class": "secondary",
+    "authority_name": "Karnataka PWD",
+    "state": "Karnataka",
+    "district": "Ramanagara",
+    "segments": [
+      {
+        "osm_id": 2000101,
+        "chainage_from": 0.0,
+        "chainage_to": 4.5,
+        "coordinates": [
+          [77.2780, 12.7210],
+          [77.2950, 12.7050],
+          [77.3120, 12.6890],
+          [77.3300, 12.6710]
+        ]
+      }
+    ]
+  },
+  {
+    "road_name": "Bidadi to Byramangala PMGSY Road",
+    "ref": "KA-25-01",
+    "road_class": "unclassified",
+    "authority_name": "NRIDA / PMGSY",
+    "state": "Karnataka",
+    "district": "Ramanagara",
+    "segments": [
+      {
+        "osm_id": 2000201,
+        "chainage_from": 0.0,
+        "chainage_to": 3.8,
+        "coordinates": [
+          [77.3910, 12.7950],
+          [77.4020, 12.8040],
+          [77.4150, 12.8120],
+          [77.4280, 12.8210]
+        ]
+      }
+    ]
+  }
+]

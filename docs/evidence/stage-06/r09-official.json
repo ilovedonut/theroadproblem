@@ -1,0 +1,12 @@
+{
+  "gate": "R09",
+  "status": "PASS",
+  "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
+  "verified_at": "2026-10-13T10:24:05.260Z",
+  "assertions_passed": [
+    "Initial ingestion linked real public contractor (Larsen & Toubro Infrastructure Engineering Ltd.) with verified CIN and GSTIN",
+    "Scheduled rerun with identical checksum yielded zero duplicate records or events",
+    "Source version change created new source_records snapshot and updated work status",
+    "Audit event recorded transition from officially_completed to maintenance without history loss"
+  ]
+}

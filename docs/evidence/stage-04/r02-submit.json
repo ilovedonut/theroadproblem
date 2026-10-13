@@ -1,0 +1,26 @@
+{
+  "test": "R02: Journey Submit and Durable Retrieval",
+  "timestamp": "2026-10-13T10:44:30.545Z",
+  "steps": [
+    {
+      "step": "1_road_selection",
+      "road_id": "32b3d12c-7692-403c-87e5-8a4e2b9f68e7",
+      "segment_id": "e299413e-ffdd-4f6c-9fa9-30134d34fe3a",
+      "road_name": "Outer Ring Road"
+    },
+    {
+      "step": "2_atomic_submission",
+      "report_id": "76baa7ad-ff81-46ac-85b1-953676ca5c42",
+      "incident_id": "588034db-57df-4e01-840b-1b07c6180c1c",
+      "snap_distance_m": 25.89120563,
+      "canonical_url": "/incidents/588034db-57df-4e01-840b-1b07c6180c1c"
+    },
+    {
+      "step": "3_durable_retrieval_and_reload",
+      "verified": true,
+      "incident_id": "588034db-57df-4e01-840b-1b07c6180c1c",
+      "lifecycle_status": "active",
+      "verification_state": "unverified"
+    }
+  ]
+}

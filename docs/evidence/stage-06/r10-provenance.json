@@ -1,0 +1,30 @@
+{
+  "gate": "R10",
+  "status": "PASS",
+  "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
+  "verified_at": "2026-10-13T10:25:09.103Z",
+  "audited_records_count": 2,
+  "sample_records": [
+    {
+      "package": "Asphalting and Stormwater Drain Rehabilitation of Outer Ring Road Silk Board to Marathahalli",
+      "contractor": "KNR Constructions Limited",
+      "publisher": "Ministry of Road Transport and Highways (MoRTH)",
+      "source_url": "https://data.gov.in/resource/major-road-works-bengaluru-package-5401",
+      "license": "GODL India",
+      "checksum": "c919268de61b237de4684fc5320ec86518f40a5b97de7de5455143e24c58e323",
+      "retrieved_at": "2026-10-13T10:24:05.226Z",
+      "confidence": "verified_contract"
+    },
+    {
+      "package": "Pavement Resurfacing and Periodic Maintenance of NH-44 Chainage 12.0 km to 15.5 km",
+      "contractor": "Larsen & Toubro Infrastructure Engineering Ltd.",
+      "publisher": "National Informatics Centre (NIC)",
+      "source_url": "https://eprocure.gov.in/eprocure/app?page=FrontEndAwardSummary&service=page&tenderId=2024_NHAI_189201_1",
+      "license": "GODL India",
+      "checksum": "1955fc65a6543722e9634cf379f89917c510eaaa7f59e58fdefea58b2a945456",
+      "retrieved_at": "2026-10-13T10:24:05.248Z",
+      "confidence": "verified_contract"
+    }
+  ],
+  "disclaimer_policy": "A contractor's association with a package is documented administrative assignment and not proof of fault or blame for community damage observations."
+}

@@ -1,0 +1,51 @@
+{
+  "gate": "R01",
+  "status": "PASS",
+  "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
+  "verified_at": "2026-10-13T10:16:43.825Z",
+  "measured_sizes": [
+    {
+      "table_name": "reports",
+      "total_size": "104 kB",
+      "table_size": "8192 bytes",
+      "index_size": "88 kB",
+      "total_bytes": "106496"
+    },
+    {
+      "table_name": "roads",
+      "total_size": "72 kB",
+      "table_size": "8192 bytes",
+      "index_size": "56 kB",
+      "total_bytes": "73728"
+    },
+    {
+      "table_name": "incidents",
+      "total_size": "72 kB",
+      "table_size": "8192 bytes",
+      "index_size": "56 kB",
+      "total_bytes": "73728"
+    },
+    {
+      "table_name": "road_segments",
+      "total_size": "56 kB",
+      "table_size": "8192 bytes",
+      "index_size": "40 kB",
+      "total_bytes": "57344"
+    }
+  ],
+  "spatial_query_plan": {
+    "execution_time_ms": 0.307,
+    "planning_time_ms": 0.188,
+    "node_type": "Index Scan"
+  },
+  "national_capacity_projection": {
+    "sample_segments_count": 7,
+    "avg_segment_bytes": 850,
+    "estimated_national_roads_count": 15000000,
+    "projected_database_storage_gb": 12.75,
+    "projected_spatial_index_gb": 3.1,
+    "projected_text_index_gb": 2.2,
+    "total_projected_national_gb": 18.05,
+    "recommended_hosting": "Supabase Pro tier ($25/mo) or dedicated PostGIS instance ($15/mo)"
+  }
+}

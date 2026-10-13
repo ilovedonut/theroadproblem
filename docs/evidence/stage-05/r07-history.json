@@ -1,0 +1,13 @@
+{
+  "gate": "R07",
+  "status": "PASS",
+  "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
+  "verified_at": "2026-10-13T10:23:28.721Z",
+  "assertions_passed": [
+    "Initial damage incident created with active status and first_observed_at timestamp",
+    "Repair observation recorded with verified hot-mix evidence, setting resolved_at",
+    "Subsequent deterioration created new episode linked via predecessor_incident_id",
+    "Older late observation appended to history without overriding newer repair status",
+    "Chronological audit timeline preserved complete verifiable civic history"
+  ]
+}

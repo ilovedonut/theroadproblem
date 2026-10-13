@@ -1,0 +1,83 @@
+[
+  {
+    "name": "Bengaluru",
+    "name_hi": "बेंगलुरु",
+    "state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "type": "city",
+    "lat": 12.9716,
+    "lon": 77.5946
+  },
+  {
+    "name": "Silk Board Junction",
+    "name_hi": "सिल्क बोर्ड जंक्शन",
+    "state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "type": "junction",
+    "lat": 12.9174,
+    "lon": 77.6226
+  },
+  {
+    "name": "Ramanagara",
+    "name_hi": "रामनगर",
+    "state": "Karnataka",
+    "district": "Ramanagara",
+    "type": "town",
+    "lat": 12.7210,
+    "lon": 77.2780
+  },
+  {
+    "name": "Bidadi",
+    "name_hi": "बिदादी",
+    "state": "Karnataka",
+    "district": "Ramanagara",
+    "type": "town",
+    "lat": 12.7950,
+    "lon": 77.3910
+  },
+  {
+    "name": "New Delhi",
+    "name_hi": "नई दिल्ली",
+    "state": "Delhi",
+    "district": "New Delhi",
+    "type": "city",
+    "lat": 28.6139,
+    "lon": 77.2090
+  },
+  {
+    "name": "Mumbai",
+    "name_hi": "मुंबई",
+    "state": "Maharashtra",
+    "district": "Mumbai City",
+    "type": "city",
+    "lat": 19.0760,
+    "lon": 72.8777
+  },
+  {
+    "name": "Lucknow",
+    "name_hi": "लखनऊ",
+    "state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "type": "city",
+    "lat": 26.8467,
+    "lon": 80.9462
+  },
+  {
+    "name": "Patna",
+    "name_hi": "पटना",
+    "state": "Bihar",
+    "district": "Patna",
+    "type": "city",
+    "lat": 25.5941,
+    "lon": 85.1376
+  },
+  {
+    "name": "Guwahati",
+    "name_hi": "गुवाहाटी",
+    "state": "Assam",
+    "district": "Kamrup Metropolitan",
+    "type": "city",
+    "lat": 26.1445,
+    "lon": 91.7362
+  }
+]
