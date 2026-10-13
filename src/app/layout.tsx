@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 5,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: '#020617',
 };
 
@@ -21,23 +22,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="h-full w-full overflow-hidden">
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className="min-h-screen bg-slate-950 flex flex-col text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
+      <body className="h-full w-full overflow-hidden bg-slate-950 flex flex-col text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
         <Navigation />
-        <main className="flex-1 w-full flex flex-col">{children}</main>
-        <footer className="bg-slate-950/95 border-t border-slate-900 py-3 text-center text-xs text-slate-500">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-            <p>© 2026 theroadproblem.quest • Nationwide Public Infrastructure Observability Deck</p>
-            <div className="flex gap-4">
-              <a href="/attributions" className="underline hover:text-slate-300 transition-colors">Data Sources & Provenance</a>
-              <a href="/attributions#terms" className="underline hover:text-slate-300 transition-colors">Terms & Privacy</a>
-              <a href="/attributions#grievance" className="underline hover:text-slate-300 transition-colors">Grievance Redressal</a>
-            </div>
-          </div>
-        </footer>
+        <main className="flex-1 w-full relative overflow-hidden flex flex-col">{children}</main>
       </body>
     </html>
   );
