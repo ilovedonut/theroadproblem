@@ -13,6 +13,7 @@
     "db:seed": "node scripts/seed.mjs",
     "ingest": "node --experimental-strip-types src/lib/ingestor/runner.ts",
     "verify:ingest": "node --experimental-strip-types scripts/verify-ingestion-flow.mjs",
+    "verify:citizen": "node --experimental-strip-types scripts/verify-citizen-flow.mjs",
     "test": "node --experimental-strip-types --test tests/**/*.test.mjs",
     "test:foundation": "node --experimental-strip-types --test tests/foundation.test.mjs",
     "test:auth:roles-rls": "node --experimental-strip-types --test tests/auth-roles-rls.test.mjs",

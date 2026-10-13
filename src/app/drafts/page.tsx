@@ -15,6 +15,7 @@ interface OfflineDraft {
   road_name: string;
   created_at: string;
   photo_name: string | null;
+  photo_data_url?: string | null;
 }
 
 export default function DraftsPage() {
@@ -72,6 +73,23 @@ export default function DraftsPage() {
 
         const json = await res.json();
         if (res.ok) {
+          // If offline draft contained a photo, upload it to Cloudflare R2
+          if (draft.photo_data_url && json.report_id) {
+            try {
+              const resBlob = await fetch(draft.photo_data_url);
+              const blob = await resBlob.blob();
+              const formData = new FormData();
+              formData.append('file', blob, `${json.report_id}.webp`);
+              formData.append('report_id', json.report_id);
+              await fetch('/api/v1/reports/media/upload', {
+                method: 'POST',
+                body: formData,
+              });
+            } catch (mediaErr) {
+              console.warn('Offline draft media sync warning:', mediaErr);
+            }
+          }
+
           results.push({ id: draft.id, success: true, incident_id: json.incident_id });
         } else {
           results.push({ id: draft.id, success: false, error: json.error });

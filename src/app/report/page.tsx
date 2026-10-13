@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { compressImageOnClient, type CompressedImageResult } from '@/lib/client-image';
 
 function ReportWizard() {
   const router = useRouter();
@@ -33,6 +34,8 @@ function ReportWizard() {
   const [observedStatus, setObservedStatus] = useState<string>('damaged');
   const [description, setDescription] = useState<string>('');
   const [photoName, setPhotoName] = useState<string | null>(null);
+  const [compressedPhoto, setCompressedPhoto] = useState<CompressedImageResult | null>(null);
+  const [compressingPhoto, setCompressingPhoto] = useState<boolean>(false);
 
   // Submission State
   const [submitting, setSubmitting] = useState(false);
@@ -123,10 +126,20 @@ function ReportWizard() {
     }
   };
 
-  // Handle Photo selection
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Photo selection with client-side WebP compression
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setPhotoName(e.target.files[0].name);
+      const file = e.target.files[0];
+      setPhotoName(file.name);
+      setCompressingPhoto(true);
+      try {
+        const compressed = await compressImageOnClient(file);
+        setCompressedPhoto(compressed);
+      } catch (err: any) {
+        console.warn('Client-side compression fallback:', err);
+      } finally {
+        setCompressingPhoto(false);
+      }
     }
   };
 
@@ -144,6 +157,7 @@ function ReportWizard() {
       road_name: selectedRoadName,
       created_at: new Date().toISOString(),
       photo_name: photoName,
+      photo_data_url: compressedPhoto?.dataUrl || null,
     };
 
     const existingDrafts = JSON.parse(localStorage.getItem('trp_offline_drafts') || '[]');
@@ -183,6 +197,21 @@ function ReportWizard() {
       const resJson = await res.json();
       if (!res.ok) {
         throw new Error(resJson.error || 'Submission failed');
+      }
+
+      // If photo was captured, upload directly to Cloudflare R2 via media API
+      if (compressedPhoto && resJson.report_id) {
+        try {
+          const formData = new FormData();
+          formData.append('file', compressedPhoto.blob, `${resJson.report_id}.webp`);
+          formData.append('report_id', resJson.report_id);
+          await fetch('/api/v1/reports/media/upload', {
+            method: 'POST',
+            body: formData,
+          });
+        } catch (mediaErr) {
+          console.warn('Media upload non-fatal warning:', mediaErr);
+        }
       }
 
       router.push(resJson.redirect_url || `/incidents/${resJson.incident_id}`);
@@ -500,10 +529,11 @@ function ReportWizard() {
               onChange={(e) => setObservedStatus(e.target.value)}
               className="w-full text-xs p-2.5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
             >
-              <option value="damaged">Damaged (Rough surface, reduced speed)</option>
-              <option value="hazardous">Hazardous (Immediate risk of wheel puncture / fall)</option>
-              <option value="passable_with_care">Passable with Care (Slow crawl required)</option>
-              <option value="impassable">Impassable (Blocked / Flooded)</option>
+              <option value="damaged">Damaged (Rough surface, potholes, reduced speed)</option>
+              <option value="unsafe_workzone">Unsafe Workzone (Open pits, missing barricades)</option>
+              <option value="partially_blocked">Partially Blocked (Passable with care)</option>
+              <option value="dug_open">Dug Open (Utility trench / Impassable)</option>
+              <option value="flooded">Flooded / Waterlogged</option>
             </select>
           </div>
 
@@ -531,9 +561,24 @@ function ReportWizard() {
               onChange={handlePhotoChange}
               className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-100 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-200"
             />
-            {photoName && (
+            {compressingPhoto && (
+              <span className="text-[11px] text-amber-600 block mt-1 animate-pulse">
+                ⚡ Compressing on device to WebP (stripping EXIF metadata)...
+              </span>
+            )}
+            {compressedPhoto && (
+              <div className="mt-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                <span>
+                  ✓ Optimized: {(compressedPhoto.originalBytes / 1024 / 1024).toFixed(1)}MB → {(compressedPhoto.compressedBytes / 1024).toFixed(0)}KB WebP
+                </span>
+                <span className="font-mono text-[10px]">
+                  {compressedPhoto.width}×{compressedPhoto.height}
+                </span>
+              </div>
+            )}
+            {photoName && !compressedPhoto && !compressingPhoto && (
               <span className="text-[11px] text-emerald-600 block mt-1">
-                ✓ Photo selected: {photoName} (EXIF metadata will be stripped automatically)
+                ✓ Photo selected: {photoName}
               </span>
             )}
           </div>
