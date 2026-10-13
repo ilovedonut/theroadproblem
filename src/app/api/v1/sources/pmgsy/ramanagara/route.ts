@@ -49,7 +49,79 @@ export async function GET(req: NextRequest) {
     }
   };
 
-  const records = [baseRecord];
+  const recordKA2502 = {
+    source_name: 'PMGSY / OMMAS Rural Road Registry',
+    publisher: 'National Rural Infrastructure Development Agency (NRIDA) / KRRDA',
+    base_uri: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-02',
+    district: 'Ramanagara',
+    state: 'Karnataka',
+    package_name: 'Package KA-25-02: Kanakapura to Sangama Rural Road Rehabilitation & Shoulder Protection',
+    tender_id: 'PMGSY-OMMAS-KA-25-02-2023',
+    contract_id: 'CTR-PMGSY-KA25-02',
+    work_type: 'Bituminous Rural Road Construction & 5-Year Maintenance',
+    official_status: 'officially_completed',
+    contract_value_inr: 64500000, // ₹6.45 Cr
+    start_date: '2023-09-01',
+    target_completion_date: '2024-05-30',
+    actual_completion_date: '2024-05-25',
+    defect_liability_end_date: '2029-05-25',
+    external_key: 'PMGSY-KA-25-02-2023',
+    source_uri: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-02',
+    sanction_year: '2023-2024',
+    sanction_order_no: 'NRIDA/KA/2023/P-III/104',
+    sanction_date: '2023-08-20',
+    executive_engineer: 'Executive Engineer, KRRDA PIU Ramanagara',
+    road_name_hint: 'Ramanagara Kanakapura Rural Road',
+    road_ref: 'MDR-104',
+    chainage_start_km: 0.0,
+    chainage_end_km: 18.5,
+    payload_version: versionParam,
+    contractor: {
+      legal_name: 'Kaveri Infra Projects India Ltd',
+      normalized_name: 'kaveri-infra-projects-india',
+      vendor_identifier: 'VND-KRRDA-RAM-8841',
+      cin: 'U45200KA2012PLC064890',
+      gstin: '29AABCK4890K1Z4'
+    }
+  };
+
+  const recordKA2503 = {
+    source_name: 'PMGSY / OMMAS Rural Road Registry',
+    publisher: 'National Rural Infrastructure Development Agency (NRIDA) / KRRDA',
+    base_uri: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-03',
+    district: 'Ramanagara',
+    state: 'Karnataka',
+    package_name: 'Package KA-25-03: Channapatna Silk Handloom Cluster to Iggalur Rural Connectivity',
+    tender_id: 'PMGSY-OMMAS-KA-25-03-2023',
+    contract_id: 'CTR-PMGSY-KA25-03',
+    work_type: 'All-Weather Rural Road Pavement Construction & CD Works',
+    official_status: 'awarded',
+    contract_value_inr: 38200000, // ₹3.82 Cr
+    start_date: '2024-01-15',
+    target_completion_date: '2024-12-20',
+    actual_completion_date: null,
+    defect_liability_end_date: '2029-12-20',
+    external_key: 'PMGSY-KA-25-03-2023',
+    source_uri: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-03',
+    sanction_year: '2023-2024',
+    sanction_order_no: 'NRIDA/KA/2023/P-III/112',
+    sanction_date: '2023-09-10',
+    executive_engineer: 'Executive Engineer, KRRDA PIU Ramanagara',
+    road_name_hint: 'Bidadi to Byramangala PMGSY Road',
+    road_ref: 'KA-25-01',
+    chainage_start_km: 0.0,
+    chainage_end_km: 4.95,
+    payload_version: versionParam,
+    contractor: {
+      legal_name: 'Sri Channapatna Infratech Enterprises',
+      normalized_name: 'sri-channapatna-infratech',
+      vendor_identifier: 'VND-KRRDA-RAM-6231',
+      cin: 'U45201KA2017PTC091823',
+      gstin: '29AAACS9182L1Z3'
+    }
+  };
+
+  const records = [baseRecord, recordKA2502, recordKA2503];
 
   if (includeAmbiguous) {
     records.push({

@@ -293,6 +293,11 @@ function ReportForm() {
                   <legend className="font-medium mb-3">
                     Which road is affected?
                   </legend>
+                  <p className="text-sm text-slate-400 mb-3">
+                    {candidates.length === 0
+                      ? "No indexed road was found within 150 metres of this pin. Roads visible on the map may not yet be in our database. You can still report this exact location."
+                      : "Choose the affected road below. These are indexed road segments within 150 metres of your pin; the closest one may not be the correct carriageway."}
+                  </p>
                   <div className="space-y-2">
                     {candidates.map((c) => (
                       <label

@@ -67,6 +67,36 @@ export const CIVIC_SIGNALS_SEED: ParsedCivicSignal[] = [
     verified: false,
     status: "publisher_reported",
     disclaimer: "Journalistic report on municipal audit."
+  },
+  {
+    source_name: "Prajavani Ramanagara District Beat",
+    external_key: "PV-RAM-KANAK-2026-0514",
+    source_uri: "https://prajavani.net/district/ramanagara/kanakapura-rural-road-monsoon-drainage",
+    title: "Pre-Monsoon Culvert Clearance Underway on Kanakapura-Sangama Rural Road",
+    details: "KRRDA engineers inspect 18.5 km stretch following community representations on agricultural runoff. Pavement reported in warranty period.",
+    signal_type: "news_media",
+    road_name: "Ramanagara Kanakapura Rural Road (MDR-104)",
+    lat: 12.5450,
+    lon: 77.4210,
+    published_at: "2026-05-14T07:15:00Z",
+    verified: false,
+    status: "publisher_reported",
+    disclaimer: "Regional press report. Does not certify structural engineering rating."
+  },
+  {
+    source_name: "Citizen Traffic Forum Bengaluru",
+    external_key: "CITIZEN-HOSUR-SURF-2026-0601",
+    source_uri: "https://x.com/BLRTrafficWatch/status/1792019941",
+    title: "Fresh Utility Digging Barricade Noticed on Hosur Road Service Lane near Singasandra",
+    details: "Telecom duct excavation ongoing along western service carriageway. Cautionary reflector drums placed by contractor.",
+    signal_type: "twitter_signal",
+    road_name: "Hosur Road (Surface Service Carriageway)",
+    lat: 12.8790,
+    lon: 77.6480,
+    published_at: "2026-06-01T16:20:00Z",
+    verified: false,
+    status: "publisher_reported",
+    disclaimer: "Citizen social feed observation. Unaudited public submission."
   }
 ];
 

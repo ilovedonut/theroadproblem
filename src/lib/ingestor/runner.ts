@@ -38,41 +38,7 @@ export async function runAllIngestors() {
     const { runPmgsyIngestion } = await import('./adapters/pmgsy-adapter.ts');
     const pmgsySummary = await runPmgsyIngestion(client, {
       district: 'Ramanagara',
-      directRecords: [{
-        source_name: 'PMGSY / OMMAS Rural Road Registry',
-        publisher: 'National Rural Infrastructure Development Agency (NRIDA) / KRRDA',
-        base_uri: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-01',
-        district: 'Ramanagara',
-        state: 'Karnataka',
-        package_name: 'Package KA-25-01: Bidadi Industrial Corridor to Byramangala Pavement Rehabilitation',
-        tender_id: 'PMGSY-OMMAS-KA-25-01-2023',
-        contract_id: 'CTR-PMGSY-KA25-01',
-        work_type: 'Bituminous Concrete Pavement Construction & 5-Year Maintenance',
-        official_status: 'awarded',
-        contract_value_inr: 41850000,
-        start_date: '2023-11-15',
-        target_completion_date: '2024-11-10',
-        actual_completion_date: null,
-        defect_liability_end_date: '2029-11-10',
-        external_key: 'PMGSY-KA-25-01-2023',
-        source_uri: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-01',
-        sanction_year: '2023-2024',
-        sanction_order_no: 'NRIDA/KA/2023/P-III/091',
-        sanction_date: '2023-08-14',
-        executive_engineer: 'Executive Engineer, KRRDA PIU Ramanagara',
-        road_name_hint: 'Bidadi to Byramangala PMGSY Road',
-        road_ref: 'KA-25-01',
-        chainage_start_km: 0.0,
-        chainage_end_km: 4.95,
-        payload_version: '1',
-        contractor: {
-          legal_name: 'Sri Venkateshwara Earthmovers & Infratech',
-          normalized_name: 'sri-venkateshwara-earthmovers-infratech',
-          vendor_identifier: 'VND-KRRDA-RAM-7712',
-          cin: 'U45201KA2015PTC081290',
-          gstin: '29AAHCS9912K1Z5'
-        }
-      }]
+      endpointUrl: 'http://localhost:3000/api/v1/sources/pmgsy/ramanagara'
     });
     summaryReport.runs.push(pmgsySummary);
     console.log(`  Discovered: ${pmgsySummary.total_discovered} | Inserted: ${pmgsySummary.new_inserted} | Updated: ${pmgsySummary.updated} | Skipped (No Change): ${pmgsySummary.unchanged_skipped} | Archived to R2: ${pmgsySummary.r2_archived}`);

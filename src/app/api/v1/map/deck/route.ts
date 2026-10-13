@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/db/client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
+    const dbInfo = await query('SELECT inet_server_addr(), current_database(), current_user');
+    console.log('Deck DB Info:', dbInfo.rows[0]);
     // 1. Fetch roads with segments GeoJSON, associated official works, and active ground incidents
     const roadsQuery = `
       SELECT 
@@ -14,14 +19,14 @@ export async function GET(req: NextRequest) {
         r.state,
         r.district,
         COALESCE(SUM(rs.length_m), 0) as total_length_m,
-        json_agg(DISTINCT jsonb_build_object(
+        COALESCE(json_agg(DISTINCT jsonb_build_object(
           'segment_id', rs.id,
           'chainage_from', rs.chainage_from,
           'chainage_to', rs.chainage_to,
           'length_m', rs.length_m,
           'geojson', ST_AsGeoJSON(rs.geom)::json
-        )) FILTER (WHERE rs.id IS NOT NULL) as segments,
-        json_agg(DISTINCT jsonb_build_object(
+        )) FILTER (WHERE rs.id IS NOT NULL), '[]'::json) as segments,
+        COALESCE(json_agg(DISTINCT jsonb_build_object(
           'work_id', w.id,
           'package_name', w.package_name,
           'authority_name', w.authority_name,
@@ -36,8 +41,8 @@ export async function GET(req: NextRequest) {
           'target_completion_date', w.target_completion_date,
           'actual_completion_date', w.actual_completion_date,
           'defect_liability_end_date', w.defect_liability_end_date
-        )) FILTER (WHERE w.id IS NOT NULL) as works,
-        json_agg(DISTINCT jsonb_build_object(
+        )) FILTER (WHERE w.id IS NOT NULL), '[]'::json) as works,
+        COALESCE(json_agg(DISTINCT jsonb_build_object(
           'incident_id', i.id,
           'category', i.category,
           'lifecycle_status', i.lifecycle_status,
@@ -45,7 +50,7 @@ export async function GET(req: NextRequest) {
           'last_observed_at', i.last_observed_at,
           'lat', ST_Y(i.centroid),
           'lon', ST_X(i.centroid)
-        )) FILTER (WHERE i.id IS NOT NULL) as incidents
+        )) FILTER (WHERE i.id IS NOT NULL), '[]'::json) as incidents
       FROM roads r
       LEFT JOIN road_segments rs ON r.id = rs.road_id AND rs.is_active = TRUE
       LEFT JOIN work_segments ws ON rs.id = ws.road_segment_id
@@ -53,6 +58,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN work_contractors wc ON w.id = wc.work_id
       LEFT JOIN contractors c ON wc.contractor_id = c.id
       LEFT JOIN incidents i ON rs.id = i.road_segment_id AND i.lifecycle_status = 'active'
+      WHERE r.name NOT LIKE 'Test %'
       GROUP BY r.id
       ORDER BY r.name ASC;
     `;

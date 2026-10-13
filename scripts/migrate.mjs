@@ -5,6 +5,27 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
+// Ensure .env.local is loaded if process.env.DATABASE_URL is not set
+if (!process.env.DATABASE_URL) {
+  try {
+    const envPath = path.resolve(process.cwd(), '.env.local');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+          const idx = trimmed.indexOf('=');
+          const key = trimmed.slice(0, idx).trim();
+          const val = trimmed.slice(idx + 1).trim();
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
+      }
+    }
+  } catch {}
+}
+
 function resolveDatabaseUrl() {
   if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('127.0.0.1') && !process.env.DATABASE_URL.includes('localhost')) {
     return process.env.DATABASE_URL;

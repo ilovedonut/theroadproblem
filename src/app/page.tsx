@@ -64,11 +64,8 @@ export default function GeospatialDeckPage() {
         setSignals(data.signals || []);
         setSummary(data.summary || null);
 
-        // Auto-select Outer Ring Road on initial load so the user sees the dossier immediately
-        if (data.roads && data.roads.length > 0) {
-          const defaultRoad = data.roads.find((r: any) => r.name.includes('Outer Ring Road')) || data.roads[0];
-          setSelectedRoad(defaultRoad);
-        }
+        // Default selectedRoad to null on load so the user sees all indexed corridors immediately
+        setSelectedRoad(null);
       }
     } catch (err) {
       console.error('Failed to load deck telemetry', err);
