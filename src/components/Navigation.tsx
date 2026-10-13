@@ -1,33 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { Radio, Database, Globe, WifiOff, PlusCircle, ShieldCheck } from 'lucide-react';
+import { Radio, Database, PlusCircle } from 'lucide-react';
 
 export function Navigation() {
-  const [locale, setLocale] = useState<'en' | 'hi'>('en');
-  const [lowData, setLowData] = useState<boolean>(false);
-
-  useEffect(() => {
-    const savedLocale = (localStorage.getItem('app_locale') as 'en' | 'hi') || 'en';
-    setLocale(savedLocale);
-    setLowData(localStorage.getItem('app_low_data') === 'true');
-  }, []);
-
-  const toggleLocale = () => {
-    const nextLocale = locale === 'en' ? 'hi' : 'en';
-    setLocale(nextLocale);
-    localStorage.setItem('app_locale', nextLocale);
-    window.dispatchEvent(new Event('locale_changed'));
-  };
-
-  const toggleLowData = () => {
-    const nextLowData = !lowData;
-    setLowData(nextLowData);
-    localStorage.setItem('app_low_data', String(nextLowData));
-    window.dispatchEvent(new Event('low_data_changed'));
-  };
-
   return (
     <header className="h-13 bg-slate-950/85 backdrop-blur-xl border-b border-slate-800/80 px-3 sm:px-5 flex items-center justify-between text-slate-200 z-50 select-none flex-shrink-0">
       {/* Branding */}
@@ -47,7 +24,7 @@ export function Navigation() {
         </Link>
       </div>
 
-      {/* Center: Sleek Telemetry HUD Pill */}
+      {/* Center: Live Telemetry HUD Pill */}
       <div className="hidden md:flex items-center gap-3 text-xs font-mono py-1 px-3.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 shadow-inner">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -67,42 +44,20 @@ export function Navigation() {
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex items-center gap-2.5 text-xs">
         <Link
           href="/attributions"
-          className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-colors font-mono text-[11px]"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-colors font-mono text-[11px]"
+          title="Data Sources & Licensing Provenance"
         >
-          <Database className="w-3 h-3" />
-          <span>Provenance</span>
+          <Database className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Provenance</span>
         </Link>
 
-        {/* Low-data toggle */}
-        <button
-          onClick={toggleLowData}
-          title="Toggle low-bandwidth vector mode"
-          className={`flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-mono transition-colors ${
-            lowData
-              ? 'bg-amber-950/80 border-amber-500/60 text-amber-300 font-bold'
-              : 'border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-slate-200'
-          }`}
-        >
-          <WifiOff className="w-3 h-3" />
-          <span className="hidden lg:inline">{lowData ? 'Low-Data' : 'Normal'}</span>
-        </button>
-
-        {/* Language toggle */}
-        <button
-          onClick={toggleLocale}
-          className="flex items-center gap-1 px-2 py-1 rounded border border-slate-800 text-slate-300 hover:bg-slate-900 hover:text-white transition-colors text-[11px] font-mono"
-        >
-          <Globe className="w-3 h-3 text-slate-400" />
-          <span>{locale === 'en' ? 'हिन्दी' : 'EN'}</span>
-        </button>
-
-        {/* Action Button */}
+        {/* Action Button: Add Evidence */}
         <Link
           href="/report"
-          className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs font-mono transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)] hover:shadow-[0_0_16px_rgba(6,182,212,0.45)] whitespace-nowrap"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-cyan-600 hover:bg-cyan-500 text-cyan-950 font-bold text-xs font-mono transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)] hover:shadow-[0_0_16px_rgba(6,182,212,0.45)] whitespace-nowrap"
         >
           <PlusCircle className="w-3.5 h-3.5" />
           <span>+ Add Evidence</span>
