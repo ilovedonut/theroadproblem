@@ -253,6 +253,30 @@ export function GeospatialMap({
     });
   }, []);
 
+  // Smooth camera swoop when road corridor is selected (from panel or canvas)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !selectedRoadId || !roads || roads.length === 0) return;
+
+    const matchedRoad = roads.find((r) => r.id === selectedRoadId);
+    if (!matchedRoad || !matchedRoad.segments || matchedRoad.segments.length === 0) return;
+
+    const allCoords = matchedRoad.segments.flatMap((s) => s.geojson?.coordinates || []);
+    if (allCoords.length === 0) return;
+
+    const midIdx = Math.floor(allCoords.length / 2);
+    const centerCoord = allCoords[midIdx];
+
+    map.flyTo({
+      center: [centerCoord[0], centerCoord[1]],
+      zoom: 13,
+      pitch: 48,
+      bearing: -15,
+      speed: 1.1,
+      essential: true
+    });
+  }, [selectedRoadId, roads, mapLoaded]);
+
   // Update Vector Road Networks on the Map
   useEffect(() => {
     const map = mapRef.current;
