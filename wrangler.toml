@@ -10,8 +10,16 @@ binding = "ASSETS"
 [observability]
 enabled = true
 
+# Private bucket: Unvetted user uploads and raw source records (ZERO public access)
 [[r2_buckets]]
-binding = "EVIDENCE_BUCKET"
-bucket_name = "theroadproblem-evidence"
-preview_bucket_name = "theroadproblem-evidence-preview"
+binding = "QUARANTINE_BUCKET"
+bucket_name = "theroadproblem-quarantine-private"
+preview_bucket_name = "theroadproblem-quarantine-private-preview"
+
+# Public bucket: Sanitized WebP derivatives and vector tile packages (CDN edge access)
+[[r2_buckets]]
+binding = "PUBLIC_DERIVATIVES_BUCKET"
+bucket_name = "theroadproblem-derivatives-public"
+preview_bucket_name = "theroadproblem-derivatives-public-preview"
+
 

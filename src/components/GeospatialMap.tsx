@@ -62,6 +62,9 @@ export interface MultiSourceSignal {
   details: string;
   verified: boolean;
   source_url: string;
+  status?: string;
+  disclaimer?: string;
+  is_demo?: boolean;
 }
 
 interface GeospatialMapProps {

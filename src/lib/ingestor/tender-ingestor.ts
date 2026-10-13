@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import pg from 'pg';
 import type { ParsedTender, IngestRunSummary } from './types.ts';
 import { putStorageObject } from '../storage.ts';
+import { linkWorkSegmentsWithPrecision } from '../matcher.ts';
 
 /**
  * Curated official tenders for primary Bangalore arterial & highway corridors.
@@ -247,25 +248,17 @@ export async function runTenderIngestion(
         ON CONFLICT (work_id, contractor_id) DO UPDATE SET confidence = 'verified_contract';
       `, [workId, contractorId, sourceRecordId]);
 
-      // 8. Associate road segments
-      const roadRes = await client.query(
-        `SELECT id FROM roads WHERE name ILIKE $1 LIMIT 1;`,
-        [`%${t.road_name_hint}%`]
-      );
-      if (roadRes.rows.length > 0) {
-        const roadId = roadRes.rows[0].id;
-        const segRes = await client.query(
-          `SELECT id FROM road_segments WHERE road_id = $1;`,
-          [roadId]
-        );
-        for (const seg of segRes.rows) {
-          await client.query(`
-            INSERT INTO work_segments (work_id, road_segment_id, chainage_start_km, chainage_end_km)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (work_id, road_segment_id) DO NOTHING;
-          `, [workId, seg.id, t.chainage_start_km, t.chainage_end_km]);
-        }
-      }
+      // 8. Associate road segments using multi-criteria precision matching
+      await linkWorkSegmentsWithPrecision(client, workId, {
+        tender_id: t.tender_id,
+        package_name: t.package_name,
+        district: t.district || null,
+        authority_name: t.authority_name,
+        road_name_hint: t.road_name_hint,
+        road_ref: t.road_ref || null,
+        chainage_start_km: t.chainage_start_km,
+        chainage_end_km: t.chainage_end_km,
+      }, sourceRecordId);
 
       // 9. Civic Audit Event
       await client.query(`

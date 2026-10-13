@@ -17,7 +17,7 @@ export function Navigation() {
             <span className="font-bold text-sm tracking-tight text-white group-hover:text-cyan-300 transition-colors">
               theroadproblem<span className="text-cyan-400">.quest</span>
             </span>
-            <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 font-semibold tracking-wider">
+            <span className="hidden sm:inline text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 font-semibold tracking-wider">
               3D Globe
             </span>
           </div>
@@ -45,6 +45,7 @@ export function Navigation() {
 
       {/* Right Controls */}
       <div className="flex items-center gap-2.5 text-xs">
+        <Link href="/account" className="px-2 py-2 text-slate-300 hover:text-cyan-300">Account</Link>
         <Link
           href="/attributions"
           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-colors font-mono text-[11px]"
@@ -57,10 +58,12 @@ export function Navigation() {
         {/* Action Button: Add Evidence */}
         <Link
           href="/report"
+          aria-label="Add evidence"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-cyan-600 hover:bg-cyan-500 text-cyan-950 font-bold text-xs font-mono transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)] hover:shadow-[0_0_16px_rgba(6,182,212,0.45)] whitespace-nowrap"
         >
           <PlusCircle className="w-3.5 h-3.5" />
-          <span>+ Add Evidence</span>
+          <span className="hidden sm:inline">+ Add Evidence</span>
+          <span className="sm:hidden">Add</span>
         </Link>
       </div>
     </header>

@@ -59,113 +59,164 @@ export async function GET(req: NextRequest) {
 
     const roadsRes = await query(roadsQuery);
 
-    // Multi-source intelligence stream compiled from official portals, news reporting, social alerts (Twitter/Reddit), and field observations
-    const multiSourceSignals = [
-      {
-        id: 'sig-01',
-        type: 'official_portal',
-        source: 'MoRTH CPPP / eProcurement',
-        title: 'Work Order Issued: Silk Board to Marathahalli ORR Resurfacing & SWD',
-        date: '2025-11-04',
-        road_name: 'Outer Ring Road (ORR / NH-44)',
-        lat: 12.9205,
-        lon: 77.6255,
-        details: 'Tender ID BBMP/2025-26/RD/WORK_INDENT_5401 sanctioned for ₹48.50 Cr awarded to KNR Constructions Limited.',
-        verified: true,
-        source_url: 'https://data.gov.in/resource/major-road-works-bengaluru-package-5401'
-      },
-      {
-        id: 'sig-02',
-        type: 'news_media',
-        source: 'Deccan Herald Civic Beat',
-        title: 'BWSSB Pipeline Excavation Cuts Through Newly Laid Lane on Outer Ring Road',
-        date: '2026-03-12',
-        road_name: 'Outer Ring Road (ORR / NH-44)',
-        lat: 12.9348,
-        lon: 77.6712,
-        details: 'Cauvery Stage V pipeline connection trench dug across newly surfaced carriage lane near Bellandur junction. Commuters face severe delays.',
-        verified: true,
-        source_url: 'https://deccanherald.com/city/top-bengaluru-stories/orr-resurfaced-stretch-dug-up-bwssb'
-      },
-      {
-        id: 'sig-03',
-        type: 'reddit_community',
-        source: 'Reddit r/bangalore Civic Watch',
-        title: 'ORR near Ecospace has been dug up for the 3rd time in 6 months despite ₹48 Cr tender',
-        date: '2026-04-18',
-        road_name: 'Outer Ring Road (ORR / NH-44)',
-        lat: 12.9262,
-        lon: 77.6845,
-        details: 'Megathread documenting recurrent trenching between Silk Board and Iblur. Multiple dashcam clips confirm exposed rebar and unbarricaded pits.',
-        verified: true,
-        source_url: 'https://reddit.com/r/bangalore/comments/orr_excavation_audit'
-      },
-      {
-        id: 'sig-04',
-        type: 'twitter_signal',
-        source: 'Twitter / X @BLRTrafficWatch',
-        title: 'Unbarricaded excavation pit causing bottleneck on Hosur Road Surface Service Lane',
-        date: '2026-05-02',
-        road_name: 'Hosur Road (Surface Service Carriageway)',
-        lat: 12.8870,
-        lon: 77.6430,
-        details: 'Visual evidence tagged to @BBMPCOMM. Surface lane reduced to single file. No cautionary blinker installed.',
-        verified: true,
-        source_url: 'https://x.com/BLRTrafficWatch/status/17892301923'
-      },
-      {
-        id: 'sig-05',
-        type: 'official_portal',
-        source: 'NHAI Project Monitoring Information System (PMIS)',
-        title: 'NH-44 Elevated Expressway Periodic Maintenance Package Declared in Warranty',
-        date: '2025-08-15',
-        road_name: 'Hosur Road (Elevated Tollway)',
-        lat: 12.9030,
-        lon: 77.6320,
-        details: 'Contractor Larsen & Toubro Infrastructure Engineering Ltd. Defect Liability Period active until August 2028. Total spend ₹28.45 Cr.',
-        verified: true,
-        source_url: 'https://nhai.gov.in/project-monitoring/nh44-blr'
-      },
-      {
-        id: 'sig-06',
-        type: 'news_media',
-        source: 'The Hindu',
-        title: 'BBMP initiates ₹12 Cr Smart City white-topping audit on MG Road',
-        date: '2026-02-20',
-        road_name: 'Mahatma Gandhi Road (MG Road)',
-        lat: 12.9748,
-        lon: 77.6074,
-        details: 'Inspections reveal utility duct covers intact along Anil Kumble Circle stretch. Pavement condition index rated satisfactory.',
-        verified: true,
-        source_url: 'https://thehindu.com/news/cities/bangalore/mg-road-corridor-audit'
-      },
-      {
-        id: 'sig-07',
-        type: 'official_portal',
-        source: 'PMGSY / OMMAS Rural Road Registry',
-        title: 'Package KA-25-01 Completed under PMGSY Batch III in Ramanagara',
-        date: '2024-11-10',
-        road_name: 'Bidadi to Byramangala PMGSY Road',
-        lat: 12.8040,
-        lon: 77.4020,
-        details: '4.95 km all-weather rural road connecting Bidadi industrial corridor to Byramangala village. 5-year routine maintenance obligation active.',
-        verified: true,
-        source_url: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-01'
-      },
-      {
-        id: 'sig-08',
-        type: 'field_evidence',
-        source: 'Verified Citizen Field Report #882',
-        title: 'Asphalt crumbling near Byramangala culvert after monsoon runoff',
-        date: '2026-06-04',
-        road_name: 'Bidadi to Byramangala PMGSY Road',
-        lat: 12.8120,
-        lon: 77.4150,
-        details: '3 geotagged photos attached. Edge deterioration observed along 120m stretch. Corroborated by 2 local village residents.',
-        verified: true,
-        source_url: '/incidents/sample-field-report-882'
-      }
-    ];
+    // 2. Query live intelligence stream from database source_records
+    const sourceRecordsRes = await query(`
+      SELECT 
+        sr.id,
+        sr.external_key,
+        sr.source_uri,
+        sr.raw_content,
+        sr.retrieved_at,
+        ds.name as source_name,
+        ds.publisher
+      FROM source_records sr
+      JOIN data_sources ds ON sr.source_id = ds.id
+      ORDER BY sr.retrieved_at DESC
+      LIMIT 50;
+    `);
+
+    let multiSourceSignals: any[] = [];
+
+    if (sourceRecordsRes.rows.length > 0) {
+      multiSourceSignals = sourceRecordsRes.rows.map((row: any) => {
+        const raw = row.raw_content || {};
+        const isOfficial = !raw.signal_type || raw.signal_type === 'official_portal';
+        return {
+          id: row.id,
+          type: raw.signal_type || 'official_portal',
+          source: row.source_name || raw.source_name || 'Public Data Registry',
+          title: raw.title || raw.package_name || `Source Record: ${row.external_key}`,
+          date: (raw.published_at || raw.start_date || row.retrieved_at || '').substring(0, 10),
+          road_name: raw.road_name || raw.road_name_hint || 'Monitored Corridor',
+          lat: raw.lat ? parseFloat(raw.lat) : 12.9205,
+          lon: raw.lon ? parseFloat(raw.lon) : 77.6255,
+          details: raw.details || (raw.work_type ? `${raw.work_type} (Status: ${raw.official_status || 'recorded'})` : `Tender/Source Record ${row.external_key}`),
+          verified: false, // Invariant: news/social/external imports never assert verified ground condition
+          status: isOfficial ? 'official_procurement_record' : 'publisher_reported',
+          source_url: row.source_uri,
+          disclaimer: isOfficial
+            ? 'Administrative procurement entry. Denotes official budget/contract allocation, not verified physical road condition.'
+            : 'Publisher/social reported claim. Does not certify ground truth condition without physical audit.',
+          is_demo: false
+        };
+      });
+    } else {
+      // Fallback demonstrative signals with STRICT verified: false and explicit demo labeling
+      multiSourceSignals = [
+        {
+          id: 'demo-sig-01',
+          type: 'official_portal',
+          source: 'MoRTH CPPP / eProcurement',
+          title: 'Work Order Issued: Silk Board to Marathahalli ORR Resurfacing & SWD',
+          date: '2025-11-04',
+          road_name: 'Outer Ring Road (ORR / NH-44)',
+          lat: 12.9205,
+          lon: 77.6255,
+          details: 'Tender ID BBMP/2025-26/RD/WORK_INDENT_5401 sanctioned for ₹48.50 Cr awarded to KNR Constructions Limited.',
+          verified: false,
+          status: 'official_procurement_record',
+          disclaimer: 'Administrative tender award. Denotes fiscal allocation, not inspected pavement quality.',
+          is_demo: true,
+          source_url: 'https://data.gov.in/resource/major-road-works-bengaluru-package-5401'
+        },
+        {
+          id: 'demo-sig-02',
+          type: 'news_media',
+          source: 'Deccan Herald Civic Beat',
+          title: 'BWSSB Pipeline Excavation Cuts Through Newly Laid Lane on Outer Ring Road',
+          date: '2026-03-12',
+          road_name: 'Outer Ring Road (ORR / NH-44)',
+          lat: 12.9348,
+          lon: 77.6712,
+          details: 'Cauvery Stage V pipeline connection trench dug across newly surfaced carriage lane near Bellandur junction. Commuters face severe delays.',
+          verified: false,
+          status: 'publisher_reported',
+          disclaimer: 'Publisher reported claim. Physical road condition has not been independently verified.',
+          is_demo: true,
+          source_url: 'https://deccanherald.com/city/top-bengaluru-stories/orr-resurfaced-stretch-dug-up-bwssb'
+        },
+        {
+          id: 'demo-sig-03',
+          type: 'reddit_community',
+          source: 'Reddit r/bangalore Civic Watch',
+          title: 'ORR near Ecospace has been dug up for the 3rd time in 6 months despite ₹48 Cr tender',
+          date: '2026-04-18',
+          road_name: 'Outer Ring Road (ORR / NH-44)',
+          lat: 12.9262,
+          lon: 77.6845,
+          details: 'Megathread documenting recurrent trenching between Silk Board and Iblur. Multiple dashcam clips confirm exposed rebar and unbarricaded pits.',
+          verified: false,
+          status: 'publisher_reported',
+          disclaimer: 'Unverified community forum report. Represents commuter sentiment, not engineering ground audit.',
+          is_demo: true,
+          source_url: 'https://reddit.com/r/bangalore/comments/orr_excavation_audit'
+        },
+        {
+          id: 'demo-sig-04',
+          type: 'twitter_signal',
+          source: 'Twitter / X @BLRTrafficWatch',
+          title: 'Unbarricaded excavation pit causing bottleneck on Hosur Road Surface Service Lane',
+          date: '2026-05-02',
+          road_name: 'Hosur Road (Surface Service Carriageway)',
+          lat: 12.8870,
+          lon: 77.6430,
+          details: 'Visual evidence tagged to @BBMPCOMM. Surface lane reduced to single file. No cautionary blinker installed.',
+          verified: false,
+          status: 'publisher_reported',
+          disclaimer: 'Social post alert. Unverified public observation.',
+          is_demo: true,
+          source_url: 'https://x.com/BLRTrafficWatch/status/17892301923'
+        },
+        {
+          id: 'demo-sig-05',
+          type: 'official_portal',
+          source: 'NHAI Project Monitoring Information System (PMIS)',
+          title: 'NH-44 Elevated Expressway Periodic Maintenance Package Declared in Warranty',
+          date: '2025-08-15',
+          road_name: 'Hosur Road (Elevated Tollway)',
+          lat: 12.9030,
+          lon: 77.6320,
+          details: 'Contractor Larsen & Toubro Infrastructure Engineering Ltd. Defect Liability Period active until August 2028. Total spend ₹28.45 Cr.',
+          verified: false,
+          status: 'official_procurement_record',
+          disclaimer: 'Official authority warranty status registry.',
+          is_demo: true,
+          source_url: 'https://nhai.gov.in/project-monitoring/nh44-blr'
+        },
+        {
+          id: 'demo-sig-06',
+          type: 'news_media',
+          source: 'The Hindu',
+          title: 'BBMP initiates ₹12 Cr Smart City white-topping audit on MG Road',
+          date: '2026-02-20',
+          road_name: 'Mahatma Gandhi Road (MG Road)',
+          lat: 12.9748,
+          lon: 77.6074,
+          details: 'Inspections reveal utility duct covers intact along Anil Kumble Circle stretch. Pavement condition index rated satisfactory.',
+          verified: false,
+          status: 'publisher_reported',
+          disclaimer: 'Publisher reported journalistic account.',
+          is_demo: true,
+          source_url: 'https://thehindu.com/news/cities/bangalore/mg-road-corridor-audit'
+        },
+        {
+          id: 'demo-sig-07',
+          type: 'official_portal',
+          source: 'PMGSY / OMMAS Rural Road Registry',
+          title: 'Package KA-25-01 Completed under PMGSY Batch III in Ramanagara',
+          date: '2024-11-10',
+          road_name: 'Bidadi to Byramangala PMGSY Road',
+          lat: 12.8040,
+          lon: 77.4020,
+          details: '4.95 km all-weather rural road connecting Bidadi industrial corridor to Byramangala village. 5-year routine maintenance obligation active.',
+          verified: false,
+          status: 'official_procurement_record',
+          disclaimer: 'Government portal entry (OMMAS). Reflects administrative completion, not real-time physical inspection.',
+          is_demo: true,
+          source_url: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-01'
+        }
+      ];
+    }
 
     // Compute summary metrics for the telemetry deck
     const totalRoads = roadsRes.rows.length;

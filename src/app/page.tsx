@@ -588,9 +588,20 @@ export default function GeospatialDeckPage() {
             /* Mode C: Public Signal Dossier */
             <div className="p-4 flex-1 overflow-y-auto space-y-3.5 text-xs font-sans">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800/60 font-semibold">
-                  Public Signal
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded font-semibold ${
+                    selectedSignal.status === 'publisher_reported'
+                      ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
+                      : 'bg-purple-950 text-purple-300 border border-purple-800/60'
+                  }`}>
+                    {selectedSignal.status === 'publisher_reported' ? 'Publisher Claim (Unverified)' : (selectedSignal.status || 'Public Signal')}
+                  </span>
+                  {selectedSignal.is_demo && (
+                    <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                      Demo Content
+                    </span>
+                  )}
+                </div>
                 <span className="text-[11px] text-slate-400 font-mono">{selectedSignal.date}</span>
               </div>
 
@@ -601,6 +612,13 @@ export default function GeospatialDeckPage() {
                   <span>{selectedSignal.road_name}</span>
                 </p>
               </div>
+
+              {selectedSignal.disclaimer && (
+                <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-800/40 text-[11px] text-amber-200/90 leading-relaxed font-mono">
+                  <span className="font-bold text-amber-300">Notice: </span>
+                  {selectedSignal.disclaimer}
+                </div>
+              )}
 
               <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-300 leading-relaxed text-xs">
                 {selectedSignal.details}

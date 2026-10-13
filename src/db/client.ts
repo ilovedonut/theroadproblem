@@ -20,15 +20,38 @@ function resolveDatabaseUrl(): string {
   return process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/theroadproblem';
 }
 
-const connectionString = resolveDatabaseUrl();
-const isRemoteSsl = connectionString.includes('supabase') || connectionString.includes('sslmode=require');
+import fs from 'node:fs';
+import path from 'node:path';
+
+const connectionStringRaw = resolveDatabaseUrl();
+const isRemoteSsl = connectionStringRaw.includes('supabase') || connectionStringRaw.includes('sslmode=require');
+
+let sslConfig: pg.ConnectionConfig['ssl'] = undefined;
+let connectionString = connectionStringRaw;
+
 if (isRemoteSsl) {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  // Strip duplicate sslmode query parameter to avoid libpqcompat conflict in pg driver
+  connectionString = connectionStringRaw.replace(/[\?&]sslmode=[^&]+/, '');
+  
+  // Resolve CA certificate
+  let caCert: string | undefined = process.env.DB_CA_CERT;
+  if (!caCert) {
+    const certPath = path.resolve(process.cwd(), 'certs/supabase-ca.pem');
+    if (fs.existsSync(certPath)) {
+      caCert = fs.readFileSync(certPath, 'utf8');
+    }
+  }
+
+  sslConfig = {
+    ca: caCert,
+    rejectUnauthorized: true,
+    checkServerIdentity: () => undefined,
+  };
 }
 
 export const pool = new Pool({
   connectionString,
-  ssl: isRemoteSsl ? { rejectUnauthorized: false } : undefined,
+  ssl: sslConfig,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

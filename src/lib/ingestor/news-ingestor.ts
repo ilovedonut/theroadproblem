@@ -19,7 +19,9 @@ export const CIVIC_SIGNALS_SEED: ParsedCivicSignal[] = [
     lat: 12.9348,
     lon: 77.6712,
     published_at: "2026-03-12T08:30:00Z",
-    verified: true
+    verified: false,
+    status: "publisher_reported",
+    disclaimer: "Publisher reported article. Does not certify ground truth condition without physical audit."
   },
   {
     source_name: "Reddit r/bangalore Civic Watch",
@@ -32,7 +34,9 @@ export const CIVIC_SIGNALS_SEED: ParsedCivicSignal[] = [
     lat: 12.9262,
     lon: 77.6845,
     published_at: "2026-04-18T14:15:00Z",
-    verified: true
+    verified: false,
+    status: "publisher_reported",
+    disclaimer: "Community forum discussion thread. Uncorroborated social commentary."
   },
   {
     source_name: "Twitter / X @BLRTrafficWatch",
@@ -45,7 +49,9 @@ export const CIVIC_SIGNALS_SEED: ParsedCivicSignal[] = [
     lat: 12.8870,
     lon: 77.6430,
     published_at: "2026-05-02T09:40:00Z",
-    verified: true
+    verified: false,
+    status: "publisher_reported",
+    disclaimer: "Social post report. Denotes public claim, not verified engineering ground condition."
   },
   {
     source_name: "The Hindu Bengaluru",
@@ -58,7 +64,9 @@ export const CIVIC_SIGNALS_SEED: ParsedCivicSignal[] = [
     lat: 12.9748,
     lon: 77.6074,
     published_at: "2026-02-20T11:00:00Z",
-    verified: true
+    verified: false,
+    status: "publisher_reported",
+    disclaimer: "Journalistic report on municipal audit."
   }
 ];
 

@@ -4,8 +4,9 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 
 export interface StorageUploadResult {
   key: string;
-  url: string;
+  url?: string;
   size: number;
+  bucket: string;
   driver: 'r2-binding' | 'r2-s3' | 'local';
 }
 
@@ -35,53 +36,160 @@ function getS3Client(): S3Client | null {
 }
 
 /**
- * Attempt to get Cloudflare Worker R2 binding from @opennextjs/cloudflare
+ * Access Cloudflare Worker bindings dynamically from @opennextjs/cloudflare
  */
-async function getCloudflareR2Bucket(): Promise<any | null> {
+async function getCloudflareBinding(bindingName: string): Promise<any | null> {
   try {
-    // Dynamic import to prevent bundler failures in non-edge environments
     const { getCloudflareContext } = await import('@opennextjs/cloudflare');
     const ctx = await getCloudflareContext({ async: true });
     const env = ctx?.env as Record<string, any> | undefined;
-    if (env && env.EVIDENCE_BUCKET) {
-      return env.EVIDENCE_BUCKET;
+    if (env && env[bindingName]) {
+      return env[bindingName];
     }
   } catch {
-    // Not running in Cloudflare worker context
+    // Not running inside Cloudflare worker environment
   }
   return null;
 }
 
+// Separate bucket configuration ensuring strict privacy
+const QUARANTINE_BUCKET_NAME = process.env.R2_QUARANTINE_BUCKET || 'theroadproblem-quarantine-private';
+const PUBLIC_BUCKET_NAME = process.env.R2_PUBLIC_BUCKET || 'theroadproblem-derivatives-public';
+
+const LOCAL_PRIVATE_DIR = process.env.LOCAL_PRIVATE_DIR || './storage_private';
+const LOCAL_PUBLIC_DIR = process.env.LOCAL_PUBLIC_DIR || './storage_public';
+
 /**
- * Resolves the public URL for an asset.
- * If R2_PUBLIC_URL is configured (e.g. https://evidence.theroadproblem.quest), use that.
- * Otherwise fallback to /derivatives/{key} or /api/v1/storage/{key}.
+ * Public CDN URL for derivatives. Never returns URLs for quarantined private items.
  */
-export function getStoragePublicUrl(key: string): string {
+export function getPublicDerivativeUrl(key: string): string {
+  if (key.startsWith('quarantine/') || key.includes('private')) {
+    throw new Error('Privacy Violation: Quarantined original files have no public URL.');
+  }
   const customDomain = process.env.R2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_URL;
   if (customDomain) {
     const base = customDomain.replace(/\/+$/, '');
     const cleanKey = key.replace(/^\/+/, '');
     return `${base}/${cleanKey}`;
   }
-  return `/${key}`;
+  return `/${key.replace(/^\/+/, '')}`;
 }
 
 /**
- * Store an object (evidence photo, tender PDF, or data export)
- * Priority:
- * 1. Cloudflare Native R2 Bucket Binding (Edge runtime)
- * 2. Cloudflare R2 via S3-compatible API (Server / Actions / CLI)
- * 3. Local filesystem fallback (Offline development & unit tests)
+ * 1. QUARANTINE STORAGE: Strictly Private Bucket
+ * Stores unvetted citizen uploads and raw evidence payloads with zero public access.
  */
-export async function putStorageObject(
+export async function putQuarantinedOriginal(
   key: string,
   buffer: Buffer | Uint8Array,
-  contentType: string = 'application/octet-stream',
-  localBaseDir: string = process.env.LOCAL_STORAGE_DIR || './storage_data'
+  contentType: string = 'application/octet-stream'
 ): Promise<StorageUploadResult> {
-  // 1. Check Cloudflare Native R2 Binding
-  const r2Bucket = await getCloudflareR2Bucket();
+  // Edge R2 binding
+  const r2Bucket = await getCloudflareBinding('QUARANTINE_BUCKET');
+  if (r2Bucket) {
+    await r2Bucket.put(key, buffer, {
+      httpMetadata: { contentType },
+    });
+    return {
+      key,
+      size: buffer.length,
+      bucket: QUARANTINE_BUCKET_NAME,
+      driver: 'r2-binding',
+    };
+  }
+
+  // S3 Client
+  const s3 = getS3Client();
+  if (s3 && process.env.STORAGE_DRIVER !== 'local') {
+    await s3.send(new PutObjectCommand({
+      Bucket: QUARANTINE_BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    }));
+    return {
+      key,
+      size: buffer.length,
+      bucket: QUARANTINE_BUCKET_NAME,
+      driver: 'r2-s3',
+    };
+  }
+
+  // Local private filesystem (outside web root)
+  const fullPath = path.join(LOCAL_PRIVATE_DIR, key);
+  fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+  fs.writeFileSync(fullPath, buffer);
+
+  return {
+    key,
+    size: buffer.length,
+    bucket: 'local-private',
+    driver: 'local',
+  };
+}
+
+export async function getQuarantinedOriginal(key: string): Promise<Buffer | null> {
+  const r2Bucket = await getCloudflareBinding('QUARANTINE_BUCKET');
+  if (r2Bucket) {
+    const obj = await r2Bucket.get(key);
+    if (!obj) return null;
+    return Buffer.from(await obj.arrayBuffer());
+  }
+
+  const s3 = getS3Client();
+  if (s3 && process.env.STORAGE_DRIVER !== 'local') {
+    try {
+      const response = await s3.send(new GetObjectCommand({
+        Bucket: QUARANTINE_BUCKET_NAME,
+        Key: key,
+      }));
+      if (!response.Body) return null;
+      return Buffer.from(await response.Body.transformToByteArray());
+    } catch (err: any) {
+      if (err.name === 'NoSuchKey') return null;
+      throw err;
+    }
+  }
+
+  const fullPath = path.join(LOCAL_PRIVATE_DIR, key);
+  if (!fs.existsSync(fullPath)) return null;
+  return fs.readFileSync(fullPath);
+}
+
+export async function deleteQuarantinedOriginal(key: string): Promise<boolean> {
+  const r2Bucket = await getCloudflareBinding('QUARANTINE_BUCKET');
+  if (r2Bucket) {
+    await r2Bucket.delete(key);
+    return true;
+  }
+
+  const s3 = getS3Client();
+  if (s3 && process.env.STORAGE_DRIVER !== 'local') {
+    await s3.send(new DeleteObjectCommand({
+      Bucket: QUARANTINE_BUCKET_NAME,
+      Key: key,
+    }));
+    return true;
+  }
+
+  const fullPath = path.join(LOCAL_PRIVATE_DIR, key);
+  if (fs.existsSync(fullPath)) {
+    fs.unlinkSync(fullPath);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 2. PUBLIC DERIVATIVES STORAGE: Public CDN Bucket
+ * Stores normalized, EXIF-stripped WebP derivative images and public data exports.
+ */
+export async function putPublicDerivative(
+  key: string,
+  buffer: Buffer | Uint8Array,
+  contentType: string = 'image/webp'
+): Promise<StorageUploadResult> {
+  const r2Bucket = await getCloudflareBinding('PUBLIC_DERIVATIVES_BUCKET') || await getCloudflareBinding('EVIDENCE_BUCKET');
   if (r2Bucket) {
     await r2Bucket.put(key, buffer, {
       httpMetadata: {
@@ -91,114 +199,103 @@ export async function putStorageObject(
     });
     return {
       key,
-      url: getStoragePublicUrl(key),
+      url: getPublicDerivativeUrl(key),
       size: buffer.length,
+      bucket: PUBLIC_BUCKET_NAME,
       driver: 'r2-binding',
     };
   }
 
-  // 2. Check S3 / R2 credentials
   const s3 = getS3Client();
-  const bucketName = process.env.R2_BUCKET_NAME || 'theroadproblem-evidence';
   if (s3 && process.env.STORAGE_DRIVER !== 'local') {
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
+    await s3.send(new PutObjectCommand({
+      Bucket: PUBLIC_BUCKET_NAME,
       Key: key,
       Body: buffer,
       ContentType: contentType,
       CacheControl: 'public, max-age=31536000, immutable',
-    });
-    await s3.send(command);
+    }));
     return {
       key,
-      url: getStoragePublicUrl(key),
+      url: getPublicDerivativeUrl(key),
       size: buffer.length,
+      bucket: PUBLIC_BUCKET_NAME,
       driver: 'r2-s3',
     };
   }
 
-  // 3. Fallback to Local Filesystem
-  const fullPath = path.join(localBaseDir, key);
+  const fullPath = path.join(LOCAL_PUBLIC_DIR, key);
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, buffer);
 
   return {
     key,
-    url: getStoragePublicUrl(key),
+    url: getPublicDerivativeUrl(key),
     size: buffer.length,
+    bucket: 'local-public',
     driver: 'local',
   };
 }
 
-/**
- * Retrieve an object from storage
- */
-export async function getStorageObject(
-  key: string,
-  localBaseDir: string = process.env.LOCAL_STORAGE_DIR || './storage_data'
-): Promise<Buffer | null> {
-  // 1. Edge R2 Binding
-  const r2Bucket = await getCloudflareR2Bucket();
+export async function getPublicDerivative(key: string): Promise<Buffer | null> {
+  const r2Bucket = await getCloudflareBinding('PUBLIC_DERIVATIVES_BUCKET') || await getCloudflareBinding('EVIDENCE_BUCKET');
   if (r2Bucket) {
     const obj = await r2Bucket.get(key);
     if (!obj) return null;
-    const arrayBuffer = await obj.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    return Buffer.from(await obj.arrayBuffer());
   }
 
-  // 2. S3 / R2 Client
   const s3 = getS3Client();
-  const bucketName = process.env.R2_BUCKET_NAME || 'theroadproblem-evidence';
   if (s3 && process.env.STORAGE_DRIVER !== 'local') {
     try {
       const response = await s3.send(new GetObjectCommand({
-        Bucket: bucketName,
+        Bucket: PUBLIC_BUCKET_NAME,
         Key: key,
       }));
       if (!response.Body) return null;
-      const byteArray = await response.Body.transformToByteArray();
-      return Buffer.from(byteArray);
+      return Buffer.from(await response.Body.transformToByteArray());
     } catch (err: any) {
       if (err.name === 'NoSuchKey') return null;
       throw err;
     }
   }
 
-  // 3. Local Filesystem
-  const fullPath = path.join(localBaseDir, key);
-  if (!fs.existsSync(fullPath)) {
-    return null;
-  }
+  const fullPath = path.join(LOCAL_PUBLIC_DIR, key);
+  if (!fs.existsSync(fullPath)) return null;
   return fs.readFileSync(fullPath);
 }
 
-/**
- * Delete an object from storage (e.g. DPDP Act right-to-erasure)
- */
+// Backward-compatible generic storage methods
+export async function putStorageObject(
+  key: string,
+  buffer: Buffer | Uint8Array,
+  contentType: string = 'application/octet-stream',
+  localBaseDir?: string
+): Promise<StorageUploadResult> {
+  if (key.startsWith('quarantine/') || key.startsWith('raw_sources/')) {
+    return putQuarantinedOriginal(key, buffer, contentType);
+  }
+  return putPublicDerivative(key, buffer, contentType);
+}
+
+export async function getStorageObject(
+  key: string,
+  localBaseDir?: string
+): Promise<Buffer | null> {
+  if (key.startsWith('quarantine/') || key.startsWith('raw_sources/')) {
+    return getQuarantinedOriginal(key);
+  }
+  return getPublicDerivative(key);
+}
+
 export async function deleteStorageObject(
   key: string,
-  localBaseDir: string = process.env.LOCAL_STORAGE_DIR || './storage_data'
+  localBaseDir?: string
 ): Promise<boolean> {
-  // 1. Edge R2 Binding
-  const r2Bucket = await getCloudflareR2Bucket();
-  if (r2Bucket) {
-    await r2Bucket.delete(key);
-    return true;
+  if (key.startsWith('quarantine/') || key.startsWith('raw_sources/')) {
+    return deleteQuarantinedOriginal(key);
   }
-
-  // 2. S3 / R2 Client
-  const s3 = getS3Client();
-  const bucketName = process.env.R2_BUCKET_NAME || 'theroadproblem-evidence';
-  if (s3 && process.env.STORAGE_DRIVER !== 'local') {
-    await s3.send(new DeleteObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-    }));
-    return true;
-  }
-
-  // 3. Local Filesystem
-  const fullPath = path.join(localBaseDir, key);
+  const fullPath = path.join(LOCAL_PUBLIC_DIR, key);
   if (fs.existsSync(fullPath)) {
     fs.unlinkSync(fullPath);
     return true;

@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { LocationCorrection } from '@/components/LocationCorrection';
+import { AccountPanel } from '@/components/AccountPanel';
 
 export default function IncidentDetailPage() {
   const params = useParams();
@@ -53,18 +55,10 @@ export default function IncidentDetailPage() {
     setCorroborateError(null);
 
     try {
-      // Create or use local citizen test user ID for unauthenticated flow
-      let actorId = localStorage.getItem('trp_actor_id');
-      if (!actorId) {
-        actorId = crypto.randomUUID();
-        localStorage.setItem('trp_actor_id', actorId);
-      }
-
       const res = await fetch(`/api/v1/reports/${incidentId}/corroborate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          actor_id: actorId,
           verdict: corroborateVerdict,
           comment: corroborateComment,
           observation_time: new Date().toISOString()
@@ -92,17 +86,10 @@ export default function IncidentDetailPage() {
     setRepairError(null);
 
     try {
-      let actorId = localStorage.getItem('trp_actor_id');
-      if (!actorId) {
-        actorId = crypto.randomUUID();
-        localStorage.setItem('trp_actor_id', actorId);
-      }
-
       const res = await fetch(`/api/v1/reports/${incidentId}/repair`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          actor_id: actorId,
           status: 'resolved',
           evidence_description: repairDescription || 'Surface repair completed',
           observed_at: new Date().toISOString()
@@ -152,7 +139,9 @@ export default function IncidentDetailPage() {
   const { incident, reports, corroborations, predecessor } = data;
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-6">
+    <main className="max-w-3xl mx-auto px-4 py-6 w-full overflow-y-auto">
+      <LocationCorrection incidentId={incidentId} lat={Number(incident.lat)} lon={Number(incident.lon)} />
+      {(isCorroborating || isRepairing) && <AccountPanel />}
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-4 text-xs text-slate-500 dark:text-slate-400">
         <Link href="/" className="hover:underline">Explore</Link>
@@ -354,7 +343,9 @@ export default function IncidentDetailPage() {
                       key={m.id}
                       className="w-24 h-24 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] text-slate-400"
                     >
-                      <span>Photo #{m.id.substring(0, 4)}</span>
+                      <a href={`/api/v1/media/${m.id}`} target="_blank" rel="noopener noreferrer" className="block w-full h-full" aria-label="Open evidence photo">
+                        <img src={`/api/v1/media/${m.id}`} alt="Citizen evidence of this road issue" loading="lazy" className="w-full h-full object-cover" />
+                      </a>
                     </div>
                   ))}
                 </div>

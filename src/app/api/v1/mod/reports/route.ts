@@ -1,28 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/db/client';
-import { verifySessionToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { query } from "@/db/client";
+import { requireAccount } from "@/lib/account-server";
+import { errorResponse } from "@/lib/evidence-validation";
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  let isModerator = false;
-  if (authHeader?.startsWith('Bearer ')) {
-    const claims = await verifySessionToken(authHeader.substring(7));
-    if (claims?.role === 'moderator' || claims?.role === 'admin') {
-      isModerator = true;
-    }
-  }
-
-  // Allow bypass for local dev testing if param is passed
-  const devRole = req.nextUrl.searchParams.get('role');
-  if (devRole === 'moderator' || devRole === 'admin') {
-    isModerator = true;
-  }
-
-  if (!isModerator) {
-    return NextResponse.json({ error: 'Forbidden: Moderator credentials required' }, { status: 403 });
-  }
-
   try {
+    await requireAccount(req, true);
     const res = await query(`
       SELECT r.id, r.incident_id, r.category, r.observed_status, r.description,
              r.observed_at, r.publication_status, r.moderation_reason,
@@ -35,6 +18,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ reports: res.rows });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return errorResponse(err);
   }
 }

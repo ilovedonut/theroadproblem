@@ -21,14 +21,29 @@ function resolveDatabaseUrl() {
   return process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/theroadproblem';
 }
 
-const connectionString = resolveDatabaseUrl();
-const isRemoteSsl = connectionString.includes('supabase') || connectionString.includes('sslmode=require');
+const connectionStringRaw = resolveDatabaseUrl();
+const isRemoteSsl = connectionStringRaw.includes('supabase') || connectionStringRaw.includes('sslmode=require');
+
+let sslConfig = undefined;
+let connectionString = connectionStringRaw;
+
 if (isRemoteSsl) {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  connectionString = connectionStringRaw.replace(/[\?&]sslmode=[^&]+/, '');
+  const certPath = path.resolve('certs/supabase-ca.pem');
+  let caCert = undefined;
+  if (fs.existsSync(certPath)) {
+    caCert = fs.readFileSync(certPath, 'utf8');
+  }
+  sslConfig = {
+    ca: caCert,
+    rejectUnauthorized: true,
+    checkServerIdentity: () => undefined,
+  };
 }
+
 const pool = new Pool({
   connectionString,
-  ssl: isRemoteSsl ? { rejectUnauthorized: false } : undefined
+  ssl: sslConfig
 });
 
 async function runMigrations() {

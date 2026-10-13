@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-13",
+  "scope": "Verified accounts, map-pin evidence, photo recovery, and reviewed location corrections",
+  "unit_tests": { "passed": 5, "files": ["tests/evidence-validation.test.mjs", "tests/auth-provider.test.mjs"], "auth_provider": "Mocked; no real email sent" },
+  "database": { "environment": "Local WSL PostgreSQL theroadproblem", "test": "tests/location-corrections.sql", "result": "Passed", "changes": "All rolled back", "checks": ["pending leaves pin unchanged", "citizen review denied", "accepted pin changes", "original observation preserved", "audit event appended", "stale overwrite denied", "duplicate review denied", "rejection recorded", "private emails inaccessible to public role", "browser role cannot edit account roles", "untrusted direct function execution denied"] },
+  "http": { "preview": "http://localhost:3002", "result": "Unauthenticated POSTs rejected with 401", "checks": ["reports", "media upload", "pin corrections", "correction review", "incident merge", "erasure", "operations controls", "role=admin bypass rejected"] },
+  "browser": { "result": "Map placement, road-check progression, photo selection and preview, review, saving and restoring drafts checked", "photo": "Synthetic test image; no report published", "responsive": "390px layout inspected; header crowding corrected", "screenshot": "docs/evidence/verified-accounts/location-picker.jpg" },
+  "remaining_configuration": ["Supabase Auth project URL and publishable key", "Email OTP template and SMTP delivery", "Apply migration to target project", "Real email verification and deployed runtime checks"],
+  "deployment": "Not performed"
+}

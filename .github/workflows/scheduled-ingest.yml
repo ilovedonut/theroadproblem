@@ -36,6 +36,8 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || 'theroadproblem-evidence' }}
+          QUARANTINE_BUCKET_NAME: ${{ secrets.QUARANTINE_BUCKET_NAME || 'theroadproblem-quarantine' }}
+          PUBLIC_DERIVATIVES_BUCKET_NAME: ${{ secrets.PUBLIC_DERIVATIVES_BUCKET_NAME || 'theroadproblem-public-derivatives' }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
           NODE_ENV: production
         run: npm run ingest
@@ -47,6 +49,8 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || 'theroadproblem-evidence' }}
+          QUARANTINE_BUCKET_NAME: ${{ secrets.QUARANTINE_BUCKET_NAME || 'theroadproblem-quarantine' }}
+          PUBLIC_DERIVATIVES_BUCKET_NAME: ${{ secrets.PUBLIC_DERIVATIVES_BUCKET_NAME || 'theroadproblem-public-derivatives' }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
         run: npm run verify:ingest
 
@@ -57,6 +61,8 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || 'theroadproblem-evidence' }}
+          QUARANTINE_BUCKET_NAME: ${{ secrets.QUARANTINE_BUCKET_NAME || 'theroadproblem-quarantine' }}
+          PUBLIC_DERIVATIVES_BUCKET_NAME: ${{ secrets.PUBLIC_DERIVATIVES_BUCKET_NAME || 'theroadproblem-public-derivatives' }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
         run: npm run verify:citizen
 

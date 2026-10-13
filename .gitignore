@@ -40,4 +40,8 @@ next-env.d.ts
 *.tmp
 storage_data/
 storage_data_test/
+storage_private/
+storage_public/
+supabase/.temp/
+
 

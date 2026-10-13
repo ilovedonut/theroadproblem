@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import sharp from 'sharp';
-import { putStorageObject, getStoragePublicUrl } from './storage.ts';
+import { putQuarantinedOriginal, putPublicDerivative, getPublicDerivativeUrl } from './storage.ts';
 
 export interface ProcessMediaResult {
   sha256: string;
@@ -54,8 +54,8 @@ export async function processAndQuarantinePhoto(
   const quarantineKey = `quarantine/${fileId}_raw.${format}`;
   const derivativeKey = `derivatives/${fileId}_norm.webp`;
 
-  // 4. Save quarantined original (private / zero public access)
-  await putStorageObject(quarantineKey, inputBuffer, `image/${format}`, storageBaseDir);
+  // 4. Save quarantined original (private bucket / zero public access)
+  await putQuarantinedOriginal(quarantineKey, inputBuffer, `image/${format}`);
 
   // 5. Generate normalized derivative:
   // - Resize longest edge to at most 1600px
@@ -71,8 +71,20 @@ export async function processAndQuarantinePhoto(
     .webp({ quality: 80 })
     .toBuffer();
 
-  // Save public derivative
-  await putStorageObject(derivativeKey, derivativeBuffer, 'image/webp', storageBaseDir);
+  // Save public derivative (public bucket / CDN accessible)
+  await putPublicDerivative(derivativeKey, derivativeBuffer, 'image/webp');
+
+  // Support local test harness directory override if specified
+  if (storageBaseDir && storageBaseDir !== './storage_data') {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const qPath = path.join(storageBaseDir, quarantineKey);
+    const dPath = path.join(storageBaseDir, derivativeKey);
+    fs.mkdirSync(path.dirname(qPath), { recursive: true });
+    fs.mkdirSync(path.dirname(dPath), { recursive: true });
+    fs.writeFileSync(qPath, inputBuffer);
+    fs.writeFileSync(dPath, derivativeBuffer);
+  }
 
   return {
     sha256,
@@ -83,7 +95,7 @@ export async function processAndQuarantinePhoto(
     height: Math.min(height, MAX_DERIVATIVE_DIMENSION),
     quarantine_key: quarantineKey,
     derivative_key: derivativeKey,
-    derivative_url: getStoragePublicUrl(derivativeKey),
+    derivative_url: getPublicDerivativeUrl(derivativeKey),
   };
 }
 

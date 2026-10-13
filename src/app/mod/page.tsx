@@ -1,34 +1,44 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { AccountPanel } from "@/components/AccountPanel";
+import { CorrectionQueue } from "@/components/CorrectionQueue";
 
 export default function ModeratorQueuePage() {
-  const [role, setRole] = useState<'moderator' | 'citizen'>('moderator');
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Incident Merge Tool state
-  const [sourceId, setSourceId] = useState('');
-  const [targetId, setTargetId] = useState('');
-  const [mergeReason, setMergeReason] = useState('Duplicate observation confirmed by field review');
+  const [sourceId, setSourceId] = useState("");
+  const [targetId, setTargetId] = useState("");
+  const [mergeReason, setMergeReason] = useState(
+    "Duplicate observation confirmed by field review",
+  );
   const [merging, setMerging] = useState(false);
   const [mergeResult, setMergeResult] = useState<any>(null);
   const [mergeError, setMergeError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHeldReports();
-  }, [role]);
+    const refresh = () => {
+      void fetchHeldReports();
+    };
+    window.addEventListener("trp-account-changed", refresh);
+    return () => window.removeEventListener("trp-account-changed", refresh);
+  }, []);
 
   const fetchHeldReports = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/v1/mod/reports?role=${role}`);
+      const res = await fetch("/api/v1/mod/reports");
       if (!res.ok) {
         if (res.status === 403) {
-          throw new Error('Access Denied: You do not have moderator credentials.');
+          throw new Error(
+            "Access Denied: You do not have moderator credentials.",
+          );
         }
         throw new Error(`HTTP ${res.status}`);
       }
@@ -49,25 +59,24 @@ export default function ModeratorQueuePage() {
     setMergeResult(null);
 
     try {
-      const res = await fetch('/api/v1/mod/incidents/merge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/v1/mod/incidents/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           source_incident_id: sourceId.trim(),
           target_incident_id: targetId.trim(),
           reason: mergeReason,
-          moderator_id: '44444444-4444-4444-8444-444444444444', // Seeded moderator UUID
         }),
       });
 
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error || 'Incident merge failed');
+        throw new Error(json.error || "Incident merge failed");
       }
 
       setMergeResult(json.merge);
-      setSourceId('');
-      setTargetId('');
+      setSourceId("");
+      setTargetId("");
     } catch (err: any) {
       setMergeError(err.message);
     } finally {
@@ -76,35 +85,24 @@ export default function ModeratorQueuePage() {
   };
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-6">
+    <main className="max-w-4xl mx-auto px-4 py-6 w-full overflow-y-auto">
+      <AccountPanel />
+      <CorrectionQueue />
       {/* Header and Role Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Moderation & Curatorial Console</h1>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">
+            Moderation & Curatorial Console
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Review quarantined observations, triage abuse reports, and merge duplicate incident episodes.
+            Review quarantined observations, triage abuse reports, and merge
+            duplicate incident episodes.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg">
-          <span className="text-slate-500 font-semibold px-2">Role:</span>
-          <button
-            onClick={() => setRole('moderator')}
-            className={`px-3 py-1 rounded font-bold transition ${
-              role === 'moderator' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300'
-            }`}
-          >
-            Moderator
-          </button>
-          <button
-            onClick={() => setRole('citizen')}
-            className={`px-3 py-1 rounded font-bold transition ${
-              role === 'citizen' ? 'bg-slate-300 text-slate-800 dark:bg-slate-700 dark:text-white' : 'text-slate-600 dark:text-slate-300'
-            }`}
-          >
-            Citizen (Negative Esc.)
-          </button>
-        </div>
+        <p className="text-sm text-slate-400">
+          Access follows your signed-in account.
+        </p>
       </div>
 
       {/* Access Denied Card if unprivileged */}
@@ -156,7 +154,9 @@ export default function ModeratorQueuePage() {
 
                   <div className="text-[11px] text-slate-500 flex justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
                     <span>Reporter: {rep.reporter_name}</span>
-                    <span>Reason: {rep.moderation_reason || 'Automated filter'}</span>
+                    <span>
+                      Reason: {rep.moderation_reason || "Automated filter"}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -176,7 +176,10 @@ export default function ModeratorQueuePage() {
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm text-xs">
             <p className="text-slate-500 mb-4 leading-relaxed">
-              Consolidates duplicate episodes. Re-parents all reports, media derivatives, and corroborations from the source incident into the canonical target incident. Retains full history and projects an audit event.
+              Consolidates duplicate episodes. Re-parents all reports, media
+              derivatives, and corroborations from the source incident into the
+              canonical target incident. Retains full history and projects an
+              audit event.
             </p>
 
             <form onSubmit={handleMerge} className="space-y-3">
@@ -230,8 +233,14 @@ export default function ModeratorQueuePage() {
               {mergeResult && (
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded space-y-1">
                   <div className="font-bold">✓ Merge Completed Atomically:</div>
-                  <div>Transferred {mergeResult.reports_transferred} report(s) and {mergeResult.corroborations_transferred} corroboration(s).</div>
-                  <Link href={`/incidents/${mergeResult.target_id}`} className="font-bold underline block mt-1">
+                  <div>
+                    Transferred {mergeResult.reports_transferred} report(s) and{" "}
+                    {mergeResult.corroborations_transferred} corroboration(s).
+                  </div>
+                  <Link
+                    href={`/incidents/${mergeResult.target_id}`}
+                    className="font-bold underline block mt-1"
+                  >
                     Open Canonical Target Incident →
                   </Link>
                 </div>
@@ -239,10 +248,12 @@ export default function ModeratorQueuePage() {
 
               <button
                 type="submit"
-                disabled={merging || role !== 'moderator'}
+                disabled={merging}
                 className="w-full py-2.5 bg-slate-900 hover:bg-black dark:bg-amber-600 dark:hover:bg-amber-700 text-white font-bold rounded-lg transition disabled:opacity-50 mt-2"
               >
-                {merging ? 'Executing Atomic Merge...' : 'Execute Transactional Merge'}
+                {merging
+                  ? "Executing Atomic Merge..."
+                  : "Execute Transactional Merge"}
               </button>
             </form>
           </div>

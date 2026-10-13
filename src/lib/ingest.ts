@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import pg from 'pg';
+import { linkWorkSegmentsWithPrecision } from './matcher.ts';
 
 export interface IngestSummary {
   total: number;
@@ -106,19 +107,17 @@ export async function ingestOfficialContracts(
       ON CONFLICT (work_id, contractor_id) DO UPDATE SET confidence = 'verified_contract';
     `, [workId, contractorId, sourceRecordId]);
 
-    // 7. Spatial / Road Segment Linkage
-    const roadRes = await client.query(`SELECT id FROM roads WHERE name ILIKE $1 LIMIT 1;`, [`%${c.road_name_hint}%`]);
-    if (roadRes.rows.length > 0) {
-      const roadId = roadRes.rows[0].id;
-      const segRes = await client.query(`SELECT id FROM road_segments WHERE road_id = $1;`, [roadId]);
-      for (const seg of segRes.rows) {
-        await client.query(`
-          INSERT INTO work_segments (work_id, road_segment_id, chainage_start_km, chainage_end_km)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (work_id, road_segment_id) DO NOTHING;
-        `, [workId, seg.id, c.chainage_start_km, c.chainage_end_km]);
-      }
-    }
+    // 7. Multi-Criteria Precision Spatial / Road Segment Linkage
+    await linkWorkSegmentsWithPrecision(client, workId, {
+      tender_id: c.tender_id,
+      package_name: c.package_name,
+      district: c.district || null,
+      authority_name: c.authority_name,
+      road_name_hint: c.road_name_hint,
+      road_ref: c.road_ref || null,
+      chainage_start_km: c.chainage_start_km,
+      chainage_end_km: c.chainage_end_km,
+    }, sourceRecordId);
 
     // 8. Append Civic Audit Event
     await client.query(`

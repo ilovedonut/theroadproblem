@@ -26,6 +26,10 @@ export async function compressImageOnClient(file: File): Promise<CompressedImage
       const img = new Image();
       img.onerror = () => reject(new Error('Failed to decode image data'));
       img.onload = () => {
+        if (!img.width || !img.height || img.width * img.height > 20_000_000) {
+          reject(new Error('Choose a photo with a resolution below 20 megapixels.'));
+          return;
+        }
         let width = img.width;
         let height = img.height;
 

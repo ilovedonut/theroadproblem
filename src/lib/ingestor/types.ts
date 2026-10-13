@@ -22,7 +22,9 @@ export interface ParsedTender {
   defect_liability_end_date: string;
   external_key: string;
   source_uri: string;
+  district?: string;
   road_name_hint: string;
+  road_ref?: string;
   chainage_start_km: number;
   chainage_end_km: number;
   contractor: {
@@ -45,7 +47,10 @@ export interface ParsedCivicSignal {
   lat: number;
   lon: number;
   published_at: string;
-  verified: boolean;
+  verified: false; // External news/social reports never imply verified physical ground condition
+  status: 'publisher_reported' | 'citizen_observed' | 'official_gazette';
+  disclaimer?: string;
+  is_demo?: boolean;
 }
 
 export interface IngestRunSummary {
