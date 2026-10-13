@@ -1,11 +1,11 @@
 {
   "test": "R03: Fault Tolerance and Journey Resilience",
-  "timestamp": "2026-10-13T10:45:43.678Z",
+  "timestamp": "2026-10-13T11:40:31.152Z",
   "verifications": [
     {
       "case": "1_gps_denied_manual_pin",
       "status": "PASS",
-      "report_id": "b9c5ed12-b941-4b54-a83b-4f10e29b4d90",
+      "report_id": "c0635efa-7c42-43ca-aafe-78feedd9790d",
       "coordinates": [
         12.935,
         77.62
@@ -21,7 +21,7 @@
     {
       "case": "3_no_match_unmapped_reporting",
       "status": "PASS",
-      "report_id": "95e65a55-bcc9-488f-ba23-bdcdf7a7e64a",
+      "report_id": "1301a7a7-f14e-4b59-bb65-32da173f3bb4",
       "road_segment_id": null
     },
     {

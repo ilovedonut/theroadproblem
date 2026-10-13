@@ -11,6 +11,10 @@ coverage/
 out/
 build/
 dist/
+.open-next/
+.wrangler/
+.agents/
+skills-lock.json
 
 # production
 *.pem

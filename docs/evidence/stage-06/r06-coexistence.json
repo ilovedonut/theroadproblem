@@ -2,7 +2,7 @@
   "gate": "R06",
   "status": "PASS",
   "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
-  "verified_at": "2026-10-13T10:24:39.185Z",
+  "verified_at": "2026-10-13T11:40:31.321Z",
   "assertions_passed": [
     "Official work status (officially_completed) preserved with primary contractor attribution",
     "Subsequent field observation (dug_open) on same road segment recorded simultaneously",

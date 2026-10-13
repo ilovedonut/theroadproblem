@@ -7,13 +7,15 @@ function resolveDatabaseUrl(): string {
   if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('127.0.0.1') && !process.env.DATABASE_URL.includes('localhost')) {
     return process.env.DATABASE_URL;
   }
-  try {
-    const wslIp = execSync('wsl -d Ubuntu -- hostname -I', { encoding: 'utf8' }).trim().split(/\s+/)[0];
-    if (wslIp) {
-      return `postgres://postgres:postgres@${wslIp}:5432/theroadproblem`;
+  if (process.platform === 'win32') {
+    try {
+      const wslIp = execSync('wsl -d Ubuntu -- hostname -I', { encoding: 'utf8' }).trim().split(/\s+/)[0];
+      if (wslIp) {
+        return `postgres://postgres:postgres@${wslIp}:5432/theroadproblem`;
+      }
+    } catch {
+      // fallback
     }
-  } catch {
-    // fallback
   }
   return process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/theroadproblem';
 }

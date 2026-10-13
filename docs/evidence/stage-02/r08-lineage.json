@@ -2,7 +2,7 @@
   "gate": "R08",
   "status": "PASS",
   "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
-  "verified_at": "2026-10-13T10:16:45.036Z",
+  "verified_at": "2026-10-13T11:40:32.051Z",
   "tests": [
     "Unchanged reimport preserves segment count and UUID identity without duplication",
     "Split way reimport populates road_segment_lineage with transition_type 'split'",

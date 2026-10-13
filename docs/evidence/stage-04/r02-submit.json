@@ -1,6 +1,6 @@
 {
   "test": "R02: Journey Submit and Durable Retrieval",
-  "timestamp": "2026-10-13T10:44:30.545Z",
+  "timestamp": "2026-10-13T11:40:31.200Z",
   "steps": [
     {
       "step": "1_road_selection",
@@ -10,15 +10,15 @@
     },
     {
       "step": "2_atomic_submission",
-      "report_id": "76baa7ad-ff81-46ac-85b1-953676ca5c42",
-      "incident_id": "588034db-57df-4e01-840b-1b07c6180c1c",
+      "report_id": "750f7209-629c-499e-a555-f8eccbfef1a2",
+      "incident_id": "9856b39e-4dcb-421b-8899-74f01c3e6029",
       "snap_distance_m": 25.89120563,
-      "canonical_url": "/incidents/588034db-57df-4e01-840b-1b07c6180c1c"
+      "canonical_url": "/incidents/9856b39e-4dcb-421b-8899-74f01c3e6029"
     },
     {
       "step": "3_durable_retrieval_and_reload",
       "verified": true,
-      "incident_id": "588034db-57df-4e01-840b-1b07c6180c1c",
+      "incident_id": "9856b39e-4dcb-421b-8899-74f01c3e6029",
       "lifecycle_status": "active",
       "verification_state": "unverified"
     }

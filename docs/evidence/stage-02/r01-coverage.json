@@ -2,14 +2,14 @@
   "gate": "R01",
   "status": "PASS",
   "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
-  "verified_at": "2026-10-13T10:16:43.825Z",
+  "verified_at": "2026-10-13T11:40:31.653Z",
   "measured_sizes": [
     {
       "table_name": "reports",
-      "total_size": "104 kB",
-      "table_size": "8192 bytes",
+      "total_size": "136 kB",
+      "table_size": "16 kB",
       "index_size": "88 kB",
-      "total_bytes": "106496"
+      "total_bytes": "139264"
     },
     {
       "table_name": "roads",
@@ -34,8 +34,8 @@
     }
   ],
   "spatial_query_plan": {
-    "execution_time_ms": 0.307,
-    "planning_time_ms": 0.188,
+    "execution_time_ms": 1.012,
+    "planning_time_ms": 0.36,
     "node_type": "Index Scan"
   },
   "national_capacity_projection": {
