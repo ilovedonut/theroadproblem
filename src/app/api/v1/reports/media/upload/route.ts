@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       media: res.rows[0],
-      derivative_url: `/${processResult.derivative_key}`,
+      derivative_url: processResult.derivative_url,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });

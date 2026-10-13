@@ -2,7 +2,7 @@
   "gate": "R12",
   "status": "PASS",
   "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
-  "verified_at": "2026-10-13T11:40:32.837Z",
+  "verified_at": "2026-10-13T13:07:06.869Z",
   "assertions_passed": [
     "email_private excluded from public profile projection",
     "storage_key_quarantine excluded from public media projection",

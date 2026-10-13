@@ -2,8 +2,8 @@
   "gate": "R10",
   "status": "PASS",
   "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
-  "verified_at": "2026-10-13T11:40:32.446Z",
-  "audited_records_count": 4,
+  "verified_at": "2026-10-13T13:07:06.648Z",
+  "audited_records_count": 5,
   "sample_records": [
     {
       "package": "Asphalting and Stormwater Drain Rehabilitation of Outer Ring Road Silk Board to Marathahalli",
@@ -43,6 +43,16 @@
       "license": "GODL India",
       "checksum": "a79cf9394605f704845e649a9260d7369b245710bab3f7d73f61dcd732568efc",
       "retrieved_at": "2026-10-13T11:40:31.772Z",
+      "confidence": "verified_contract"
+    },
+    {
+      "package": "Four-laning & Periodic Renewal Section KA-Loop-99",
+      "contractor": "Larsen & Toubro Infrastructure Engineering Ltd.",
+      "publisher": "National Informatics Centre (NIC)",
+      "source_url": "https://eprocure.gov.in/eprocure/app?page=FrontEndAwardSummary&tenderId=LOOP_1791896826216",
+      "license": "GODL India",
+      "checksum": "2d161ec01ade3fcb159cb1a3cefbd172678b624e1efc790239dd5f3fe7343a33",
+      "retrieved_at": "2026-10-13T13:07:06.240Z",
       "confidence": "verified_contract"
     }
   ],

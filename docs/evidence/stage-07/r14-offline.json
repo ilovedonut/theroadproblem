@@ -1,12 +1,12 @@
 {
   "test": "R14: Offline Drafts and Idempotent Sync",
-  "timestamp": "2026-10-13T11:40:31.203Z",
+  "timestamp": "2026-10-13T13:07:05.864Z",
   "verifications": [
     {
       "case": "1_draft_created_offline",
       "status": "PASS",
-      "draft_id": "b7e0cdcf-5fb3-4146-a7fa-97e02946e772",
-      "idempotency_key": "offline-key-1791891631226"
+      "draft_id": "4071aa80-4192-424b-b212-ec4e882c6c45",
+      "idempotency_key": "offline-key-1791896825897"
     },
     {
       "case": "2_draft_persisted_across_restart",
@@ -16,14 +16,14 @@
     {
       "case": "3_initial_reconnect_sync",
       "status": "PASS",
-      "report_id": "68fd400f-990e-48b6-9118-88fefba3b0f2",
-      "incident_id": "f1023b26-9a18-4848-a395-f3ad1e27bcd3",
+      "report_id": "bddaaae7-82e1-490c-8691-fa04dd0bef46",
+      "incident_id": "d8462944-32d6-47b6-8797-8e4a5be5c03c",
       "is_idempotent_replay": false
     },
     {
       "case": "4_flapping_retry_idempotency",
       "status": "PASS",
-      "replayed_report_id": "68fd400f-990e-48b6-9118-88fefba3b0f2",
+      "replayed_report_id": "bddaaae7-82e1-490c-8691-fa04dd0bef46",
       "is_idempotent_replay": true,
       "duplicate_prevented": true
     }

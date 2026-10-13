@@ -1,20 +1,20 @@
 {
   "test": "R16: Account and Content Erasure, Audit Retention, and Grievance Workflow",
-  "timestamp": "2026-10-13T11:40:31.187Z",
+  "timestamp": "2026-10-13T13:07:05.875Z",
   "verifications": [
     {
       "case": "1_user_and_observation_created",
       "status": "PASS",
-      "user_id": "68a8125c-2308-4fec-aa74-c487a2b94c33",
-      "report_id": "5ad82a37-74bc-4d07-81f6-ac13077d88ba",
-      "incident_id": "514a4655-66d0-41df-ade1-62a2927eca96"
+      "user_id": "26755633-07a2-4f6d-b976-63928dd6ac88",
+      "report_id": "e17587bc-3792-4b26-b193-995ebd16cc33",
+      "incident_id": "51eafc18-a2da-49b3-9e7f-40b84a9ea729"
     },
     {
       "case": "2_personal_identifiers_scrubbed",
       "status": "PASS",
       "display_name": "Former Contributor",
-      "email_private": "erased_68a8125c-2308-4fec-aa74-c487a2b94c33@redacted.invalid",
-      "deleted_at": "2026-10-13T11:40:31.544Z"
+      "email_private": "erased_26755633-07a2-4f6d-b976-63928dd6ac88@redacted.invalid",
+      "deleted_at": "2026-10-13T13:07:06.093Z"
     },
     {
       "case": "3_civic_safety_records_preserved",

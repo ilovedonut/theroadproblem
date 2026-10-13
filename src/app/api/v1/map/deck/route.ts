@@ -200,6 +200,11 @@ export async function GET(req: NextRequest) {
       },
       roads: roadsRes.rows,
       signals: multiSourceSignals
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+        'Cloudflare-CDN-Cache-Control': 'max-age=600',
+      }
     });
   } catch (err: any) {
     console.error('Error in deck route:', err);

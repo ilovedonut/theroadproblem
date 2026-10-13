@@ -2,7 +2,7 @@
   "gate": "R07",
   "status": "PASS",
   "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
-  "verified_at": "2026-10-13T11:40:31.478Z",
+  "verified_at": "2026-10-13T13:07:06.151Z",
   "assertions_passed": [
     "Initial damage incident created with active status and first_observed_at timestamp",
     "Repair observation recorded with verified hot-mix evidence, setting resolved_at",

@@ -1,12 +1,12 @@
 {
   "test": "R17: Disaster Recovery Database and Media Restore",
-  "timestamp": "2026-10-13T11:40:32.311Z",
+  "timestamp": "2026-10-13T13:07:06.624Z",
   "steps": [
     {
       "step": "1_pg_dump_export",
       "status": "PASS",
       "dump_file": "/tmp/theroadproblem_rehearsal.sql",
-      "size_bytes": 140437
+      "size_bytes": 162428
     },
     {
       "step": "2_clean_environment_provisioned",
@@ -22,11 +22,11 @@
       "step": "4_integrity_verified",
       "status": "PASS",
       "restored_counts": {
-        "roads": 8,
-        "segments": 13,
-        "incidents": 40,
-        "reports": 37,
-        "events": 57
+        "roads": 9,
+        "segments": 16,
+        "incidents": 54,
+        "reports": 49,
+        "events": 72
       },
       "spatial_type": "ST_LineString"
     },

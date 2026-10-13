@@ -1,7 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
+import { putStorageObject, getStoragePublicUrl } from './storage.ts';
 
 export interface ProcessMediaResult {
   sha256: string;
@@ -12,6 +11,7 @@ export interface ProcessMediaResult {
   height: number;
   quarantine_key: string;
   derivative_key: string;
+  derivative_url: string;
 }
 
 const MAX_INPUT_BYTES = 8 * 1024 * 1024; // 8 MiB
@@ -50,19 +50,12 @@ export async function processAndQuarantinePhoto(
     throw new Error(`Image resolution too large: ${width}x${height} exceeds 20 megapixel limit.`);
   }
 
-  // Ensure directories exist
-  const quarantineDir = path.join(storageBaseDir, 'quarantine');
-  const derivativesDir = path.join(storageBaseDir, 'derivatives');
-  fs.mkdirSync(quarantineDir, { recursive: true });
-  fs.mkdirSync(derivativesDir, { recursive: true });
-
   const fileId = `${reportId}_${sha256.slice(0, 12)}`;
   const quarantineKey = `quarantine/${fileId}_raw.${format}`;
   const derivativeKey = `derivatives/${fileId}_norm.webp`;
 
-  // 4. Save quarantined original (private)
-  const quarantinePath = path.join(storageBaseDir, quarantineKey);
-  fs.writeFileSync(quarantinePath, inputBuffer);
+  // 4. Save quarantined original (private / zero public access)
+  await putStorageObject(quarantineKey, inputBuffer, `image/${format}`, storageBaseDir);
 
   // 5. Generate normalized derivative:
   // - Resize longest edge to at most 1600px
@@ -78,8 +71,8 @@ export async function processAndQuarantinePhoto(
     .webp({ quality: 80 })
     .toBuffer();
 
-  const derivativePath = path.join(storageBaseDir, derivativeKey);
-  fs.writeFileSync(derivativePath, derivativeBuffer);
+  // Save public derivative
+  await putStorageObject(derivativeKey, derivativeBuffer, 'image/webp', storageBaseDir);
 
   return {
     sha256,
@@ -90,5 +83,7 @@ export async function processAndQuarantinePhoto(
     height: Math.min(height, MAX_DERIVATIVE_DIMENSION),
     quarantine_key: quarantineKey,
     derivative_key: derivativeKey,
+    derivative_url: getStoragePublicUrl(derivativeKey),
   };
 }
+

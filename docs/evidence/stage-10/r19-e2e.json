@@ -1,24 +1,24 @@
 {
   "test": "R19: Integrated End-to-End Community and Official Loops",
-  "timestamp": "2026-10-13T11:40:31.196Z",
+  "timestamp": "2026-10-13T13:07:05.881Z",
   "community_loop": {
     "status": "PASS",
-    "original_incident_id": "bff68633-740b-4ecb-b0e3-3feb2fa3db4a",
-    "corroborated_by": "8776903c-6066-4c5c-823e-f0e30d15ab98",
+    "original_incident_id": "f1c79e21-9d89-47d5-99d1-16c8d53ec951",
+    "corroborated_by": "3236c4ec-a15b-4181-b271-65e903468c72",
     "repaired": true,
-    "recurrence_incident_id": "781e3358-4fd5-4972-8225-42e0af8e5176",
+    "recurrence_incident_id": "8ecae587-89c8-4636-9266-7c6cedfda16f",
     "predecessor_linked": true
   },
   "official_loop": {
     "status": "PASS",
-    "work_id": "d0ae49c0-6724-418a-b3e5-28380300257e",
+    "work_id": "2a0d1e87-d0f0-4ebd-8df2-86fa6050c96c",
     "official_status": "officially_completed",
     "contractor": "Larsen & Toubro Infrastructure Engineering Ltd.",
     "cin": "U74210TN1998PLC041697"
   },
   "coexistence_check": {
     "status": "PASS",
-    "completed_works_count": 2,
+    "completed_works_count": 3,
     "active_community_defects_count": 1,
     "separate_provenance_preserved": true
   }

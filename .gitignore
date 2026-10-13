@@ -36,5 +36,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# temp files
+# temp & local storage files
 *.tmp
+storage_data/
+storage_data_test/
+

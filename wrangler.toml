@@ -9,3 +9,9 @@ binding = "ASSETS"
 
 [observability]
 enabled = true
+
+[[r2_buckets]]
+binding = "EVIDENCE_BUCKET"
+bucket_name = "theroadproblem-evidence"
+preview_bucket_name = "theroadproblem-evidence-preview"
+

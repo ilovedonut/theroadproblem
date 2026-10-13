@@ -2,7 +2,7 @@
   "gate": "R13",
   "status": "PASS",
   "environment": "Local Sharp Image Pipeline",
-  "verified_at": "2026-10-13T11:40:17.655Z",
+  "verified_at": "2026-10-13T13:09:03.053Z",
   "assertions_passed": [
     "Image resized to within max 1600px edge bounds",
     "Raw EXIF GPS and metadata stripped completely from derivative",
