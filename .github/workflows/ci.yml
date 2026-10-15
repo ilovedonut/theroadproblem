@@ -46,12 +46,13 @@ jobs:
         run: |
           npm run db:migrate
           npm run db:seed
+          npm run db:seed:boundaries
 
-      - name: Run isolated ingestion and citizen regression checks
+      - name: Run isolated ingestion, road-index, and citizen regression checks
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/theroadproblem_ci_test
         run: |
-          node --experimental-strip-types --test tests/real-ingestion.test.mjs tests/test-database-safety.test.mjs
+          node --experimental-strip-types --test tests/real-ingestion.test.mjs tests/test-database-safety.test.mjs tests/bengaluru-road-index.test.mjs
           npm run test:real-ingestion:db
           npm run verify:isolated
 

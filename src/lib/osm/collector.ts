@@ -70,13 +70,15 @@ out body geom qt;`;
 }
 
 /**
- * Fetches OSM road data for a sector across Overpass mirrors with backoff and caching.
+ * Fetches OSM road data for a sector across Overpass mirrors with backoff and verified local sector caching.
+ * NOTE: Never silently substitutes demo or sample road arrays on failure.
  */
 export async function fetchSectorOsmData(
   sector: DistrictSector,
   options: {
     maxRetriesPerMirror?: number;
     timeoutMs?: number;
+    allowCachedSector?: boolean;
   } = {}
 ): Promise<OsmImportPayload> {
   const maxRetries = options.maxRetriesPerMirror || 2;
@@ -99,7 +101,7 @@ export async function fetchSectorOsmData(
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'TheRoadProblem-Collector/1.0 (civic-road-audit)'
+            'User-Agent': 'TheRoadProblem-Collector/2.0 (civic-road-audit)'
           },
           body: `data=${encodeURIComponent(ql)}`,
           signal: controller.signal
@@ -108,7 +110,7 @@ export async function fetchSectorOsmData(
 
         if (res.ok) {
           const raw = await res.json();
-          if (Array.isArray(raw.elements)) {
+          if (Array.isArray(raw.elements) && raw.elements.length > 0) {
             const payload: OsmImportPayload = {
               district: sector.district,
               state: sector.state,
@@ -116,49 +118,28 @@ export async function fetchSectorOsmData(
               license: 'Open Database License (ODbL) 1.0',
               retrieved_at: new Date().toISOString(),
               source_uri: mirror,
+              is_complete_extract: false,
               elements: raw.elements
             };
 
-            // Save to sector cache
             fs.writeFileSync(cacheFile, JSON.stringify(payload, null, 2), 'utf8');
             return payload;
           }
         }
-      } catch (fetchErr: any) {
-        // Exponential backoff before next attempt
+      } catch {
         await new Promise((r) => setTimeout(r, attempt * 1000));
       }
     }
   }
 
-  // Fallback to local cache if present
-  if (fs.existsSync(cacheFile)) {
-    console.warn(`[Collector] Overpass mirrors unavailable. Falling back to cached extract for ${sector.sector_key}`);
+  if (options.allowCachedSector !== false && fs.existsSync(cacheFile)) {
+    console.warn(`[Collector] Overpass mirrors unavailable. Using previously verified sector cache for ${sector.sector_key}`);
     return JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
   }
 
-  // Fallback to local sample if bounding box intersects sample
-  const samplePath = path.resolve('scripts/data/bengaluru_roads_osm_sample.json');
-  if (fs.existsSync(samplePath)) {
-    console.warn(`[Collector] Falling back to sample extract for ${sector.sector_key}`);
-    const sample = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
-    const [minLon, minLat, maxLon, maxLat] = sector.bbox;
-    const filtered = sample.elements.filter((el: any) => {
-      if (!el.geometry) return false;
-      return el.geometry.some((pt: any) => pt.lon >= minLon && pt.lon <= maxLon && pt.lat >= minLat && pt.lat <= maxLat);
-    });
-    return {
-      district: sector.district,
-      state: sector.state,
-      source: 'OpenStreetMap Sample Fallback',
-      license: sample.license || 'Open Database License (ODbL) 1.0',
-      retrieved_at: new Date().toISOString(),
-      source_uri: sample.source_uri,
-      elements: filtered
-    };
-  }
-
-  throw new Error(`Failed to fetch sector data for ${sector.sector_key} from Overpass mirrors and no local cache available.`);
+  throw new Error(
+    `Failed to fetch sector data for ${sector.sector_key} from Overpass mirrors and no verified sector cache exists. Refusing to substitute demo/sample fallback data.`
+  );
 }
 
 /**
@@ -174,7 +155,6 @@ export async function collectAndImportSector(
 ): Promise<OsmImportSummary> {
   const [minLon, minLat, maxLon, maxLat] = sector.bbox;
 
-  // Check if sector was already imported recently
   if (!options.force) {
     const checkRes = await client.query(`
       SELECT id, ways_count, status, last_imported_at
@@ -189,11 +169,30 @@ export async function collectAndImportSector(
         return {
           runId: `cached-${existing.id}`,
           district: sector.district,
+          boundary_version: 'sector-cached',
+          boundary_checksum: '',
+          parser_version: '2.0.0',
+          source_checksum: '',
+          source_timestamp: new Date(existing.last_imported_at).toISOString(),
+          dry_run: false,
           total_elements: existing.ways_count,
           valid_ways: existing.ways_count,
           new_inserted: 0,
           updated_versions: 0,
           unchanged_skipped: existing.ways_count,
+          rejected_count: 0,
+          deactivated_count: 0,
+          review_routed_count: 0,
+          renamed_count: 0,
+          split_lineage_count: 0,
+          merge_lineage_count: 0,
+          boundary_crossing_ways: 0,
+          within_boundary_length_m: 0,
+          motor_road_length_m: 0,
+          rejection_breakdown: {},
+          category_breakdown: {},
+          access_breakdown: {},
+          checkpoint_offset: existing.ways_count,
           storage_archived_key: `cached_sector_${sector.sector_key}`,
           attribution: 'OpenStreetMap Contributors (https://www.openstreetmap.org/copyright)',
           license: 'ODbL 1.0',
@@ -203,18 +202,16 @@ export async function collectAndImportSector(
     }
   }
 
-  // Fetch sector data
   const payload = await fetchSectorOsmData(sector);
 
-  // Import into database
   const summary = await importOsmRoads(client, {
     district: sector.district,
     state: sector.state,
     payload,
+    isCompleteExtract: false,
     limit: options.limit
   });
 
-  // Record sector coverage in imported_coverage_sectors
   await client.query(`
     INSERT INTO imported_coverage_sectors (
       district, sector_key, sector_name, bounds_geom, ways_count, status, last_imported_at
