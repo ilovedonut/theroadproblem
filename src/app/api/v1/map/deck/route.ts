@@ -1,71 +1,266 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/db/client';
+import { parseMapBounds } from '@/lib/map-bounds';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/**
+ * Viewport-bounded, zoom-simplified, join-safe Map Deck Telemetry Endpoint.
+ *
+ * Enhancements:
+ * 1. Prevents join-multiplication of road segment lengths and work budgets when a road
+ *    has multiple segments, incidents, works, or contractors.
+ * 2. Supports spatial bounding-box (`bbox=west,south,east,north`), `zoom`, `limit`,
+ *    and `selected_road_id` so the browser never receives the entire city's full-resolution
+ *    network on every load while preserving selected-road inspection across map movements.
+ * 3. Applies zoom-dependent geometry simplification (`ST_SimplifyPreserveTopology`)
+ *    and highway hierarchy filtering at lower zoom levels.
+ * 4. Reports truthful, distinct counts:
+ *    - `unique_source_ways`
+ *    - `active_physical_segments`
+ *    - `corridors_or_roads`
+ *    - `motor_road_length_km` (clipped to the Bengaluru Urban boundary)
+ *    - `coverage_boundary` & `last_successful_import`
+ */
 export async function GET(req: NextRequest) {
   try {
-    const dbInfo = await query('SELECT inet_server_addr(), current_database(), current_user');
-    console.log('Deck DB Info:', dbInfo.rows[0]);
-    // 1. Fetch roads with segments GeoJSON, associated official works, and active ground incidents
+    const searchParams = req.nextUrl ? req.nextUrl.searchParams : new URL(req.url).searchParams;
+    const bboxParam = searchParams.get('bbox');
+    const bounds = parseMapBounds(bboxParam);
+    const zoomRaw = parseFloat(searchParams.get('zoom') || '');
+    const zoom = Number.isFinite(zoomRaw) ? Math.min(Math.max(zoomRaw, 1), 20) : null;
+    const limitRaw = parseInt(searchParams.get('limit') || '', 10);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 10), 2500) : 600;
+    const selectedRoadId = searchParams.get('selected_road_id') || null;
+
+    // Determine simplification tolerance (in degrees) based on zoom level
+    let simplifyTolerance = 0;
+    let majorClassesOnly = false;
+    if (zoom !== null) {
+      if (zoom < 11.5) {
+        simplifyTolerance = 0.00045;
+        majorClassesOnly = true;
+      } else if (zoom < 13.5) {
+        simplifyTolerance = 0.00012;
+      }
+    }
+
+    // 1. Fetch bounded, join-safe road features
+    // Notice that segments, works, and incidents are aggregated in independent subqueries/CTEs
+    // so segment lengths and work budgets are NEVER multiplied by cross-joins!
+    const params: any[] = [];
+    let bboxFilterSql = 'TRUE';
+    if (bounds) {
+      params.push(bounds[0], bounds[1], bounds[2], bounds[3]);
+      bboxFilterSql = `(
+        rs.geom && ST_MakeEnvelope($1, $2, $3, $4, 4326)
+        AND ST_Intersects(rs.geom, ST_MakeEnvelope($1, $2, $3, $4, 4326))
+      )`;
+    }
+
+    params.push(selectedRoadId);
+    const selectedIdx = params.length;
+
+    params.push(simplifyTolerance);
+    const tolIdx = params.length;
+
+    params.push(majorClassesOnly);
+    const majorOnlyIdx = params.length;
+
+    params.push(limit);
+    const limitIdx = params.length;
+
     const roadsQuery = `
-      SELECT 
-        r.id,
-        r.name,
-        r.ref,
-        r.road_class,
-        r.authority_name,
-        r.state,
-        r.district,
-        COALESCE(SUM(rs.length_m), 0) as total_length_m,
-        COALESCE(json_agg(DISTINCT jsonb_build_object(
-          'segment_id', rs.id,
-          'chainage_from', rs.chainage_from,
-          'chainage_to', rs.chainage_to,
-          'length_m', rs.length_m,
-          'geojson', ST_AsGeoJSON(rs.geom)::json
-        )) FILTER (WHERE rs.id IS NOT NULL), '[]'::json) as segments,
-        COALESCE(json_agg(DISTINCT jsonb_build_object(
-          'work_id', w.id,
-          'package_name', w.package_name,
-          'authority_name', w.authority_name,
-          'tender_id', w.tender_id,
-          'contract_id', w.contract_id,
-          'official_status', w.official_status,
-          'contract_value_inr', w.contract_value_inr,
-          'contractor_name', c.legal_name,
-          'cin', c.cin,
-          'gstin', c.gstin,
-          'start_date', w.start_date,
-          'target_completion_date', w.target_completion_date,
-          'actual_completion_date', w.actual_completion_date,
-          'defect_liability_end_date', w.defect_liability_end_date
-        )) FILTER (WHERE w.id IS NOT NULL), '[]'::json) as works,
-        COALESCE(json_agg(DISTINCT jsonb_build_object(
-          'incident_id', i.id,
-          'category', i.category,
-          'lifecycle_status', i.lifecycle_status,
-          'verification_state', i.verification_state,
-          'last_observed_at', i.last_observed_at,
-          'lat', ST_Y(i.centroid),
-          'lon', ST_X(i.centroid)
-        )) FILTER (WHERE i.id IS NOT NULL), '[]'::json) as incidents
-      FROM roads r
-      LEFT JOIN road_segments rs ON r.id = rs.road_id AND rs.is_active = TRUE
-      LEFT JOIN work_segments ws ON rs.id = ws.road_segment_id
-      LEFT JOIN works w ON ws.work_id = w.id
-      LEFT JOIN work_contractors wc ON w.id = wc.work_id
-      LEFT JOIN contractors c ON wc.contractor_id = c.id
-      LEFT JOIN incidents i ON rs.id = i.road_segment_id AND i.lifecycle_status = 'active'
-      WHERE r.name NOT LIKE 'Test %'
-      GROUP BY r.id
-      ORDER BY r.name ASC;
+      WITH visible_segments AS (
+        SELECT
+          rs.id,
+          rs.road_id,
+          rs.chainage_from,
+          rs.chainage_to,
+          rs.length_m,
+          COALESCE(rs.within_boundary_length_m, rs.length_m) AS within_boundary_length_m,
+          rs.osm_way_id,
+          COALESCE(rs.usage_category, 'public_motor') AS usage_category,
+          COALESCE(rs.access_status, 'unknown') AS access_status,
+          rs.road_class,
+          rs.geom
+        FROM road_segments rs
+        JOIN roads r ON r.id = rs.road_id
+        WHERE rs.is_active = TRUE
+          AND r.name NOT LIKE 'Test %'
+          AND COALESCE(rs.usage_category, 'public_motor') IN ('public_motor', 'restricted_motor')
+          AND (
+            (${bboxFilterSql} AND (
+              NOT $${majorOnlyIdx}::boolean
+              OR COALESCE(rs.road_class, r.road_class) IN (
+                'motorway', 'trunk', 'primary', 'secondary', 'tertiary',
+                'motorway_link', 'trunk_link', 'primary_link', 'secondary_link'
+              )
+              OR COALESCE(r.is_official_corridor, FALSE) = TRUE
+              OR EXISTS (SELECT 1 FROM work_segments ws WHERE ws.road_segment_id = rs.id)
+              OR EXISTS (SELECT 1 FROM incidents i WHERE i.road_segment_id = rs.id AND i.lifecycle_status = 'active')
+            ))
+            OR ($${selectedIdx}::uuid IS NOT NULL AND rs.road_id = $${selectedIdx}::uuid)
+          )
+      ),
+      prioritized_roads AS (
+        SELECT
+          r.id,
+          r.name,
+          r.display_name,
+          COALESCE(r.has_official_name, TRUE) AS has_official_name,
+          r.ref,
+          r.road_class,
+          r.authority_name,
+          r.state,
+          r.district,
+          COALESCE(r.usage_category, 'public_motor') AS usage_category,
+          COALESCE(r.access_status, 'unknown') AS access_status,
+          COALESCE(r.is_official_corridor, FALSE) AS is_official_corridor,
+          SUM(vs.within_boundary_length_m) AS total_length_m,
+          COUNT(vs.id) AS active_segments_count,
+          COUNT(DISTINCT vs.osm_way_id) AS unique_ways_count,
+          BOOL_OR(EXISTS (SELECT 1 FROM incidents i WHERE i.road_segment_id = vs.id AND i.lifecycle_status = 'active')) AS has_incident,
+          BOOL_OR(EXISTS (SELECT 1 FROM work_segments ws WHERE ws.road_segment_id = vs.id)) AS has_work
+        FROM roads r
+        JOIN visible_segments vs ON vs.road_id = r.id
+        GROUP BY r.id
+        ORDER BY
+          ($${selectedIdx}::uuid IS NOT NULL AND r.id = $${selectedIdx}::uuid) DESC,
+          has_incident DESC,
+          has_work DESC,
+          COALESCE(r.is_official_corridor, FALSE) DESC,
+          SUM(vs.within_boundary_length_m) DESC,
+          r.name ASC
+        LIMIT $${limitIdx}
+      )
+      SELECT
+        pr.id,
+        pr.name,
+        pr.display_name,
+        pr.has_official_name,
+        pr.ref,
+        pr.road_class,
+        pr.authority_name,
+        pr.state,
+        pr.district,
+        pr.usage_category,
+        pr.access_status,
+        pr.total_length_m,
+        pr.active_segments_count,
+        pr.unique_ways_count,
+        COALESCE((
+          SELECT json_agg(
+            jsonb_build_object(
+              'segment_id', vs.id,
+              'osm_way_id', vs.osm_way_id,
+              'chainage_from', vs.chainage_from,
+              'chainage_to', vs.chainage_to,
+              'length_m', vs.within_boundary_length_m,
+              'access_status', vs.access_status,
+              'geojson', CASE
+                WHEN $${tolIdx}::float8 > 0 THEN ST_AsGeoJSON(ST_SimplifyPreserveTopology(vs.geom, $${tolIdx}::float8))::json
+                ELSE ST_AsGeoJSON(vs.geom)::json
+              END
+            )
+            ORDER BY vs.chainage_from ASC NULLS LAST, vs.id ASC
+          )
+          FROM visible_segments vs
+          WHERE vs.road_id = pr.id
+        ), '[]'::json) AS segments,
+        COALESCE((
+          SELECT json_agg(DISTINCT jsonb_build_object(
+            'work_id', w.id,
+            'package_name', w.package_name,
+            'authority_name', w.authority_name,
+            'tender_id', w.tender_id,
+            'contract_id', w.contract_id,
+            'official_status', w.official_status,
+            'contract_value_inr', w.contract_value_inr,
+            'contractor_name', c.legal_name,
+            'cin', c.cin,
+            'gstin', c.gstin,
+            'start_date', w.start_date,
+            'target_completion_date', w.target_completion_date,
+            'actual_completion_date', w.actual_completion_date,
+            'defect_liability_end_date', w.defect_liability_end_date
+          ))
+          FROM road_segments rs_w
+          JOIN work_segments ws ON ws.road_segment_id = rs_w.id
+          JOIN works w ON w.id = ws.work_id
+          LEFT JOIN work_contractors wc ON wc.work_id = w.id
+          LEFT JOIN contractors c ON c.id = wc.contractor_id
+          WHERE rs_w.road_id = pr.id AND rs_w.is_active = TRUE
+        ), '[]'::json) AS works,
+        COALESCE((
+          SELECT json_agg(DISTINCT jsonb_build_object(
+            'incident_id', i.id,
+            'category', i.category,
+            'lifecycle_status', i.lifecycle_status,
+            'verification_state', i.verification_state,
+            'last_observed_at', i.last_observed_at,
+            'lat', ST_Y(i.centroid),
+            'lon', ST_X(i.centroid)
+          ))
+          FROM road_segments rs_i
+          JOIN incidents i ON i.road_segment_id = rs_i.id
+          WHERE rs_i.road_id = pr.id
+            AND rs_i.is_active = TRUE
+            AND i.lifecycle_status = 'active'
+        ), '[]'::json) AS incidents
+      FROM prioritized_roads pr
+      ORDER BY pr.name ASC;
     `;
 
-    const roadsRes = await query(roadsQuery);
+    const roadsRes = await query(roadsQuery, params);
 
-    // 2. Query live intelligence stream from database source_records
+    // 2. Fetch truthful district-wide index metrics without join multiplication
+    const indexStatsRes = await query(`
+      SELECT
+        COUNT(DISTINCT rs.osm_way_id) FILTER (WHERE rs.osm_way_id IS NOT NULL) AS unique_source_ways,
+        COUNT(rs.id) AS active_physical_segments,
+        COUNT(DISTINCT rs.road_id) AS corridors_or_roads,
+        COALESCE(SUM(COALESCE(rs.within_boundary_length_m, rs.length_m)) FILTER (
+          WHERE COALESCE(rs.usage_category, 'public_motor') IN ('public_motor', 'restricted_motor')
+        ), 0) AS motor_road_length_m,
+        COUNT(rs.id) FILTER (WHERE COALESCE(rs.usage_category, 'public_motor') = 'non_motor') AS non_motor_segments
+      FROM road_segments rs
+      JOIN roads r ON r.id = rs.road_id
+      WHERE rs.is_active = TRUE
+        AND r.name NOT LIKE 'Test %';
+    `);
+    const statsRow = indexStatsRes.rows[0] || {};
+
+    // 3. Fetch coverage boundary & last successful import metadata
+    const boundaryRes = await query(`
+      SELECT district, state, osm_relation_id, source,
+             COALESCE(boundary_type, 'administrative_district') AS boundary_type,
+             COALESCE(boundary_version, 'osm-rel-2020589-v1') AS boundary_version,
+             COALESCE(crs, 'EPSG:4326') AS crs,
+             checksum_sha256,
+             area_sq_km
+      FROM district_boundaries
+      WHERE district = 'Bengaluru Urban'
+      LIMIT 1;
+    `);
+
+    const lastImportRes = await query(`
+      SELECT id, district, source_url, checksum_sha256, ways_count,
+             inserted_count, updated_count, skipped_count,
+             COALESCE(rejected_count, 0) AS rejected_count,
+             COALESCE(within_boundary_length_m, 0) AS within_boundary_length_m,
+             COALESCE(motor_road_length_m, 0) AS motor_road_length_m,
+             coverage_status, status, completed_at,
+             COALESCE(boundary_version, 'osm-rel-2020589-v1') AS boundary_version,
+             COALESCE(parser_version, '2.0.0') AS parser_version
+      FROM osm_imports
+      WHERE district = 'Bengaluru Urban' AND status = 'completed'
+      ORDER BY completed_at DESC NULLS LAST, started_at DESC
+      LIMIT 1;
+    `);
+
+    // 4. Query live intelligence stream from database source_records
     const sourceRecordsRes = await query(`
       SELECT 
         sr.id,
@@ -83,15 +278,15 @@ export async function GET(req: NextRequest) {
     `);
 
     let multiSourceSignals: any[] = [];
-
     if (sourceRecordsRes.rows.length > 0) {
       multiSourceSignals = sourceRecordsRes.rows.map((row: any) => {
         const raw = row.raw_content || {};
         const dateVal = raw.published_at || raw.start_date || row.retrieved_at;
-        const dateStr = dateVal instanceof Date 
-          ? dateVal.toISOString().substring(0, 10) 
-          : typeof dateVal === 'string' 
-            ? dateVal.substring(0, 10) 
+        const dateStr =
+          dateVal instanceof Date
+            ? dateVal.toISOString().substring(0, 10)
+            : typeof dateVal === 'string'
+            ? dateVal.substring(0, 10)
             : '';
         const isOfficial = !raw.signal_type || raw.signal_type === 'official_portal';
         return {
@@ -103,30 +298,33 @@ export async function GET(req: NextRequest) {
           road_name: raw.road_name || raw.road_name_hint || 'Monitored Corridor',
           lat: Number(raw.lat),
           lon: Number(raw.lon),
-          details: raw.details || (raw.work_type ? `${raw.work_type} (Status: ${raw.official_status || 'recorded'})` : `Tender/Source Record ${row.external_key}`),
-          verified: false, // Invariant: news/social/external imports never assert verified ground condition
+          details:
+            raw.details ||
+            (raw.work_type
+              ? `${raw.work_type} (Status: ${raw.official_status || 'recorded'})`
+              : `Tender/Source Record ${row.external_key}`),
+          verified: false,
           status: isOfficial ? 'official_procurement_record' : 'publisher_reported',
           source_url: row.source_uri,
           disclaimer: isOfficial
             ? 'Administrative procurement entry. Denotes official budget/contract allocation, not verified physical road condition.'
             : 'Publisher/social reported claim. Does not certify ground truth condition without physical audit.',
-          is_demo: false
+          is_demo: false,
         };
       });
     }
 
-    // Compute summary metrics for the telemetry deck
-    const totalRoads = roadsRes.rows.length;
-    let totalLengthKm = 0;
+    // Deduplicate works across returned roads to prevent double counting
+    const seenWorkIds = new Set<string>();
     let totalSpendInr = 0;
-    let activeWorksCount = 0;
+    let visibleLengthKm = 0;
 
     for (const r of roadsRes.rows) {
-      totalLengthKm += parseFloat(r.total_length_m || '0') / 1000;
+      visibleLengthKm += parseFloat(r.total_length_m || '0') / 1000;
       if (Array.isArray(r.works)) {
         for (const w of r.works) {
-          if (w.work_id) {
-            activeWorksCount++;
+          if (w.work_id && !seenWorkIds.has(w.work_id)) {
+            seenWorkIds.add(w.work_id);
             if (w.contract_value_inr) {
               totalSpendInr += parseFloat(w.contract_value_inr);
             }
@@ -136,25 +334,58 @@ export async function GET(req: NextRequest) {
     }
 
     const totalSpendCr = (totalSpendInr / 10000000).toFixed(2);
+    const totalMotorLengthKm = (
+      parseFloat(statsRow.motor_road_length_m || '0') / 1000 || visibleLengthKm
+    ).toFixed(1);
+    const totalCorridors =
+      parseInt(statsRow.corridors_or_roads || '0', 10) || roadsRes.rows.length;
+    const activeSegments = parseInt(statsRow.active_physical_segments || '0', 10);
+    const uniqueWays = parseInt(statsRow.unique_source_ways || '0', 10);
 
-    return NextResponse.json({
-      summary: {
-        total_roads_indexed: totalRoads,
-        total_length_km: totalLengthKm.toFixed(1),
-        total_spend_tracked_cr: totalSpendCr,
-        active_works_count: activeWorksCount,
-        multi_source_signals_count: multiSourceSignals.length,
-        timestamp: new Date().toISOString()
+    return NextResponse.json(
+      {
+        summary: {
+          total_roads_indexed: totalCorridors,
+          corridors_or_roads: totalCorridors,
+          active_physical_segments: activeSegments,
+          unique_source_ways: uniqueWays,
+          non_motor_segments: parseInt(statsRow.non_motor_segments || '0', 10),
+          total_length_km: totalMotorLengthKm,
+          motor_road_length_km: totalMotorLengthKm,
+          visible_roads_returned: roadsRes.rows.length,
+          visible_length_km: visibleLengthKm.toFixed(1),
+          length_unit_definition:
+            'Geodesic length of active motor-road carriageways clipped to the Bengaluru Urban administrative district boundary (dual carriageways counted per physical way).',
+          total_spend_tracked_cr: totalSpendCr,
+          active_works_count: seenWorkIds.size,
+          multi_source_signals_count: multiSourceSignals.length,
+          coverage_boundary: boundaryRes.rows[0] || {
+            district: 'Bengaluru Urban',
+            state: 'Karnataka',
+            boundary_type: 'administrative_district',
+            osm_relation_id: 2020589,
+            crs: 'EPSG:4326',
+          },
+          last_successful_import: lastImportRes.rows[0] || null,
+          viewport: {
+            bbox: bounds,
+            zoom,
+            limit,
+            simplified: simplifyTolerance > 0,
+          },
+          timestamp: new Date().toISOString(),
+        },
+        roads: roadsRes.rows,
+        signals: multiSourceSignals,
       },
-      roads: roadsRes.rows,
-      signals: multiSourceSignals
-    }, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
       }
-    });
+    );
   } catch (err: any) {
     console.error('Error in deck route:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

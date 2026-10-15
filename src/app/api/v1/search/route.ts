@@ -2,15 +2,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/db/client';
 
 export async function GET(req: NextRequest) {
-  const q = (req.nextUrl.searchParams.get('q') || '').trim();
+  const searchParams = req.nextUrl ? req.nextUrl.searchParams : new URL(req.url).searchParams;
+  const q = (searchParams.get('q') || '').trim();
   if (q.length < 2 || q.length > 120) return NextResponse.json({ error: 'Enter between 2 and 120 characters.' }, { status: 400 });
   const terms = q.split(/\s+/).slice(0, 8).map(t => `%${t.replace(/[\\%_]/g, '\\$&')}%`);
   try {
     const result = await query(`WITH entries AS (
-      SELECT 'road' AS kind,r.id::text AS id,r.name AS title,
-        concat_ws(' · ',r.ref,r.district,r.state,r.authority_name) AS detail,
-        '/roads/'||r.id AS href, NULL::text AS source_url,
-        concat_ws(' ',r.name,r.ref,r.district,r.state,r.authority_name) AS searchable
+      SELECT 'road' AS kind,
+        r.id::text AS id,
+        CASE
+          WHEN COALESCE(r.has_official_name, NOT (r.name LIKE 'Unnamed%')) = FALSE
+               AND NOT (r.name ILIKE 'Unnamed%')
+            THEN 'Unnamed ' || COALESCE(r.road_class, 'road') || ' (' || r.name || ')'
+          ELSE r.name
+        END AS title,
+        concat_ws(' · ',
+          CASE WHEN COALESCE(r.has_official_name, NOT (r.name LIKE 'Unnamed%')) = FALSE THEN 'Unnamed road' END,
+          r.ref,
+          NULLIF(array_to_string(COALESCE(r.aliases, '{}'), ', '), ''),
+          r.road_class,
+          r.district,
+          r.state,
+          NULLIF(r.authority_name, 'Local Public Authority'),
+          r.source_feature_id
+        ) AS detail,
+        '/roads/'||r.id AS href,
+        NULL::text AS source_url,
+        concat_ws(' ',
+          r.name,
+          r.display_name,
+          r.ref,
+          array_to_string(COALESCE(r.aliases, '{}'), ' '),
+          r.road_class,
+          r.district,
+          r.state,
+          r.authority_name,
+          r.source_feature_id,
+          (SELECT string_agg(concat_ws(' ',
+            rs.osm_tags->>'alt_name',
+            rs.osm_tags->>'old_name',
+            rs.osm_tags->>'official_name',
+            rs.osm_tags->>'loc_name',
+            rs.osm_tags->>'addr:street',
+            rs.osm_tags->>'addr:suburb',
+            rs.osm_tags->>'ref'
+          ), ' ') FROM road_segments rs WHERE rs.road_id = r.id AND rs.is_active = TRUE)
+        ) AS searchable
       FROM roads r
       UNION ALL
       SELECT 'project',w.id::text,COALESCE(w.package_name,w.tender_id,'Road project'),
@@ -38,11 +75,15 @@ export async function GET(req: NextRequest) {
         concat_ws(' ',to_jsonb(rs)->'osm_tags'->>'addr:housenumber',to_jsonb(rs)->'osm_tags'->>'addr:street',to_jsonb(rs)->'osm_tags'->>'addr:city',to_jsonb(rs)->'osm_tags'->>'addr:postcode',rs.district,rs.state)
       FROM road_segments rs WHERE rs.is_active AND to_jsonb(rs)->'osm_tags'->>'addr:street' IS NOT NULL
     ), matched AS (
-      SELECT *,row_number() OVER(PARTITION BY kind ORDER BY CASE WHEN lower(title)=lower($2) THEN 0 ELSE 1 END,title,id) AS position
+      SELECT *,row_number() OVER(PARTITION BY kind ORDER BY CASE WHEN lower(title)=lower($2) THEN 0 WHEN lower(title) LIKE lower($2)||'%' THEN 1 ELSE 2 END,title,id) AS position
       FROM entries WHERE searchable ILIKE ALL($1::text[])
     ) SELECT kind,id,title,detail,href,source_url FROM matched WHERE position<=12 ORDER BY kind,position`, [terms,q]);
-    const results = result.rows.map(r => ({ ...r, source_url: /^https?:\/\//i.test(r.source_url || '') ? r.source_url : null,
-      href: r.href || `/search?q=${encodeURIComponent(q)}&focus=${r.kind}:${r.id}` }));
+    const results = result.rows.map(r => ({
+      ...r,
+      is_unnamed: r.kind === 'road' && (/^Unnamed/i.test(r.title || '') || /Unnamed road/i.test(r.detail || '')),
+      source_url: /^https?:\/\//i.test(r.source_url || '') ? r.source_url : null,
+      href: r.href || `/search?q=${encodeURIComponent(q)}&focus=${r.kind}:${r.id}`
+    }));
     return NextResponse.json({ q, results, limit_per_type: 12 });
   } catch (e) {
     console.error('Public search failed',e);
