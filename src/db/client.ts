@@ -1,7 +1,6 @@
 import pg from 'pg';
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 
 const { Pool } = pg;
 
@@ -46,7 +45,8 @@ if (isRemoteSsl) {
   // Resolve CA certificate
   let caCert: string | undefined = process.env.DB_CA_CERT;
   if (!caCert) {
-    const certPath = path.resolve(process.cwd(), 'certs/supabase-ca.pem');
+    const isPooler = new URL(connectionStringRaw).hostname.endsWith('.pooler.supabase.com');
+    const certPath = path.resolve(process.cwd(), isPooler ? 'certs/supabase-pooler-ca.crt' : 'certs/supabase-ca.pem');
     if (fs.existsSync(certPath)) {
       caCert = fs.readFileSync(certPath, 'utf8');
     }
