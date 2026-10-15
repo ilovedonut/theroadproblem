@@ -1,0 +1,257 @@
+{
+  "checked_at": "2026-10-15T17:38:39.929Z",
+  "database": "theroadproblem_ingestion_test",
+  "sample_segments": 180,
+  "sample_roads": 128,
+  "rolled_back": true,
+  "link_rerun": {
+    "before": "1",
+    "after": "1"
+  },
+  "checks": [
+    {
+      "name": "Actual named road geometry is discoverable",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "Bengaluru Urban",
+        "road_name_hint": "1 A Main Road",
+        "coordinates": {
+          "lon": 77.62495715,
+          "lat": 12.9173
+        }
+      },
+      "result": {
+        "road_id": "c7a23980-a0c7-499b-85d2-da687905d9d3",
+        "road_name": "1 A Main Road",
+        "matched_segment_ids": [],
+        "candidate_segment_ids": [
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18",
+          "738539a0-2371-4283-a434-974ec3abec87"
+        ],
+        "confidence": "low_ambiguous",
+        "score": 0,
+        "is_ambiguous": true,
+        "ambiguity_reason": "Location candidates found; affected project extent requires review",
+        "review_status": "needs_review"
+      },
+      "passed": true
+    },
+    {
+      "name": "Conflicting source district requires review",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "New Delhi",
+        "road_name_hint": "1 A Main Road",
+        "coordinates": {
+          "lon": 77.62495715,
+          "lat": 12.9173
+        }
+      },
+      "result": {
+        "road_id": "c7a23980-a0c7-499b-85d2-da687905d9d3",
+        "road_name": "1 A Main Road",
+        "matched_segment_ids": [],
+        "candidate_segment_ids": [
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "8c32eec7-c81c-4c5d-9f99-db24fc69caeb",
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43",
+          "2a8512b3-decd-4c71-8470-b80ef5fcbbe1",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "73200993-d0f0-49f5-8b4a-def154c29dec",
+          "54d195be-aa2e-48bf-bb70-7f6a17b3b254",
+          "6b00221a-5113-44f0-90e6-a12de19aa001",
+          "3d0687c2-7c9e-42ad-861c-abc18ef146fe",
+          "1db528bd-8df2-407f-be21-c0c8654aa47d",
+          "3e46de22-a1ab-4334-ba2d-5d3f89519f0f",
+          "4525713b-fda4-4ad6-8abc-d9c2bcc0f7df",
+          "ee5b9d5f-1c33-4c53-9c61-05cf395ea806",
+          "82d71f5a-6fac-4ebe-8808-518c8a0ef2a5",
+          "1119e9f3-5cd5-44e3-abb2-7b97ad253e60",
+          "bcb6dea1-6b99-42ee-8b95-1b6215046707",
+          "79eb149b-edbe-4d7c-8f64-f5d40f7d4c46",
+          "71921389-8cca-424d-be07-5bbd3504759c",
+          "b24077cb-b93f-4bef-8d9d-0dcd11b7cf6d",
+          "aaa9ce43-13cf-4aee-8568-206218ad93f9",
+          "ac845214-bbaf-47c9-97b3-2e0a3cc14575",
+          "fe9f5dd5-b463-4cff-86e8-4a57880dd961",
+          "541b5120-4309-4038-be2c-24cd0280b7af",
+          "a7a41465-6aa4-4eaf-b790-b4cc2294358a",
+          "014bafc8-64b8-4f22-9051-30c6b97c2723"
+        ],
+        "confidence": "low_ambiguous",
+        "score": 0,
+        "is_ambiguous": true,
+        "ambiguity_reason": "Location conflicts with supplied road identity or jurisdiction",
+        "review_status": "needs_review"
+      },
+      "passed": true
+    },
+    {
+      "name": "Conflicting road name and identifier require review",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "Bengaluru Urban",
+        "road_name_hint": "NONEXISTENT ROAD CONTROL",
+        "coordinates": {
+          "lon": 77.62495715,
+          "lat": 12.9173
+        },
+        "road_ref": "NONEXISTENT-REF"
+      },
+      "result": {
+        "road_id": "c7a23980-a0c7-499b-85d2-da687905d9d3",
+        "road_name": "1 A Main Road",
+        "matched_segment_ids": [],
+        "candidate_segment_ids": [
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "8c32eec7-c81c-4c5d-9f99-db24fc69caeb",
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43",
+          "2a8512b3-decd-4c71-8470-b80ef5fcbbe1",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "73200993-d0f0-49f5-8b4a-def154c29dec",
+          "54d195be-aa2e-48bf-bb70-7f6a17b3b254",
+          "6b00221a-5113-44f0-90e6-a12de19aa001",
+          "3d0687c2-7c9e-42ad-861c-abc18ef146fe",
+          "1db528bd-8df2-407f-be21-c0c8654aa47d",
+          "3e46de22-a1ab-4334-ba2d-5d3f89519f0f",
+          "4525713b-fda4-4ad6-8abc-d9c2bcc0f7df",
+          "ee5b9d5f-1c33-4c53-9c61-05cf395ea806",
+          "82d71f5a-6fac-4ebe-8808-518c8a0ef2a5",
+          "1119e9f3-5cd5-44e3-abb2-7b97ad253e60",
+          "bcb6dea1-6b99-42ee-8b95-1b6215046707",
+          "79eb149b-edbe-4d7c-8f64-f5d40f7d4c46",
+          "71921389-8cca-424d-be07-5bbd3504759c",
+          "b24077cb-b93f-4bef-8d9d-0dcd11b7cf6d",
+          "aaa9ce43-13cf-4aee-8568-206218ad93f9",
+          "ac845214-bbaf-47c9-97b3-2e0a3cc14575",
+          "fe9f5dd5-b463-4cff-86e8-4a57880dd961",
+          "541b5120-4309-4038-be2c-24cd0280b7af",
+          "a7a41465-6aa4-4eaf-b790-b4cc2294358a",
+          "014bafc8-64b8-4f22-9051-30c6b97c2723"
+        ],
+        "confidence": "low_ambiguous",
+        "score": 0,
+        "is_ambiguous": true,
+        "ambiguity_reason": "Location conflicts with supplied road identity or jurisdiction",
+        "review_status": "needs_review"
+      },
+      "passed": true
+    },
+    {
+      "name": "Coordinates without identifying evidence require review",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "coordinates": {
+          "lon": 77.62495715,
+          "lat": 12.9173
+        }
+      },
+      "result": {
+        "road_id": "c7a23980-a0c7-499b-85d2-da687905d9d3",
+        "road_name": "1 A Main Road",
+        "matched_segment_ids": [],
+        "candidate_segment_ids": [
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "8c32eec7-c81c-4c5d-9f99-db24fc69caeb",
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43",
+          "2a8512b3-decd-4c71-8470-b80ef5fcbbe1",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "73200993-d0f0-49f5-8b4a-def154c29dec",
+          "54d195be-aa2e-48bf-bb70-7f6a17b3b254",
+          "6b00221a-5113-44f0-90e6-a12de19aa001",
+          "3d0687c2-7c9e-42ad-861c-abc18ef146fe",
+          "1db528bd-8df2-407f-be21-c0c8654aa47d",
+          "3e46de22-a1ab-4334-ba2d-5d3f89519f0f",
+          "4525713b-fda4-4ad6-8abc-d9c2bcc0f7df",
+          "ee5b9d5f-1c33-4c53-9c61-05cf395ea806",
+          "82d71f5a-6fac-4ebe-8808-518c8a0ef2a5",
+          "1119e9f3-5cd5-44e3-abb2-7b97ad253e60",
+          "bcb6dea1-6b99-42ee-8b95-1b6215046707",
+          "79eb149b-edbe-4d7c-8f64-f5d40f7d4c46",
+          "71921389-8cca-424d-be07-5bbd3504759c",
+          "b24077cb-b93f-4bef-8d9d-0dcd11b7cf6d",
+          "aaa9ce43-13cf-4aee-8568-206218ad93f9",
+          "ac845214-bbaf-47c9-97b3-2e0a3cc14575",
+          "fe9f5dd5-b463-4cff-86e8-4a57880dd961",
+          "541b5120-4309-4038-be2c-24cd0280b7af",
+          "a7a41465-6aa4-4eaf-b790-b4cc2294358a",
+          "014bafc8-64b8-4f22-9051-30c6b97c2723"
+        ],
+        "confidence": "low_ambiguous",
+        "score": 0,
+        "is_ambiguous": true,
+        "ambiguity_reason": "Location lacks identifying road and district evidence",
+        "review_status": "needs_review"
+      },
+      "passed": true
+    },
+    {
+      "name": "An off-road point remains unlinked",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "Bengaluru Urban",
+        "road_name_hint": "NONEXISTENT ROAD CONTROL",
+        "coordinates": {
+          "lon": 77.209,
+          "lat": 28.6139
+        }
+      },
+      "result": {
+        "road_id": null,
+        "road_name": null,
+        "matched_segment_ids": [],
+        "candidate_segment_ids": [],
+        "confidence": "low_ambiguous",
+        "score": 0,
+        "is_ambiguous": true,
+        "ambiguity_reason": "No active indexed motor-road segments near the supplied location",
+        "review_status": "needs_review"
+      },
+      "passed": true
+    },
+    {
+      "name": "OSM geometry does not invent authoritative chainage",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "Bengaluru Urban",
+        "road_name_hint": "1 A Main Road",
+        "coordinates": null,
+        "chainage_start_km": 0,
+        "chainage_end_km": 2
+      },
+      "result": {
+        "road_id": "c7a23980-a0c7-499b-85d2-da687905d9d3",
+        "road_name": "1 A Main Road",
+        "matched_segment_ids": [],
+        "candidate_segment_ids": [
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18"
+        ],
+        "confidence": "low_ambiguous",
+        "score": 0,
+        "is_ambiguous": true,
+        "ambiguity_reason": "Official corridor identity and district must be verified before applying chainage",
+        "review_status": "needs_review"
+      },
+      "passed": true
+    }
+  ],
+  "passed": 6,
+  "failed": 0
+}

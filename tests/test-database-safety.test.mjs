@@ -39,12 +39,13 @@ test('Worker queries use Hyperdrive and never reuse clients across requests', ()
  assert.equal(run.status, 0, run.stderr);
 });
 
-test('Node pools leave connection capacity for scheduled ingestion', () => {
+test('Node pools reserve ingestion capacity and handle idle connection errors', () => {
  const run=spawnSync(process.execPath,['--experimental-strip-types','--input-type=module','-e',`
   import assert from 'node:assert/strict';
   const {pool}=await import('./src/db/client.ts');
   assert.equal(pool.options.max,4);
   assert.equal(pool.options.idleTimeoutMillis,5000);
+  pool.emit('error',Object.assign(new Error('Simulated idle connection reset'),{code:'ECONNRESET'}));
   await pool.end();
  `],{env:{...process.env,DATABASE_URL:'postgres://postgres:postgres@127.0.0.1/theroadproblem_ingestion_test'},encoding:'utf8'});
  assert.equal(run.status,0,run.stderr);

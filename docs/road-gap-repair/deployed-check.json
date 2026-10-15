@@ -1,0 +1,42 @@
+{
+  "checked_at": "2026-10-15T18:11:41.529Z",
+  "base": "https://theroadproblem.quest",
+  "checks": [
+    {
+      "name": "health",
+      "status": 200,
+      "body": {
+        "status": "healthy",
+        "database": "connected",
+        "postgis": "3.3 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
+        "total_roads_indexed": 201548,
+        "timestamp": "2026-10-15T18:11:33.795Z",
+        "version": "0.1.0"
+      }
+    },
+    {
+      "name": "first_page",
+      "status": 200,
+      "returned": 10,
+      "pagination": {
+        "has_more": true,
+        "next_cursor": "2b2f61ea-02b4-426d-8ca6-5db97285516f",
+        "returned": 10,
+        "detail": "all_motor_roads"
+      }
+    },
+    {
+      "name": "continuation",
+      "status": 200,
+      "returned": 10,
+      "overlap": 0,
+      "pagination": {
+        "has_more": true,
+        "next_cursor": "6062f679-f329-44b8-a8b0-c972330abe6b",
+        "returned": 10,
+        "detail": "all_motor_roads"
+      }
+    }
+  ],
+  "passed": true
+}

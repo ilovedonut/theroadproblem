@@ -1,0 +1,65 @@
+{
+  "verified_at": "2026-10-15T18:02:31.357Z",
+  "before": {
+    "source_versions": "22",
+    "works": "22",
+    "events": "22",
+    "reports": "5"
+  },
+  "afterFirst": {
+    "source_versions": "22",
+    "works": "22",
+    "events": "22",
+    "reports": "5"
+  },
+  "afterSecond": {
+    "source_versions": "22",
+    "works": "22",
+    "events": "22",
+    "reports": "5"
+  },
+  "first": {
+    "job": "pppac_karnataka_roads",
+    "started_at": "2026-10-15T18:02:15.861Z",
+    "completed_at": "2026-10-15T18:02:23.152Z",
+    "total_discovered": 22,
+    "new_inserted": 0,
+    "updated": 0,
+    "unchanged_skipped": 22,
+    "r2_archived": 1,
+    "errors": [],
+    "dry_run": false,
+    "source_url": "https://www.pppinindia.gov.in/pppac-statewises/pppac-projects-list_Karnataka",
+    "review_required": 0,
+    "run_id": "75c70181-2b21-4740-84a6-86db7a19f0b5",
+    "source_checksum": "a57dccbd2eca911b33b504d269aad4c86665b04f488f0e7d262c0b2b595da450",
+    "archive_key": "raw_sources/pppac/karnataka/a57dccbd2eca911b33b504d269aad4c86665b04f488f0e7d262c0b2b595da450.html"
+  },
+  "second": {
+    "job": "pppac_karnataka_roads",
+    "started_at": "2026-10-15T18:02:23.376Z",
+    "completed_at": "2026-10-15T18:02:30.467Z",
+    "total_discovered": 22,
+    "new_inserted": 0,
+    "updated": 0,
+    "unchanged_skipped": 22,
+    "r2_archived": 1,
+    "errors": [],
+    "dry_run": false,
+    "source_url": "https://www.pppinindia.gov.in/pppac-statewises/pppac-projects-list_Karnataka",
+    "review_required": 0,
+    "run_id": "0b208854-e62f-4fa5-8ffb-ca75c19b043d",
+    "source_checksum": "e7b14d5ab928dea35574520547f19ecce1fe5776d055980002784bbe2edd0416",
+    "archive_key": "raw_sources/pppac/karnataka/e7b14d5ab928dea35574520547f19ecce1fe5776d055980002784bbe2edd0416.html"
+  },
+  "archive_sha256": "a57dccbd2eca911b33b504d269aad4c86665b04f488f0e7d262c0b2b595da450",
+  "representative_record": {
+    "id": "cf9be192-096e-4b9e-8a4c-acdc21c4b0ef",
+    "work_id": "5d9f0e9a-6b26-43ee-993c-107bc614b9a0",
+    "source_url": "https://www.pppinindia.gov.in/pppac-statewises/pppac-projects-list_Karnataka",
+    "project_name": "Two laning with PSS a section, between Kerala Border to Kollegal section of NH-212 in the state of Karnataka on BOT (Toll) basis under NHDP-IV",
+    "approval_date": "2013-02-22",
+    "approved_project_cost_inr": "5234900000",
+    "matching": "needs_review_no_guessed_pin"
+  }
+}

@@ -21,7 +21,12 @@
     "retrieved_at": "2026-10-13T18:55:36.835Z",
     "checksum_sha256": "15668d7397e1da5016019bf7256ce84e08a3172861f62c56d53b5ef68afb203b",
     "crs": "EPSG:4326",
-    "bbox": [77.32553, 12.658009, 77.836964, 13.234676],
+    "bbox": [
+      77.32553,
+      12.658009,
+      77.836964,
+      13.234676
+    ],
     "geometry_validation": {
       "is_valid": true,
       "is_simple": true,
@@ -78,14 +83,22 @@
       "measured_summary": {
         "total_elements": 241908,
         "eligible_motor_ways": 217680,
-        "new_segments_inserted": 212432,
-        "updated_segment_versions": 1221,
-        "unchanged_ways_skipped": 4027,
         "boundary_crossing_ways": 620,
-        "unexpected_deactivations": 0,
-        "review_routed_work_associations": 0,
         "within_boundary_length_km": 30083.13,
         "motor_road_length_km": 30083.13
+      },
+      "normalized_payload_checksum_sha256": "77062a1ad67b7e28897e429a8f95799cd5a4638ee95ccaf5ca36f6b2ea377a99",
+      "production_verification": {
+        "checked_at": "2026-10-15T18:12:18.771Z",
+        "audit_scope": "Eligible source way IDs, not a claim of every real-world road or independent geometry fidelity certification",
+        "expected_eligible_ways": 217680,
+        "present_eligible_ways": 217680,
+        "missing_way_ids": 0,
+        "extra_active_osm_way_ids": 0,
+        "active_physical_segments": 217685,
+        "active_roads": 201413,
+        "completed_run_id": "1f93078c-7a85-4121-916e-ff456868f6c6",
+        "evidence": "docs/road-gap-repair/coverage-audit.json"
       }
     }
   },
@@ -109,7 +122,10 @@
         "tertiary_link",
         "road"
       ],
-      "construction_or_proposed": ["construction", "proposed"],
+      "construction_or_proposed": [
+        "construction",
+        "proposed"
+      ],
       "non_motor_routes": [
         "footway",
         "cycleway",

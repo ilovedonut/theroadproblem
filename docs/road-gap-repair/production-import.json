@@ -1,0 +1,49 @@
+{
+  "runId": "1f93078c-7a85-4121-916e-ff456868f6c6",
+  "district": "Bengaluru Urban",
+  "boundary_version": "osm-rel-2020589-15668d7397e1",
+  "boundary_checksum": "15668d7397e1da5016019bf7256ce84e08a3172861f62c56d53b5ef68afb203b",
+  "parser_version": "2.0.0",
+  "source_checksum": "77062a1ad67b7e28897e429a8f95799cd5a4638ee95ccaf5ca36f6b2ea377a99",
+  "source_timestamp": "2026-10-15T10:40:30.673Z",
+  "dry_run": false,
+  "total_elements": 241908,
+  "valid_ways": 217680,
+  "new_inserted": 20639,
+  "updated_versions": 157,
+  "unchanged_skipped": 434,
+  "rejected_count": 24228,
+  "deactivated_count": 0,
+  "review_routed_count": 0,
+  "renamed_count": 0,
+  "split_lineage_count": 0,
+  "merge_lineage_count": 0,
+  "boundary_crossing_ways": 620,
+  "within_boundary_length_m": 30083126.59,
+  "motor_road_length_m": 30083126.59,
+  "rejection_breakdown": {
+    "non_motor_highway_class": 21707,
+    "construction_or_proposed": 2477,
+    "unsupported_highway_tag:busway": 4,
+    "unsupported_highway_tag:raceway": 13,
+    "unsupported_highway_tag:platform": 9,
+    "unsupported_highway_tag:bus_stop": 16,
+    "unsupported_highway_tag:services": 1,
+    "unsupported_highway_tag:rest_area": 1
+  },
+  "category_breakdown": {
+    "restricted_motor": 39947,
+    "public_motor": 177733
+  },
+  "access_breakdown": {
+    "private": 38178,
+    "unknown": 174426,
+    "public": 3212,
+    "restricted": 1864
+  },
+  "checkpoint_offset": 217680,
+  "storage_archived_key": "raw_sources/osm/bengaluru_urban_77062a1ad67b7e28.json",
+  "attribution": "OpenStreetMap Contributors (https://www.openstreetmap.org/copyright)",
+  "license": "Open Database License (ODbL) 1.0 (https://www.openstreetmap.org/copyright)",
+  "errors": []
+}
