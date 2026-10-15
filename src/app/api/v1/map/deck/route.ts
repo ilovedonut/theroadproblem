@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/db/client';
-import { parseMapBounds } from '@/lib/map-bounds';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { query } from '../../../../../db/client.ts';
+import { parseMapBounds } from '../../../../../lib/map-bounds.ts';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

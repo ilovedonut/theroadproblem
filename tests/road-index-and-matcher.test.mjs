@@ -393,7 +393,7 @@ test('10. Road Identity & Distinct Unnamed Way Preservation', async () => {
   const unnamedRes = await query(`
     SELECT r.id, r.name, r.source_feature_id, count(rs.id) as seg_count
     FROM roads r
-    JOIN road_segments rs ON rs.road_id = r.id
+    JOIN road_segments rs ON rs.road_id = r.id AND rs.is_active = TRUE
     WHERE r.is_official_corridor = FALSE
       AND r.name LIKE 'Unnamed%'
     GROUP BY r.id, r.name, r.source_feature_id

@@ -152,9 +152,15 @@ export async function GET(req: NextRequest) {
 
     // Format rich metadata and human-readable distinguishing labels
     const candidates = res.rows.map((row: any) => {
-      const isElevated = row.layer > 0 || (row.bridge && row.bridge !== 'no');
+      const isElevated =
+        (row.layer !== null && row.layer > 0) ||
+        (row.bridge && row.bridge !== 'no') ||
+        (row.road_name && /elevated|flyover|viaduct/i.test(row.road_name));
       const isTunnel = row.layer < 0 || (row.tunnel && row.tunnel !== 'no');
-      const isService = row.is_service || row.road_class === 'service';
+      const isService =
+        row.is_service ||
+        row.road_class === 'service' ||
+        (row.road_name && /service/i.test(row.road_name));
       const isUnnamed = !row.has_official_name || !row.road_name || row.road_name.startsWith('Unnamed');
 
       let gradeLevel = 'surface';

@@ -1060,7 +1060,7 @@ export async function importOsmRoads(
               $${sIdx++}::jsonb, $${sIdx++}, $${sIdx++}, $${sIdx++},
               $${sIdx++}, $${sIdx++}, $${sIdx++}, $${sIdx++},
               $${sIdx++}, $${sIdx++}, $${sIdx++}, $${sIdx++},
-              $${sIdx++}, $${sIdx++}, $${sIdx++},
+              $${sIdx++}, $${sIdx++}, $${sIdx++}, $${sIdx++},
               $${sIdx++}, $${sIdx++}, $${sIdx++}::bigint[],
               $${sIdx++}, TRUE
             )`);
@@ -1087,6 +1087,7 @@ export async function importOsmRoads(
               cl.oneway,
               c.wayFingerprint,
               c.sourceFeatureId,
+              c.withinBoundaryLengthM,
               c.withinBoundaryLengthM,
               c.sourceLengthM,
               c.crossesBoundary,

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/db/client';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { query } from '../../../../../db/client.ts';
 
 export async function GET(
   req: NextRequest,
