@@ -1,5 +1,5 @@
 import { query } from '@/db/client';
-import { PARSE_VERSION,PPPAC_PUBLISHER,PPPAC_URL } from '@/lib/ingestor/adapters/pppac';
+import { PARSE_VERSION,PPPAC_PUBLISHER,PPPAC_URL } from '@/lib/ingestor/adapters/pppac-source';
 export const dynamic='force-dynamic';
 export async function GET() {
   try {

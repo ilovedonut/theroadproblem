@@ -1,10 +1,8 @@
 import crypto from 'node:crypto';
 import { load } from 'cheerio';
 
-export const PPPAC_URL = 'https://www.pppinindia.gov.in/pppac-statewises/pppac-projects-list_Karnataka';
-export const PPPAC_SOURCE = 'Department of Economic Affairs — PPPAC Karnataka road approvals';
-export const PPPAC_PUBLISHER = 'Department of Economic Affairs, Ministry of Finance, Government of India';
-export const PARSE_VERSION = 'pppac-karnataka-v1';
+import { PPPAC_URL } from './pppac-source.ts';
+export { PPPAC_URL, PPPAC_SOURCE, PPPAC_PUBLISHER, PARSE_VERSION } from './pppac-source.ts';
 const headers = ['Sr No.','Project Name','Sponsoring Authority','Location','Sector','Sub Sector','Total Project Cost (In Rs. Crore)','PPPAC Meeting Date','Meeting Number','Recommended For'];
 export const sha256 = (value: string | Buffer) => crypto.createHash('sha256').update(value).digest('hex');
 const clean = (value: string) => value.replace(/\s+/g, ' ').trim();
