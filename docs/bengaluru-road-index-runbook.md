@@ -68,11 +68,12 @@ npm run osm:import:bengaluru -- \
   --input scripts/data/bengaluru_urban_roads.osm.json \
   --output-report docs/evidence/stage-02/bengaluru-road-index-live.json
 
-# If interrupted, resume from last committed checkpoint_offset:
+# If interrupted, resume an exact saved run. Source, boundary, parser and
+# committed-prefix coverage are verified before its checkpoint is used:
 node --experimental-strip-types scripts/import-osm-roads.mjs \
   --district "Bengaluru Urban" \
   --input scripts/data/bengaluru_urban_roads.osm.json \
-  --resume-offset <checkpoint_offset>
+  --resume-run <verified_run_id> --chunk-size 250
 ```
 
 ## 4. Rollback & Recovery Procedure

@@ -46,6 +46,17 @@ async function verifySingleIngestionFlow() {
       }
     };
 
+    // The positive fixture supplies its own consistent corridor/reference and
+    // authoritative chainage. Do not depend on fuzzy matching against seed roads.
+    const corridorId=crypto.randomUUID();
+    testTender.road_name_hint=`Verification corridor ${corridorId}`;
+    testTender.road_ref=`VERIFY-${corridorId}`;
+    await client.query(`INSERT INTO roads(id,name,ref,road_class,authority_name,state,district,is_official_corridor)
+      VALUES($1,$2,$3,'primary',$4,'Karnataka','Bengaluru Urban',TRUE)`,
+      [corridorId,testTender.road_name_hint,testTender.road_ref,testTender.authority_name]);
+    await client.query(`INSERT INTO road_segments(road_id,state,district,chainage_from,chainage_to,length_m,geom,is_active)
+      SELECT $1,'Karnataka','Bengaluru Urban',i,i+1,1000,
+        ST_GeomFromText('LINESTRING(77.60 12.97,77.61 12.97)',4326),TRUE FROM generate_series(0,1) i`,[corridorId]);
     console.log('[Step 1] Ingesting New Official Public Works Tender...');
     const run1 = await runTenderIngestion(client, [testTender]);
     console.log('  Result 1:', run1);
@@ -109,7 +120,8 @@ async function verifySingleIngestionFlow() {
     `, [workCheck.rows[0].id]);
     const segCount = parseInt(segCheck.rows[0].seg_count, 10);
     assert.ok(segCount > 0, 'Work must be spatially linked to road segments via PostGIS');
-    console.log(`  ✓ Work snapped to ${segCount} road segment(s) along Outer Ring Road`);
+    assert.equal(segCount,2,'The complete two-segment fixture interval must be attributed');
+    console.log(`  ✓ Work linked to ${segCount} segment(s) of the isolated authoritative fixture`);
 
     // 3e. Civic audit event in ledger
     const eventCheck = await client.query(`

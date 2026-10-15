@@ -26,6 +26,8 @@ export interface PmgsyRecord {
   road_ref?: string;
   chainage_start_km?: number;
   chainage_end_km?: number;
+  coordinates?: { lon: number; lat: number } | null;
+  geometry_geojson?: unknown;
   sanction_year?: string;
   sanction_order_no?: string;
   sanction_date?: string;
@@ -392,7 +394,9 @@ export async function runPmgsyIngestion(
             road_name_hint: rec.road_name_hint,
             road_ref: rec.road_ref,
             chainage_start_km: rec.chainage_start_km,
-            chainage_end_km: rec.chainage_end_km
+            chainage_end_km: rec.chainage_end_km,
+            coordinates: rec.coordinates || null,
+            geometry_geojson: rec.geometry_geojson || null,
           },
           sourceRecordId
         );

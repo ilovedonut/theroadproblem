@@ -117,6 +117,8 @@ export async function ingestOfficialContracts(
       road_ref: c.road_ref || null,
       chainage_start_km: c.chainage_start_km,
       chainage_end_km: c.chainage_end_km,
+      coordinates: c.coordinates || null,
+      geometry_geojson: c.geometry_geojson || null,
     }, sourceRecordId);
 
     // 8. Append Civic Audit Event

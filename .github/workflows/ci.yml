@@ -52,7 +52,7 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/theroadproblem_ci_test
         run: |
-          node --experimental-strip-types --test tests/real-ingestion.test.mjs tests/test-database-safety.test.mjs tests/bengaluru-road-index.test.mjs
+          node --experimental-strip-types --test tests/real-ingestion.test.mjs tests/test-database-safety.test.mjs tests/road-gap-repair.test.mjs tests/road-gap-repair-db.test.mjs tests/bengaluru-road-index.test.mjs
           npm run test:real-ingestion:db
           npm run verify:isolated
 

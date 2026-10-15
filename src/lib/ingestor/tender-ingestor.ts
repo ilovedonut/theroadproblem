@@ -351,6 +351,8 @@ export async function runTenderIngestion(
         road_ref: t.road_ref || null,
         chainage_start_km: t.chainage_start_km,
         chainage_end_km: t.chainage_end_km,
+        coordinates: t.coordinates || null,
+        geometry_geojson: t.geometry_geojson || null,
       }, sourceRecordId);
 
       // 9. Civic Audit Event

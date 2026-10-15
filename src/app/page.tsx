@@ -12,6 +12,7 @@ import { GeospatialMap, RoadFeature, MultiSourceSignal } from '@/components/Geos
 
 import { AreaOverview } from '@/components/AreaOverview';
 import type { MapBounds } from '@/lib/map-bounds';
+import { loadMapDeckPages } from '@/lib/map-deck-loader';
 
 export default function GeospatialDeckPage() {
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
@@ -21,6 +22,7 @@ export default function GeospatialDeckPage() {
   const [signals, setSignals] = useState<MultiSourceSignal[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [roadLoadError, setRoadLoadError] = useState<string | null>(null);
 
   const [selectedRoad, setSelectedRoad] = useState<RoadFeature | null>(null);
   const [selectedSignal, setSelectedSignal] = useState<MultiSourceSignal | null>(null);
@@ -41,7 +43,7 @@ export default function GeospatialDeckPage() {
     verifiedIntact: true
   });
 
-  const fetchDeckData = useCallback(async (bounds?: MapBounds | null, zoom?: number, isInitial = false) => {
+  const fetchDeckData = useCallback(async (bounds?: MapBounds | null, zoom?: number) => {
     if (deckAbortRef.current) {
       deckAbortRef.current.abort();
     }
@@ -49,9 +51,8 @@ export default function GeospatialDeckPage() {
     deckAbortRef.current = controller;
     const reqId = ++deckReqIdRef.current;
 
-    if (isInitial) {
-      setLoading(true);
-    }
+    setLoading(true);
+    setRoadLoadError(null);
 
     try {
       const qs = new URLSearchParams();
@@ -60,16 +61,13 @@ export default function GeospatialDeckPage() {
       if (selectedRoadIdRef.current) qs.set('selected_road_id', selectedRoadIdRef.current);
       qs.set('_t', String(Date.now()));
 
-      const res = await fetch(`/api/v1/map/deck?${qs.toString()}`, {
-        cache: 'no-store',
-        signal: controller.signal
-      });
-      if (res.ok && reqId === deckReqIdRef.current) {
-        const data = await res.json();
-        const nextRoads: RoadFeature[] = data.roads || [];
+      await loadMapDeckPages<RoadFeature>({
+        params: qs, signal: controller.signal,
+        onPage: (data, nextRoads, complete) => {
+        if (reqId !== deckReqIdRef.current) return;
         setRoads(nextRoads);
-        setSignals(data.signals || []);
-        setSummary(data.summary || null);
+        if (Array.isArray(data.signals)) setSignals(data.signals);
+        setSummary((previous: any) => ({ ...(data.summary || previous), visible_roads_returned: nextRoads.length, viewport_complete: complete }));
 
         // Preserve selectedRoad inspection state when visible map data refreshes
         setSelectedRoad((prev) => {
@@ -77,13 +75,15 @@ export default function GeospatialDeckPage() {
           const updated = nextRoads.find((r) => r.id === prev.id);
           return updated || prev;
         });
-      }
+        },
+      });
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
         console.error('Failed to load deck telemetry', err);
+        if (reqId === deckReqIdRef.current) setRoadLoadError('Some roads could not be loaded for this area.');
       }
     } finally {
-      if (isInitial && reqId === deckReqIdRef.current) {
+      if (reqId === deckReqIdRef.current) {
         setLoading(false);
       }
     }
@@ -93,7 +93,6 @@ export default function GeospatialDeckPage() {
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
       setIsDeckCollapsed(true);
     }
-    fetchDeckData(null, 10.5, true);
     return () => {
       deckAbortRef.current?.abort();
     };
@@ -103,7 +102,7 @@ export default function GeospatialDeckPage() {
   useEffect(() => {
     if (!mapBounds) return;
     const timer = setTimeout(() => {
-      fetchDeckData(mapBounds, mapZoom, false);
+      fetchDeckData(mapBounds, mapZoom);
     }, 250);
     return () => clearTimeout(timer);
   }, [mapBounds, mapZoom, fetchDeckData]);
@@ -271,12 +270,6 @@ export default function GeospatialDeckPage() {
     <div className="relative w-full h-full overflow-hidden bg-canvas text-ink select-none">
       {/* Background 3D Globe Canvas (Full Viewport) */}
       <div className="absolute inset-0 w-full h-full">
-        {loading ? (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas text-information font-mono gap-3">
-            <RefreshCw className="w-8 h-8 animate-spin" />
-            <span className="text-xs tracking-wider">CONNECTING TO GEOSPATIAL OBSERVATORY...</span>
-          </div>
-        ) : (
           <GeospatialMap
             onViewportChange={handleViewportChange}
             roads={roads}
@@ -295,6 +288,12 @@ export default function GeospatialDeckPage() {
             activeLayerFilters={activeLayerFilters}
             onToggleFilter={handleToggleFilter}
           />
+        {(loading || roadLoadError || mapZoom < 11.5) && (
+          <div role="status" aria-live="polite" className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100%-2rem)] rounded-xl border border-line bg-surface px-4 py-2 text-sm text-ink shadow-md">
+            {roadLoadError ? <>{roadLoadError} <button className="min-h-11 underline text-information" onClick={() => fetchDeckData(mapBounds, mapZoom)}>Retry</button></>
+              : loading ? `Loading roads in this area…${roads.length ? ` ${roads.length.toLocaleString()} loaded` : ''}`
+              : 'Major roads shown. Zoom in to see neighbourhood streets.'}
+          </div>
         )}
       </div>
 

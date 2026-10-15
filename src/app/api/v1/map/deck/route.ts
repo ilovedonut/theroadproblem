@@ -33,6 +33,11 @@ export async function GET(req: NextRequest) {
     const limitRaw = parseInt(searchParams.get('limit') || '', 10);
     const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 10), 2500) : 600;
     const selectedRoadId = searchParams.get('selected_road_id') || null;
+    const cursor = searchParams.get('cursor');
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if ((cursor && !uuid.test(cursor)) || (selectedRoadId && !uuid.test(selectedRoadId))) {
+      return NextResponse.json({ error: 'Invalid road cursor or selection.' }, { status: 400 });
+    }
 
     // Determine simplification tolerance (in degrees) based on zoom level
     let simplifyTolerance = 0;
@@ -68,11 +73,19 @@ export async function GET(req: NextRequest) {
     params.push(majorClassesOnly);
     const majorOnlyIdx = params.length;
 
-    params.push(limit);
+    params.push(limit + 1);
     const limitIdx = params.length;
+    params.push(cursor || null);
+    const cursorIdx = params.length;
 
     const roadsQuery = `
-      WITH visible_segments AS (
+      WITH active_works_segs AS (
+        SELECT DISTINCT road_segment_id FROM work_segments WHERE road_segment_id IS NOT NULL
+      ),
+      active_incidents_segs AS (
+        SELECT DISTINCT road_segment_id FROM incidents WHERE lifecycle_status = 'active' AND road_segment_id IS NOT NULL
+      ),
+      visible_segments AS (
         SELECT
           rs.id,
           rs.road_id,
@@ -84,9 +97,13 @@ export async function GET(req: NextRequest) {
           COALESCE(rs.usage_category, 'public_motor') AS usage_category,
           COALESCE(rs.access_status, 'unknown') AS access_status,
           rs.road_class,
-          rs.geom
+          rs.geom,
+          (aws.road_segment_id IS NOT NULL) AS has_work,
+          (ais.road_segment_id IS NOT NULL) AS has_incident
         FROM road_segments rs
         JOIN roads r ON r.id = rs.road_id
+        LEFT JOIN active_works_segs aws ON aws.road_segment_id = rs.id
+        LEFT JOIN active_incidents_segs ais ON ais.road_segment_id = rs.id
         WHERE rs.is_active = TRUE
           AND r.name NOT LIKE 'Test %'
           AND COALESCE(rs.usage_category, 'public_motor') IN ('public_motor', 'restricted_motor')
@@ -98,8 +115,8 @@ export async function GET(req: NextRequest) {
                 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link'
               )
               OR COALESCE(r.is_official_corridor, FALSE) = TRUE
-              OR EXISTS (SELECT 1 FROM work_segments ws WHERE ws.road_segment_id = rs.id)
-              OR EXISTS (SELECT 1 FROM incidents i WHERE i.road_segment_id = rs.id AND i.lifecycle_status = 'active')
+              OR aws.road_segment_id IS NOT NULL
+              OR ais.road_segment_id IS NOT NULL
             ))
             OR ($${selectedIdx}::uuid IS NOT NULL AND rs.road_id = $${selectedIdx}::uuid)
           )
@@ -121,18 +138,13 @@ export async function GET(req: NextRequest) {
           SUM(vs.within_boundary_length_m) AS total_length_m,
           COUNT(vs.id) AS active_segments_count,
           COUNT(DISTINCT vs.osm_way_id) AS unique_ways_count,
-          BOOL_OR(EXISTS (SELECT 1 FROM incidents i WHERE i.road_segment_id = vs.id AND i.lifecycle_status = 'active')) AS has_incident,
-          BOOL_OR(EXISTS (SELECT 1 FROM work_segments ws WHERE ws.road_segment_id = vs.id)) AS has_work
+          BOOL_OR(vs.has_incident) AS has_incident,
+          BOOL_OR(vs.has_work) AS has_work
         FROM roads r
         JOIN visible_segments vs ON vs.road_id = r.id
+        WHERE ($${cursorIdx}::uuid IS NULL OR r.id > $${cursorIdx}::uuid)
         GROUP BY r.id
-        ORDER BY
-          ($${selectedIdx}::uuid IS NOT NULL AND r.id = $${selectedIdx}::uuid) DESC,
-          has_incident DESC,
-          has_work DESC,
-          COALESCE(r.is_official_corridor, FALSE) DESC,
-          SUM(vs.within_boundary_length_m) DESC,
-          r.name ASC
+        ORDER BY r.id ASC
         LIMIT $${limitIdx}
       )
       SELECT
@@ -210,10 +222,22 @@ export async function GET(req: NextRequest) {
             AND i.lifecycle_status = 'active'
         ), '[]'::json) AS incidents
       FROM prioritized_roads pr
-      ORDER BY pr.name ASC;
+      ORDER BY pr.id ASC;
     `;
 
     const roadsRes = await query(roadsQuery, params);
+    const returnedRoads = roadsRes.rows.slice(0, limit);
+    const pagination = {
+      has_more: roadsRes.rows.length > limit,
+      next_cursor: roadsRes.rows.length > limit ? returnedRoads[returnedRoads.length - 1].id : null,
+      returned: returnedRoads.length,
+      detail: majorClassesOnly ? 'major_roads' : 'all_motor_roads',
+    };
+    // Continuations only need the next geometries. Repeating district-wide
+    // statistics and source retrieval on every page delays full coverage.
+    if (cursor) return NextResponse.json({ roads: returnedRoads, pagination }, {
+      headers: { 'Cache-Control': 'no-store' },
+    });
 
     // 2. Fetch truthful district-wide index metrics without join multiplication
     const indexStatsRes = await query(`
@@ -319,7 +343,7 @@ export async function GET(req: NextRequest) {
     let totalSpendInr = 0;
     let visibleLengthKm = 0;
 
-    for (const r of roadsRes.rows) {
+    for (const r of returnedRoads) {
       visibleLengthKm += parseFloat(r.total_length_m || '0') / 1000;
       if (Array.isArray(r.works)) {
         for (const w of r.works) {
@@ -352,7 +376,7 @@ export async function GET(req: NextRequest) {
           non_motor_segments: parseInt(statsRow.non_motor_segments || '0', 10),
           total_length_km: totalMotorLengthKm,
           motor_road_length_km: totalMotorLengthKm,
-          visible_roads_returned: roadsRes.rows.length,
+          visible_roads_returned: returnedRoads.length,
           visible_length_km: visibleLengthKm.toFixed(1),
           length_unit_definition:
             'Geodesic length of active motor-road carriageways clipped to the Bengaluru Urban administrative district boundary (dual carriageways counted per physical way).',
@@ -375,7 +399,8 @@ export async function GET(req: NextRequest) {
           },
           timestamp: new Date().toISOString(),
         },
-        roads: roadsRes.rows,
+        roads: returnedRoads,
+        pagination,
         signals: multiSourceSignals,
       },
       {

@@ -29,7 +29,9 @@ function parseArgs(argv) {
     else if (arg === '--boundary' && argv[i + 1]) opts.boundaryFilePath = path.resolve(argv[++i]);
     else if (arg === '--district' && argv[i + 1]) opts.district = argv[++i];
     else if (arg === '--state' && argv[i + 1]) opts.state = argv[++i];
+    else if (arg === '--chunk-size' && argv[i + 1]) opts.chunkSize = parseInt(argv[++i], 10) || undefined;
     else if (arg === '--resume-offset' && argv[i + 1]) opts.checkpointOffset = parseInt(argv[++i], 10) || 0;
+    else if (arg === '--resume-run' && argv[i + 1]) opts.resumeRunId = argv[++i];
     else if (arg === '--limit' && argv[i + 1]) opts.limit = parseInt(argv[++i], 10) || undefined;
     else if (arg === '--output-report' && argv[i + 1]) opts.outputReport = path.resolve(argv[++i]);
   }
@@ -56,8 +58,13 @@ async function main() {
     console.log(`  CRS / Area:          ${boundary.crs} • ${boundary.area_sq_km} km²`);
   }
 
+  // CLI imports can run during database maintenance; keep the target and TLS
+  // verification unchanged while allowing a bounded connection handshake.
+  pool.options.connectionTimeoutMillis = 30000;
   const client = await pool.connect();
   try {
+    await client.query("SET statement_timeout='120s'");
+    await client.query("SET lock_timeout='10s'");
     const summary = await importOsmRoads(client, {
       district: opts.district,
       state: opts.state,
@@ -68,6 +75,8 @@ async function main() {
       isCompleteExtract: opts.isCompleteExtract,
       dryRun: opts.dryRun,
       checkpointOffset: opts.checkpointOffset,
+      resumeRunId: opts.resumeRunId,
+      chunkSize: opts.chunkSize,
       limit: opts.limit,
     });
 

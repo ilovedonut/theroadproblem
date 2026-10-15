@@ -191,6 +191,7 @@ export async function importOsmRoads(
     isCompleteExtract?: boolean;
     dryRun?: boolean;
     checkpointOffset?: number;
+    resumeRunId?: string;
     limit?: number;
     chunkSize?: number;
     maxDeactivationRatio?: number;
@@ -200,7 +201,13 @@ export async function importOsmRoads(
   const state = options.state || 'Karnataka';
   const chunkSize = options.chunkSize || 60;
   const dryRun = Boolean(options.dryRun);
-  const startOffset = Math.max(0, options.checkpointOffset || 0);
+  let startOffset = Math.max(0, options.checkpointOffset || 0);
+  if (startOffset > 0 && !options.resumeRunId) {
+    throw new Error('A saved run ID is required for safe resume; an offset alone cannot verify source identity.');
+  }
+  if (!Number.isSafeInteger(chunkSize) || chunkSize < 1 || chunkSize > 2000) {
+    throw new Error('Import chunk size must be an integer between 1 and 2000.');
+  }
 
   // Load verified boundary polygon
   const boundary =
@@ -485,6 +492,33 @@ export async function importOsmRoads(
   let lockAcquired = true;
 
   try {
+    if (options.resumeRunId) {
+      const prior = (await client.query(`SELECT * FROM osm_imports WHERE id=$1 AND district=$2`,
+        [options.resumeRunId, district])).rows[0];
+      if (!prior || !['running','failed'].includes(prior.status)
+        || prior.checksum_sha256 !== fullChecksum || prior.parser_version !== PARSER_VERSION
+        || prior.boundary_checksum !== boundary?.checksum_sha256
+        || Number(prior.ways_count) !== validCandidates.length) {
+        throw new Error('Resume refused: source, boundary, parser, candidate count or run status changed.');
+      }
+      startOffset = Number(prior.checkpoint_offset);
+      if (!Number.isSafeInteger(startOffset) || startOffset < 0 || startOffset > validCandidates.length) {
+        throw new Error('Resume refused: invalid saved checkpoint.');
+      }
+      const prefixIds = validCandidates.slice(0,startOffset).map(c=>c.way.id);
+      const uniquePrefixIds=[...new Set(prefixIds)];
+      let presentCount=0;
+      for(let offset=0;offset<uniquePrefixIds.length;offset+=2000) {
+        const present=(await client.query(`SELECT COUNT(DISTINCT osm_way_id) AS count FROM road_segments
+          WHERE is_active=TRUE AND district=$1 AND osm_way_id=ANY($2::bigint[])`,
+          [district,uniquePrefixIds.slice(offset,offset+2000)])).rows[0];
+        presentCount+=Number(present.count);
+      }
+      if (presentCount !== uniquePrefixIds.length) {
+        console.log('Saved prefix has missing ways; replaying from zero to repair coverage safely.');
+        startOffset = 0;
+      }
+    }
     // 5. Archive raw payload in Storage
     await putStorageObject(storageKey, Buffer.from(rawJson, 'utf8'), 'application/json');
 
@@ -574,6 +608,11 @@ export async function importOsmRoads(
       ]
     );
     const runId = runRes.rows[0].id;
+    if (options.resumeRunId) {
+      await client.query(`UPDATE osm_imports SET status='failed',completed_at=NOW(),
+        error_details=$2 WHERE id=$1 AND status IN ('running','failed')`,
+        [options.resumeRunId,`Interrupted run recovered by ${runId}; committed geometry retained.`]);
+    }
 
     let insertedCount = 0;
     let updatedVersionsCount = 0;
@@ -680,6 +719,8 @@ export async function importOsmRoads(
 
         if (itemsToInsert.length === 0) {
           lastCheckpointOffset = i + chunk.length;
+          await client.query('UPDATE osm_imports SET checkpoint_offset=$1,skipped_count=$2 WHERE id=$3',
+            [lastCheckpointOffset,skippedCount,runId]);
           continue;
         }
 
@@ -693,65 +734,75 @@ export async function importOsmRoads(
 
         try {
           // A. Detect split / merge lineage for new ways sharing nodes with deactivated/shortened ways
-          for (const item of itemsToInsert) {
-            if (!item.parentSegmentId && item.cand.nodeIds.length >= 2) {
-              // Check if an existing segment on the same road or sharing >= 2 nodes was split/merged
-              const nodeOverlapRes = await client.query(
-                `
-                SELECT rs.id, rs.road_id, rs.osm_way_id, rs.node_ids
-                FROM road_segments rs
-                WHERE rs.district = $1
-                  AND rs.node_ids && $2::bigint[]
-                  AND rs.osm_way_id != $3
-                ORDER BY rs.updated_at DESC
-                LIMIT 5;
-              `,
-                [district, item.cand.nodeIds, item.cand.way.id]
-              );
+          if (deactivateIds.length > 0 || deactivatedCount > 0) {
+            const newNodeIds = [...new Set(itemsToInsert.filter(item=>!item.parentSegmentId)
+              .flatMap(item=>item.cand.nodeIds))];
+            const overlapRows = newNodeIds.length ? (await client.query(`
+              SELECT rs.id,rs.road_id,rs.osm_way_id,rs.node_ids
+              FROM road_segments rs WHERE rs.district=$1
+                AND (rs.is_active=FALSE OR rs.id=ANY($3::uuid[]))
+                AND rs.node_ids && $2::bigint[]
+              ORDER BY rs.updated_at DESC,rs.id
+            `,[district,newNodeIds,deactivateIds])).rows : [];
+            const parentByNode = new Map<number,Set<number>>();
+            overlapRows.forEach((row: any,index: number)=>{
+              for(const node of row.node_ids || []) {
+                const entries=parentByNode.get(Number(node)) || new Set<number>();
+                entries.add(index);parentByNode.set(Number(node),entries);
+              }
+            });
+            for (const item of itemsToInsert) {
+              if (!item.parentSegmentId && item.cand.nodeIds.length >= 2) {
+                // Check if an existing segment on the same road or sharing >= 2 nodes was split/merged
+                const parentIndexes = new Set<number>();
+                for(const node of item.cand.nodeIds) for(const index of parentByNode.get(node) || []) parentIndexes.add(index);
+                const nodeOverlapRes = {rows:[...parentIndexes].sort((a,b)=>a-b)
+                  .map(index=>overlapRows[index]).filter(row=>Number(row.osm_way_id)!==item.cand.way.id).slice(0,5)};
 
-              const sharedParents: any[] = [];
-              for (const row of nodeOverlapRes.rows) {
-                const rowNodes: number[] = (row.node_ids || []).map(Number);
-                const sharedCount = item.cand.nodeIds.filter((n) => rowNodes.includes(n)).length;
-                // Sharing >= 2 internal/boundary nodes indicates a way split or merge
-                if (sharedCount >= 2) {
-                  sharedParents.push(row);
+                const sharedParents: any[] = [];
+                for (const row of nodeOverlapRes.rows) {
+                  const rowNodes: number[] = (row.node_ids || []).map(Number);
+                  const sharedCount = item.cand.nodeIds.filter((n) => rowNodes.includes(n)).length;
+                  // Sharing >= 2 internal/boundary nodes indicates a way split or merge
+                  if (sharedCount >= 2) {
+                    sharedParents.push(row);
+                  }
                 }
-              }
 
-              if (sharedParents.length === 1) {
-                item.parentSegmentId = sharedParents[0].id;
-                item.existingRoadId = item.existingRoadId || sharedParents[0].road_id;
-                item.transitionType = 'split';
-              } else if (sharedParents.length > 1) {
-                item.parentSegmentId = sharedParents[0].id;
-                item.additionalParentSegmentIds = sharedParents.slice(1).map((p) => p.id);
-                item.existingRoadId = item.existingRoadId || sharedParents[0].road_id;
-                item.transitionType = 'merge';
-              }
-            } else if (
-              item.parentSegmentId &&
-              item.parentLengthM &&
-              item.cand.withinBoundaryLengthM < item.parentLengthM * 0.75
-            ) {
-              // If another way in this batch shares nodes with this shortened way, mark as split
-              const siblingSplit = itemsToInsert.some(
-                (other) =>
-                  other !== item &&
-                  waysShareNode(item.cand.nodeIds, other.cand.nodeIds) &&
-                  other.cand.classification.displayName === item.cand.classification.displayName
-              );
-              if (siblingSplit) {
-                item.transitionType = 'split';
-                for (const other of itemsToInsert) {
-                  if (
+                if (sharedParents.length === 1) {
+                  item.parentSegmentId = sharedParents[0].id;
+                  item.existingRoadId = item.existingRoadId || sharedParents[0].road_id;
+                  item.transitionType = 'split';
+                } else if (sharedParents.length > 1) {
+                  item.parentSegmentId = sharedParents[0].id;
+                  item.additionalParentSegmentIds = sharedParents.slice(1).map((p) => p.id);
+                  item.existingRoadId = item.existingRoadId || sharedParents[0].road_id;
+                  item.transitionType = 'merge';
+                }
+              } else if (
+                item.parentSegmentId &&
+                item.parentLengthM &&
+                item.cand.withinBoundaryLengthM < item.parentLengthM * 0.75
+              ) {
+                // If another way in this batch shares nodes with this shortened way, mark as split
+                const siblingSplit = itemsToInsert.some(
+                  (other) =>
                     other !== item &&
-                    !other.parentSegmentId &&
-                    waysShareNode(item.cand.nodeIds, other.cand.nodeIds)
-                  ) {
-                    other.parentSegmentId = item.parentSegmentId;
-                    other.existingRoadId = item.existingRoadId;
-                    other.transitionType = 'split';
+                    waysShareNode(item.cand.nodeIds, other.cand.nodeIds) &&
+                    other.cand.classification.displayName === item.cand.classification.displayName
+                );
+                if (siblingSplit) {
+                  item.transitionType = 'split';
+                  for (const other of itemsToInsert) {
+                    if (
+                      other !== item &&
+                      !other.parentSegmentId &&
+                      waysShareNode(item.cand.nodeIds, other.cand.nodeIds)
+                    ) {
+                      other.parentSegmentId = item.parentSegmentId;
+                      other.existingRoadId = item.existingRoadId;
+                      other.transitionType = 'split';
+                    }
                   }
                 }
               }
@@ -953,89 +1004,178 @@ export async function importOsmRoads(
             const remainingNamed = namedItems.filter((n) => !n.resolvedRoadId);
             const chunkLocalRoads = new Map<
               string,
-              Array<{ id: string; coords: CoordPoint[]; wkt: string; nodeIds: number[] }>
+              Array<{ id: string; coords: CoordPoint[]; nodeIds: number[] }>
             >();
 
-            for (const item of remainingNamed) {
-              const rName = item.cand.classification.displayName;
-              const proxRes = await client.query(
+            if (remainingNamed.length > 0) {
+              const distinctRemainingNames = Array.from(
+                new Set(remainingNamed.map((n) => n.cand.classification.displayName))
+              );
+
+              // 1. Single batch query to find active road segments in DB with matching names
+              const existingNamedRes = await client.query(
                 `
-                SELECT r.id
+                SELECT r.id as road_id, r.name as road_name, rs.node_ids,
+                       ST_AsGeoJSON(rs.geom) as geom_json
                 FROM roads r
                 JOIN road_segments rs ON rs.road_id = r.id
                 WHERE r.district = $1
-                  AND r.name = $2
-                  AND rs.is_active = TRUE
-                  AND ST_DWithin(
-                    rs.geom::geography,
-                    ST_SetSRID(ST_GeomFromText($3), 4326)::geography,
-                    500
-                  )
-                LIMIT 1;
+                  AND r.name = ANY($2::text[])
+                  AND rs.is_active = TRUE;
               `,
-                [district, rName, item.cand.clippedWkt]
+                [district, distinctRemainingNames]
               );
 
-              if (proxRes.rows.length > 0) {
-                item.resolvedRoadId = proxRes.rows[0].id;
-                continue;
+              // Index existing active segments by road name
+              const existingByName = new Map<
+                string,
+                Array<{ road_id: string; coords: CoordPoint[]; nodeIds: number[] }>
+              >();
+              for (const row of existingNamedRes.rows) {
+                let coords: CoordPoint[] = [];
+                try {
+                  const parsed = JSON.parse(row.geom_json || '{"coordinates":[]}');
+                  coords = (parsed.coordinates || []).map((pt: any) => ({
+                    lon: Number(pt[0]),
+                    lat: Number(pt[1]),
+                  }));
+                } catch {
+                  coords = [];
+                }
+                const list = existingByName.get(row.road_name) || [];
+                list.push({
+                  road_id: row.road_id,
+                  coords,
+                  nodeIds: (row.node_ids || []).map(Number),
+                });
+                existingByName.set(row.road_name, list);
               }
 
-              // Check if a road created earlier in this chunk is proximate (<500m) or shares a node
-              const localCandidates = chunkLocalRoads.get(rName) || [];
-              let matchedLocalId: string | null = null;
-              for (const cand of localCandidates) {
-                if (
-                  waysShareNode(item.cand.nodeIds, cand.nodeIds) ||
-                  minPolylineDistanceMeters(item.cand.clippedCoords, cand.coords) <= 500
-                ) {
-                  matchedLocalId = cand.id;
-                  break;
+              // Track new roads to insert in batch
+              const newRoadsToInsert: Array<{
+                item: ItemToUpsert;
+                rName: string;
+                tempId: string;
+              }> = [];
+
+              for (const item of remainingNamed) {
+                const rName = item.cand.classification.displayName;
+                const dbCandidates = existingByName.get(rName) || [];
+
+                // Check DB candidates: share node or within 500m
+                let matchedRoadId: string | null = null;
+                for (const cand of dbCandidates) {
+                  if (
+                    waysShareNode(item.cand.nodeIds, cand.nodeIds) ||
+                    minPolylineDistanceMeters(item.cand.clippedCoords, cand.coords) <= 500
+                  ) {
+                    matchedRoadId = cand.road_id;
+                    break;
+                  }
+                }
+
+                if (matchedRoadId) {
+                  item.resolvedRoadId = matchedRoadId;
+                  dbCandidates.push({
+                    road_id: matchedRoadId,
+                    coords: item.cand.clippedCoords,
+                    nodeIds: item.cand.nodeIds,
+                  });
+                  continue;
+                }
+
+                // Check chunk local roads
+                const localCandidates = chunkLocalRoads.get(rName) || [];
+                let matchedLocalId: string | null = null;
+                for (const cand of localCandidates) {
+                  if (
+                    waysShareNode(item.cand.nodeIds, cand.nodeIds) ||
+                    minPolylineDistanceMeters(item.cand.clippedCoords, cand.coords) <= 500
+                  ) {
+                    matchedLocalId = cand.id;
+                    break;
+                  }
+                }
+
+                if (matchedLocalId) {
+                  item.resolvedRoadId = matchedLocalId;
+                  localCandidates.push({
+                    id: matchedLocalId,
+                    coords: item.cand.clippedCoords,
+                    nodeIds: item.cand.nodeIds,
+                  });
+                  continue;
+                }
+
+                // Disconnected or new named road cluster: schedule for batch insertion
+                const tempRoadKey = item.cand.sourceFeatureId;
+                item.resolvedRoadId = tempRoadKey;
+                const existingList = chunkLocalRoads.get(rName) || [];
+                existingList.push({
+                  id: tempRoadKey,
+                  coords: item.cand.clippedCoords,
+                  nodeIds: item.cand.nodeIds,
+                });
+                chunkLocalRoads.set(rName, existingList);
+
+                newRoadsToInsert.push({
+                  item,
+                  rName,
+                  tempId: tempRoadKey,
+                });
+              }
+
+              // Batch insert newly created named roads
+              if (newRoadsToInsert.length > 0) {
+                const nrValues: string[] = [];
+                const nrParams: any[] = [];
+                let nrIdx = 1;
+
+                for (const nr of newRoadsToInsert) {
+                  const it = nr.item;
+                  nrValues.push(
+                    `($${nrIdx++}, $${nrIdx++}, $${nrIdx++}, $${nrIdx++}, $${nrIdx++}, $${nrIdx++}, $${nrIdx++}, $${nrIdx++}, $${nrIdx++}, FALSE, TRUE, $${nrIdx++}::text[], $${nrIdx++}, $${nrIdx++})`
+                  );
+                  nrParams.push(
+                    nr.rName,
+                    nr.rName,
+                    it.cand.classification.officialRef,
+                    it.cand.classification.roadClass,
+                    it.cand.classification.operator,
+                    state,
+                    district,
+                    sourceId,
+                    it.cand.sourceFeatureId,
+                    it.cand.classification.aliases,
+                    it.cand.classification.usageCategory,
+                    it.cand.classification.accessStatus
+                  );
+                }
+
+                const insertNrRes = await client.query(
+                  `
+                  INSERT INTO roads (
+                    name, display_name, ref, road_class, authority_name, state, district,
+                    source_id, source_feature_id, is_official_corridor, has_official_name,
+                    aliases, usage_category, access_status
+                  )
+                  VALUES ${nrValues.join(', ')}
+                  RETURNING id, source_feature_id;
+                `,
+                  nrParams
+                );
+
+                const newRoadMap = new Map<string, string>();
+                for (const r of insertNrRes.rows) {
+                  newRoadMap.set(r.source_feature_id, r.id);
+                }
+
+                for (const item of remainingNamed) {
+                  if (item.resolvedRoadId && newRoadMap.has(item.resolvedRoadId)) {
+                    item.resolvedRoadId = newRoadMap.get(item.resolvedRoadId);
+                  }
                 }
               }
-
-              if (matchedLocalId) {
-                item.resolvedRoadId = matchedLocalId;
-                continue;
-              }
-
-              // Disconnected or new named road: create a distinct road entity
-              const newRoadRes = await client.query(
-                `
-                INSERT INTO roads (
-                  name, display_name, ref, road_class, authority_name, state, district,
-                  source_id, source_feature_id, is_official_corridor, has_official_name,
-                  aliases, usage_category, access_status
-                )
-                VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, FALSE, TRUE, $9::text[], $10, $11)
-                RETURNING id;
-              `,
-                [
-                  rName,
-                  item.cand.classification.officialRef,
-                  item.cand.classification.roadClass,
-                  item.cand.classification.operator, // NULL when unknown
-                  state,
-                  district,
-                  sourceId,
-                  item.cand.sourceFeatureId,
-                  item.cand.classification.aliases,
-                  item.cand.classification.usageCategory,
-                  item.cand.classification.accessStatus,
-                ]
-              );
-
-              const newId = newRoadRes.rows[0].id;
-              item.resolvedRoadId = newId;
-
-              const existingList = chunkLocalRoads.get(rName) || [];
-              existingList.push({
-                id: newId,
-                coords: item.cand.clippedCoords,
-                wkt: item.cand.clippedWkt,
-                nodeIds: item.cand.nodeIds,
-              });
-              chunkLocalRoads.set(rName, existingList);
             }
           }
 
@@ -1186,21 +1326,22 @@ export async function importOsmRoads(
             // 2. Never automatically transfer contracts/works to every child segment on a split;
             //    instead retain historical work_segments and route uncertain associations to ambiguous_matches_queue.
             // 3. Never overwrite manual_verified associations.
+            const parentIds = [...parentToChildren.keys()];
+            const associationRows = parentIds.length ? (await client.query(`
+              SELECT ws.road_segment_id,ws.work_id,ws.chainage_start_km,ws.chainage_end_km,
+                ws.matching_confidence,ws.review_status,ws.review_notes,
+                w.tender_id,w.authority_name,w.package_name,r.name AS road_name,r.district
+              FROM work_segments ws JOIN works w ON w.id=ws.work_id
+              JOIN road_segments rs ON rs.id=ws.road_segment_id JOIN roads r ON r.id=rs.road_id
+              WHERE ws.road_segment_id=ANY($1::uuid[])
+            `,[parentIds])).rows : [];
+            const associationsByParent = new Map<string,any[]>();
+            for(const row of associationRows) {
+              const entries=associationsByParent.get(row.road_segment_id) || [];
+              entries.push(row);associationsByParent.set(row.road_segment_id,entries);
+            }
             for (const [parentSegId, childSegIds] of parentToChildren.entries()) {
-              const workAssocs = await client.query(
-                `
-                SELECT ws.work_id, ws.chainage_start_km, ws.chainage_end_km,
-                       ws.matching_confidence, ws.review_status, ws.review_notes,
-                       w.tender_id, w.authority_name, w.package_name,
-                       r.name as road_name, r.district
-                FROM work_segments ws
-                JOIN works w ON w.id = ws.work_id
-                JOIN road_segments rs ON rs.id = ws.road_segment_id
-                JOIN roads r ON r.id = rs.road_id
-                WHERE ws.road_segment_id = $1;
-              `,
-                [parentSegId]
-              );
+              const workAssocs = { rows: associationsByParent.get(parentSegId) || [] };
 
               for (const wa of workAssocs.rows) {
                 if (childSegIds.length > 1) {
@@ -1257,9 +1398,19 @@ export async function importOsmRoads(
 
           lastCheckpointOffset = i + chunk.length;
           await client.query(
-            `UPDATE osm_imports SET checkpoint_offset = $1 WHERE id = $2;`,
-            [lastCheckpointOffset, runId]
+            `UPDATE osm_imports SET checkpoint_offset=$1,inserted_count=$3,updated_count=$4,skipped_count=$5 WHERE id=$2;`,
+            [lastCheckpointOffset,runId,insertedCount,updatedVersionsCount,skippedCount]
           );
+
+          if (
+            lastCheckpointOffset % 2000 < chunkSize ||
+            lastCheckpointOffset >= validCandidates.length
+          ) {
+            const pct = ((lastCheckpointOffset / validCandidates.length) * 100).toFixed(1);
+            console.log(
+              `  [Progress] ${lastCheckpointOffset.toLocaleString()} / ${validCandidates.length.toLocaleString()} ways (${pct}%) — inserted: ${insertedCount}, updated: ${updatedVersionsCount}, skipped: ${skippedCount}`
+            );
+          }
 
           if (inOuterTx) {
             await client.query(`RELEASE SAVEPOINT ${spName};`);
@@ -1318,6 +1469,8 @@ export async function importOsmRoads(
       }
 
       const changeSummary = {
+        resumed_from_run: options.resumeRunId || null,
+        resumed_from_checkpoint: startOffset,
         boundary_version: boundary?.boundary_version || 'unbounded',
         boundary_checksum: boundary?.checksum_sha256 || '',
         parser_version: PARSER_VERSION,

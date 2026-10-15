@@ -46,7 +46,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrate && npm run db:seed
-      - run: node --experimental-strip-types --test tests/real-ingestion.test.mjs tests/test-database-safety.test.mjs
+      - run: node --experimental-strip-types --test tests/real-ingestion.test.mjs tests/test-database-safety.test.mjs tests/road-gap-repair.test.mjs tests/road-gap-repair-db.test.mjs
       - run: npm run test:real-ingestion:db
       - run: npm run verify:isolated
   run-ingest:

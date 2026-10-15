@@ -27,6 +27,8 @@ export interface ParsedTender {
   road_ref?: string;
   chainage_start_km: number;
   chainage_end_km: number;
+  coordinates?: { lon: number; lat: number } | null;
+  geometry_geojson?: unknown;
   contractor: {
     legal_name: string;
     normalized_name: string;
