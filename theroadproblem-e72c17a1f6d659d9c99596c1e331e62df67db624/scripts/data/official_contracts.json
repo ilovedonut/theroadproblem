@@ -1,0 +1,56 @@
+[
+  {
+    "source_name": "Central Public Procurement Portal",
+    "external_key": "CPPP-2024-NHAI-189201",
+    "source_uri": "https://eprocure.gov.in/eprocure/app?page=FrontEndAwardSummary&service=page&tenderId=2024_NHAI_189201_1",
+    "license": "GODL India",
+    "authority_name": "National Highways Authority of India (NHAI)",
+    "tender_id": "2024_NHAI_189201_1",
+    "contract_id": "NHAI/PIU-BNG/NH-44/2024/CW-04",
+    "package_name": "Pavement Resurfacing and Periodic Maintenance of NH-44 Chainage 12.0 km to 15.5 km",
+    "work_type": "resurfacing",
+    "official_status": "officially_completed",
+    "start_date": "2024-04-01",
+    "target_completion_date": "2026-08-15",
+    "actual_completion_date": "2026-08-30",
+    "contract_value_inr": 284500000,
+    "defect_liability_end_date": "2029-08-30",
+    "road_name_hint": "Hosur Road (Elevated Tollway)",
+    "chainage_start_km": 12.0,
+    "chainage_end_km": 15.5,
+    "contractor": {
+      "legal_name": "Larsen & Toubro Infrastructure Engineering Ltd.",
+      "normalized_name": "Larsen and Toubro Infrastructure Engineering Limited",
+      "vendor_identifier": "LNT-INFRA-8839",
+      "cin": "U74210TN1998PLC041697",
+      "gstin": "29AAACL1234F1Z8"
+    }
+  },
+  {
+    "source_name": "Open Government Data Transport",
+    "external_key": "OGD-2025-BBMP-ORR-5401",
+    "source_uri": "https://data.gov.in/resource/major-road-works-bengaluru-package-5401",
+    "license": "GODL India",
+    "authority_name": "Bruhat Bengaluru Mahanagara Palike (BBMP)",
+    "tender_id": "BBMP/2025-26/RD/WORK_INDENT_5401",
+    "contract_id": "BBMP/EE/TEC/2025/AGR-882",
+    "package_name": "Asphalting and Stormwater Drain Rehabilitation of Outer Ring Road Silk Board to Marathahalli",
+    "work_type": "drainage_and_asphalting",
+    "official_status": "in_progress",
+    "start_date": "2025-11-01",
+    "target_completion_date": "2027-03-31",
+    "actual_completion_date": null,
+    "contract_value_inr": 485000000,
+    "defect_liability_end_date": null,
+    "road_name_hint": "Outer Ring Road",
+    "chainage_start_km": 0.0,
+    "chainage_end_km": 2.5,
+    "contractor": {
+      "legal_name": "KNR Constructions Limited",
+      "normalized_name": "KNR Constructions Limited",
+      "vendor_identifier": "KNR-HYD-5002",
+      "cin": "L74210TG1995PLC020833",
+      "gstin": "36AABCK1234G1Z2"
+    }
+  }
+]

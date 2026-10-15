@@ -1,0 +1,91 @@
+name: Scheduled Civic Data Ingestion
+on:
+  schedule:
+    - cron: '0 0,12 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Fetch and validate without writing records
+        type: boolean
+        default: false
+      verify_flow:
+        description: Verify real import, archive checksum and unchanged rerun
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: official-source-ingestion
+  cancel-in-progress: false
+jobs:
+  isolated-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: theroadproblem_ingestion_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/theroadproblem_ingestion_test
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/theroadproblem_ingestion_test
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate && npm run db:seed
+      - run: node --experimental-strip-types --test tests/real-ingestion.test.mjs tests/test-database-safety.test.mjs
+      - run: npm run test:real-ingestion:db
+      - run: npm run verify:isolated
+  run-ingest:
+    needs: isolated-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Fetch official register and persist real source records
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_QUARANTINE_BUCKET: theroadproblem-quarantine-private
+          R2_PUBLIC_BUCKET: theroadproblem-derivatives-public
+          DRY_RUN: ${{ inputs.dry_run }}
+          VERIFY_FLOW: ${{ inputs.verify_flow }}
+          NODE_ENV: production
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$R2_ACCOUNT_ID" ] || [ -z "$R2_ACCESS_KEY_ID" ] || [ -z "$R2_SECRET_ACCESS_KEY" ]; then
+            echo '::error::Required database or R2 secret is missing.'
+            exit 1
+          fi
+          if [ "$DRY_RUN" = 'true' ]; then
+            npm run ingest -- --dry-run
+          elif [ "$VERIFY_FLOW" = 'true' ]; then
+            npm run verify:real-ingestion
+          else
+            npm run ingest
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.verify_flow
+        with:
+          name: real-ingestion-verification
+          path: docs/ingestion-repair/evidence/live-verification.json
+          if-no-files-found: warn

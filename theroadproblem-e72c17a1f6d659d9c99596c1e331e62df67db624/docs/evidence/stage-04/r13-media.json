@@ -1,0 +1,13 @@
+{
+  "gate": "R13",
+  "status": "PASS",
+  "environment": "Local Sharp Image Pipeline",
+  "verified_at": "2026-10-13T17:48:35.525Z",
+  "assertions_passed": [
+    "Image resized to within max 1600px edge bounds",
+    "Raw EXIF GPS and metadata stripped completely from derivative",
+    "Original file quarantined in private partition",
+    "Malformed non-image payload rejected with clear error",
+    "Oversized file exceeding 8 MiB limit rejected before processing"
+  ]
+}

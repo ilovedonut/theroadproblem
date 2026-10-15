@@ -1,0 +1,41 @@
+{
+  "test": "R15: Mobile Accessibility, Responsiveness, Low-Data Mode, and Bilingual Localization",
+  "timestamp": "2026-10-13T11:40:16.736Z",
+  "verifications": [
+    {
+      "case": "1_bilingual_catalogs",
+      "status": "PASS",
+      "total_keys": 72,
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "parity": "100% matched"
+    },
+    {
+      "case": "2_viewport_360px_compliance",
+      "status": "PASS",
+      "viewport_meta": "width=device-width, initial-scale=1, maximum-scale=5",
+      "overflow_x_safe": true
+    },
+    {
+      "case": "3_a11y_landmarks_and_controls",
+      "status": "PASS",
+      "semantic_landmarks": [
+        "header",
+        "nav",
+        "main"
+      ],
+      "aria_labels_present": true,
+      "controls": [
+        "locale_switcher",
+        "low_data_mode_toggle"
+      ]
+    },
+    {
+      "case": "4_low_data_mode_handling",
+      "status": "PASS",
+      "asset_optimization": "List-view fallback and WebP derivative prioritization enabled"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "test": "R18: Operations Killswitches, Health Alerts, and Config Separation",
+  "timestamp": "2026-10-13T13:07:06.586Z",
+  "verifications": [
+    {
+      "case": "1_health_status",
+      "status": "PASS",
+      "database": "connected",
+      "postgis_version": "3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
+      "total_roads": 9
+    },
+    {
+      "case": "2_submission_killswitch",
+      "status": "PASS",
+      "toggle_off_verified": true,
+      "toggle_on_restored": true
+    },
+    {
+      "case": "3_ingestion_killswitch",
+      "status": "PASS",
+      "toggle_off_verified": true,
+      "toggle_on_restored": true
+    },
+    {
+      "case": "4_ops_alerting_and_budget",
+      "status": "PASS",
+      "alert_channel": "ops-alerts@theroadproblem.quest",
+      "monthly_budget_cap_inr": 2500,
+      "low_cost_envelope_enforced": true
+    }
+  ]
+}

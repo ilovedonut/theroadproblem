@@ -1,0 +1,40 @@
+{
+  "runId": "dry-run-4d42b46c334c",
+  "district": "Bengaluru Urban",
+  "boundary_version": "osm-rel-2020589-15668d7397e1",
+  "boundary_checksum": "15668d7397e1da5016019bf7256ce84e08a3172861f62c56d53b5ef68afb203b",
+  "parser_version": "2.0.0",
+  "source_checksum": "4d42b46c334c00d7adef6dd341eff2f2eb2ea8fd5d4ca90827d91f7d3244359b",
+  "source_timestamp": "2026-10-13T18:55:36.835Z",
+  "dry_run": true,
+  "total_elements": 5248,
+  "valid_ways": 5248,
+  "new_inserted": 5223,
+  "updated_versions": 0,
+  "unchanged_skipped": 25,
+  "rejected_count": 0,
+  "deactivated_count": 0,
+  "review_routed_count": 0,
+  "renamed_count": 0,
+  "split_lineage_count": 0,
+  "merge_lineage_count": 0,
+  "boundary_crossing_ways": 0,
+  "within_boundary_length_m": 671646.96,
+  "motor_road_length_m": 671646.96,
+  "rejection_breakdown": {},
+  "category_breakdown": {
+    "public_motor": 3630,
+    "restricted_motor": 1618
+  },
+  "access_breakdown": {
+    "unknown": 3448,
+    "public": 167,
+    "private": 1456,
+    "restricted": 177
+  },
+  "checkpoint_offset": 5248,
+  "storage_archived_key": "dry_run:raw_sources/osm/bengaluru_urban_4d42b46c334c00d7.json",
+  "attribution": "OpenStreetMap Contributors (https://www.openstreetmap.org/copyright)",
+  "license": "ODbL 1.0 (https://www.openstreetmap.org/copyright)",
+  "errors": []
+}

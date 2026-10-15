@@ -1,0 +1,106 @@
+{
+  "manifest_version": "2.0.0",
+  "city_scope": {
+    "label": "Bengaluru Urban Administrative District",
+    "district": "Bengaluru Urban",
+    "state": "Karnataka",
+    "country": "India",
+    "boundary_type": "administrative_district",
+    "distinction_notice": "Covers the entire Bengaluru Urban administrative district (OSM Relation 2020589), distinct from the smaller BBMP municipal corporation limits and the wider BMRDA metropolitan region."
+  },
+  "boundary": {
+    "name": "Bengaluru Urban",
+    "type": "administrative_district",
+    "admin_level": 5,
+    "osm_relation_id": 2020589,
+    "boundary_version": "osm-rel-2020589-15668d7397e1",
+    "file_path": "scripts/data/bengaluru_urban_boundary.geojson",
+    "source_url": "https://www.openstreetmap.org/relation/2020589",
+    "nominatim_lookup_url": "https://nominatim.openstreetmap.org/details?osmtype=R&osmid=2020589",
+    "source_version_date": "2026-10-13",
+    "retrieved_at": "2026-10-13T18:55:36.835Z",
+    "checksum_sha256": "15668d7397e1da5016019bf7256ce84e08a3172861f62c56d53b5ef68afb203b",
+    "crs": "EPSG:4326",
+    "bbox": [77.32553, 12.658009, 77.836964, 13.234676],
+    "geometry_validation": {
+      "is_valid": true,
+      "is_simple": true,
+      "is_empty": false,
+      "ring_count": 1,
+      "exterior_vertex_count": 6177,
+      "geodesic_area_sq_km": 2191.56,
+      "perimeter_km": 342.18,
+      "validity_reason": "Valid Geometry (OGC Simple Polygon, closed exterior ring, zero self-intersections)",
+      "repairs_applied": "None required"
+    },
+    "boundary_crossing_policy": {
+      "method": "clip_interior_preserve_source_identity",
+      "description": "Roads intersecting the Bengaluru Urban polygon are retained. The full original OSM way geometry and length are preserved in road_segments.source_geom and road_segments.source_length_m alongside osm_way_id and node_ids, while road_segments.geom and road_segments.within_boundary_length_m store the LineString clipped to the district polygon with crosses_boundary = true."
+    }
+  },
+  "osm_input": {
+    "primary_regional_extract": {
+      "provider": "Geofabrik GmbH",
+      "region": "Asia / India / Southern Zone",
+      "download_page_url": "https://download.geofabrik.de/asia/india.html",
+      "pbf_url": "https://download.geofabrik.de/asia/india/southern-zone-latest.osm.pbf",
+      "extraction_tool": "osmium-tool >= 1.16.0 (https://docs.osmcode.org/osmium/latest/osmium-extract.html)",
+      "reproducible_commands": [
+        "osmium extract --polygon scripts/data/bengaluru_urban_boundary.geojson --strategy complete_ways southern-zone-latest.osm.pbf -o scripts/data/bengaluru_urban.osm.pbf --overwrite",
+        "node --experimental-strip-types scripts/extract-bengaluru-osm.mjs --pbf scripts/data/bengaluru_urban.osm.pbf --output scripts/data/bengaluru_urban_roads.osm.json",
+        "node --experimental-strip-types scripts/import-osm-roads.mjs --input scripts/data/bengaluru_urban_roads.osm.json --dry-run"
+      ]
+    },
+    "archived_repository_extract": {
+      "file_path": "scripts/data/bengaluru_roads_osm_sample.json",
+      "source": "OpenStreetMap Contributors (ODbL 1.0)",
+      "license": "Open Database License (ODbL) 1.0 (https://www.openstreetmap.org/copyright)",
+      "retrieved_at": "2026-10-13T18:55:36.835Z",
+      "checksum_sha256": "9c9139354f40194d48f185a82e61ed09a49c4f0a6eb3e3e7de606763f11c434f",
+      "elements_count": 5248,
+      "measured_summary": {
+        "total_ways": 5248,
+        "motor_ways_included": 5248,
+        "public_or_unknown_access_motor_ways": 3625,
+        "restricted_or_private_motor_ways": 1623,
+        "named_ways": 1351,
+        "unnamed_ways": 3897,
+        "missing_all_access_tags_marked_unknown": 3448,
+        "within_boundary_length_km": 670.44
+      }
+    }
+  },
+  "parser": {
+    "version": "2.0.0",
+    "highway_inclusion_classes": {
+      "motor_roads": [
+        "motorway",
+        "trunk",
+        "primary",
+        "secondary",
+        "tertiary",
+        "unclassified",
+        "residential",
+        "service",
+        "living_street",
+        "motorway_link",
+        "trunk_link",
+        "primary_link",
+        "secondary_link",
+        "tertiary_link",
+        "road"
+      ],
+      "construction_or_proposed": ["construction", "proposed"],
+      "non_motor_routes": [
+        "footway",
+        "cycleway",
+        "pedestrian",
+        "steps",
+        "track",
+        "path",
+        "bridleway",
+        "corridor"
+      ]
+    }
+  }
+}

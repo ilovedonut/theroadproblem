@@ -1,0 +1,24 @@
+{
+  "gate": "R11",
+  "status": "PASS",
+  "environment": "Local Real PostgreSQL 18 + PostGIS 3.6 on WSL2",
+  "verified_at": "2026-10-13T15:44:30+05:30",
+  "commands_run": [
+    "npm run test:foundation",
+    "npm run test:auth:roles-rls",
+    "node --test tests/concurrency.test.mjs"
+  ],
+  "assertions_passed": [
+    "PostGIS version check passed (3.6 USE_GEOS=1 USE_PROJ=1)",
+    "submit_report_atomic transactional commit & event projection verified",
+    "Atomic rollback on FK violation verified with zero orphaned records",
+    "20 overlapping concurrent identical submissions resolved to exactly 1 report & incident",
+    "Competing concurrent merges (A->B vs B->A) prevented cycle and deadlock",
+    "Anonymous client denied access to held reports",
+    "Author citizen verified able to inspect own held report",
+    "Non-author citizen B verified denied access to author A held report",
+    "Moderator verified able to view held report queue",
+    "Citizen B denied unauthorized modification of User A profile",
+    "Citizen B denied self-escalation of role to moderator via RLS WITH CHECK"
+  ]
+}

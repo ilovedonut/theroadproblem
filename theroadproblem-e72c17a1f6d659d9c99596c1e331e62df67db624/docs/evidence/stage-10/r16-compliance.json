@@ -1,0 +1,33 @@
+{
+  "test": "R16: Account and Content Erasure, Audit Retention, and Grievance Workflow",
+  "timestamp": "2026-10-13T13:07:05.875Z",
+  "verifications": [
+    {
+      "case": "1_user_and_observation_created",
+      "status": "PASS",
+      "user_id": "26755633-07a2-4f6d-b976-63928dd6ac88",
+      "report_id": "e17587bc-3792-4b26-b193-995ebd16cc33",
+      "incident_id": "51eafc18-a2da-49b3-9e7f-40b84a9ea729"
+    },
+    {
+      "case": "2_personal_identifiers_scrubbed",
+      "status": "PASS",
+      "display_name": "Former Contributor",
+      "email_private": "erased_26755633-07a2-4f6d-b976-63928dd6ac88@redacted.invalid",
+      "deleted_at": "2026-10-13T13:07:06.093Z"
+    },
+    {
+      "case": "3_civic_safety_records_preserved",
+      "status": "PASS",
+      "report_retained": true,
+      "incident_retained": true,
+      "audit_event_actor_detached": true
+    },
+    {
+      "case": "4_grievance_workflow_configured",
+      "status": "PASS",
+      "operator_contact": "grievance@theroadproblem.quest",
+      "statutory_compliance": "DPDP Act 2023 & IT Intermediary Rules 2021"
+    }
+  ]
+}

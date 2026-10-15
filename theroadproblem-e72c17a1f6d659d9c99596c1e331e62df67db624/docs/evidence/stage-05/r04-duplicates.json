@@ -1,0 +1,13 @@
+{
+  "gate": "R04",
+  "status": "PASS",
+  "environment": "Local Real PostgreSQL 18 + PostGIS 3.6",
+  "verified_at": "2026-10-13T10:21:45.519Z",
+  "assertions_passed": [
+    "Spatial candidate matching suggested nearby same-category incident within 50m",
+    "Citizen option to report separate problem created distinct incident",
+    "merge_incidents_atomic moved all reports to target incident without dropping any",
+    "Merged incident marked resolved with durable redirect merged_into_incident_id",
+    "Both citizen observations retained full attribution and chronological integrity"
+  ]
+}

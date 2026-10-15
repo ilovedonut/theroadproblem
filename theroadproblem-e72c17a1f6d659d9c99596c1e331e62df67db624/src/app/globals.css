@@ -1,0 +1,140 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .evidence-input {
+    @apply mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2.5 text-base text-ink placeholder:text-quiet focus:outline-none focus:ring-2 focus:ring-information;
+  }
+  .evidence-primary {
+    @apply rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .evidence-secondary {
+    @apply rounded-full border border-line-strong bg-surface px-4 py-2.5 text-sm font-medium text-ink hover:border-emerald-600 hover:bg-emerald-50 disabled:opacity-50;
+  }
+}
+
+:root {
+  --clay-canvas: 250 249 247;
+  --clay-surface: 255 255 255;
+  --clay-soft: 238 233 223;
+  --clay-ink: 36 35 31;
+  --clay-muted: 85 83 78;
+  --clay-quiet: 105 100 92;
+  --clay-line: 218 212 200;
+  --clay-line-strong: 138 130 117;
+  --clay-information: 0 91 115;
+  --clay-positive: 7 109 66;
+  --clay-warning: 128 84 7;
+  --clay-source: 88 55 141;
+  --clay-danger: 161 45 59;
+  --clay-info-soft: 237 250 255;
+  --clay-positive-soft: 240 251 243;
+  --clay-warning-soft: 255 249 233;
+  --clay-source-soft: 246 242 255;
+  --clay-danger-soft: 255 242 243;
+  --background: #faf9f7;
+  --foreground: #24231f;
+  color-scheme: light;
+}
+
+:root.dark {
+  --clay-canvas: 33 31 27;
+  --clay-surface: 43 40 35;
+  --clay-soft: 55 51 45;
+  --clay-ink: 250 249 247;
+  --clay-muted: 218 212 200;
+  --clay-quiet: 185 178 165;
+  --clay-line: 88 81 70;
+  --clay-line-strong: 159 151 136;
+  --clay-information: 133 221 245;
+  --clay-positive: 132 231 165;
+  --clay-warning: 248 204 101;
+  --clay-source: 193 176 255;
+  --clay-danger: 252 153 159;
+  --clay-info-soft: 31 58 64;
+  --clay-positive-soft: 31 58 41;
+  --clay-warning-soft: 62 50 28;
+  --clay-source-soft: 49 41 66;
+  --clay-danger-soft: 64 37 41;
+  --background: #211f1b;
+  --foreground: #faf9f7;
+  color-scheme: dark;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Accessible focus visible ring */
+*:focus-visible {
+  outline: 2px solid rgb(var(--clay-information));
+  outline-offset: 2px;
+}
+
+/* Touch targets at least 44px */
+button, a, input, select {
+  min-height: 44px;
+}
+
+/* Custom dark scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--clay-soft));
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--clay-line-strong));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--clay-quiet));
+}
+
+/* MapLibre Dark Telemetry Popup Styling */
+.deck-telemetry-popup .maplibregl-popup-content {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0.75rem !important;
+}
+
+.deck-telemetry-popup .maplibregl-popup-tip {
+  border-top-color: #ffffff !important;
+  border-bottom-color: #ffffff !important;
+  border-left-color: #ffffff !important;
+  border-right-color: #ffffff !important;
+}
+
+::selection { background: #b4efc7; color: #02492a; }
+input, textarea, select { accent-color: rgb(var(--clay-positive)); caret-color: rgb(var(--clay-positive)); }
+input::placeholder, textarea::placeholder { color: rgb(var(--clay-quiet)); opacity: 1; }
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.025em; }
+.font-mono { font-variant-numeric: tabular-nums; }
+a { text-underline-offset: 3px; }
+.evidence-primary, .evidence-secondary { transition: background-color 160ms ease, box-shadow 160ms ease; }
+.evidence-primary:hover:not(:disabled) { box-shadow: -3px 3px 0 #02492a; }
+.dark .deck-telemetry-popup .maplibregl-popup-tip {
+  border-color: rgb(var(--clay-surface)) !important;
+}
+.maplibregl-ctrl-group, .maplibregl-ctrl-attrib {
+  background: rgb(var(--clay-surface) / 0.95);
+  color: rgb(var(--clay-ink));
+}
+.maplibregl-ctrl-attrib a { color: inherit; }
+.maplibregl-ctrl-group button + button { border-top-color: rgb(var(--clay-line)); }
+.maplibregl-ctrl-group button:hover { background: rgb(var(--clay-soft)); }
+.dark .maplibregl-ctrl-icon { filter: invert(1); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

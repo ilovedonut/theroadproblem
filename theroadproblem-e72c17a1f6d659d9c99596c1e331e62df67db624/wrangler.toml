@@ -1,0 +1,35 @@
+name = "theroadproblem"
+main = ".open-next/worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "1ba95380b51740bab244bff09a028b15"
+# OpenNext also initializes local bindings while deploying. This dedicated test
+# target is only for local emulation; production uses Hyperdrive's stored origin.
+localConnectionString = "postgres://postgres:postgres@127.0.0.1:5432/theroadproblem_ingestion_test"
+
+# Private bucket: Unvetted user uploads and raw source records (ZERO public access)
+[[r2_buckets]]
+binding = "QUARANTINE_BUCKET"
+bucket_name = "theroadproblem-quarantine-private"
+preview_bucket_name = "theroadproblem-quarantine-private-preview"
+
+# Public bucket: Sanitized WebP derivatives and vector tile packages (CDN edge access)
+[[r2_buckets]]
+binding = "PUBLIC_DERIVATIVES_BUCKET"
+bucket_name = "theroadproblem-derivatives-public"
+preview_bucket_name = "theroadproblem-derivatives-public-preview"
+
+
+
+[vars]
+R2_PUBLIC_URL = "https://pub-5d40049f0b7d4ed0973b3153dda47b71.r2.dev"

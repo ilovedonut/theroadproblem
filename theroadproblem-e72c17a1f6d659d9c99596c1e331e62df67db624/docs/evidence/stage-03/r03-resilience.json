@@ -1,0 +1,33 @@
+{
+  "test": "R03: Fault Tolerance and Journey Resilience",
+  "timestamp": "2026-10-13T13:07:05.878Z",
+  "verifications": [
+    {
+      "case": "1_gps_denied_manual_pin",
+      "status": "PASS",
+      "report_id": "0a6024d4-99b1-4260-9691-96c6a3314753",
+      "coordinates": [
+        12.935,
+        77.62
+      ]
+    },
+    {
+      "case": "2_ambiguous_candidate_ranking",
+      "status": "PASS",
+      "candidates_count": 2,
+      "top_candidate": "Hosur Road (Surface Service Carriageway)",
+      "snap_distance_m": "170.05"
+    },
+    {
+      "case": "3_no_match_unmapped_reporting",
+      "status": "PASS",
+      "report_id": "a70c9d6f-66cb-480f-9c73-8d3f70d55c41",
+      "road_segment_id": null
+    },
+    {
+      "case": "4_tile_failure_list_fallback",
+      "status": "PASS",
+      "roads_accessible_without_tiles": 5
+    }
+  ]
+}
