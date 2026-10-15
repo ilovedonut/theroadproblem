@@ -77,6 +77,7 @@ export async function GET(req: NextRequest) {
         ds.publisher
       FROM source_records sr
       JOIN data_sources ds ON sr.source_id = ds.id
+      WHERE sr.raw_content ? 'lat' AND sr.raw_content ? 'lon'
       ORDER BY sr.retrieved_at DESC
       LIMIT 50;
     `);
@@ -86,16 +87,22 @@ export async function GET(req: NextRequest) {
     if (sourceRecordsRes.rows.length > 0) {
       multiSourceSignals = sourceRecordsRes.rows.map((row: any) => {
         const raw = row.raw_content || {};
+        const dateVal = raw.published_at || raw.start_date || row.retrieved_at;
+        const dateStr = dateVal instanceof Date 
+          ? dateVal.toISOString().substring(0, 10) 
+          : typeof dateVal === 'string' 
+            ? dateVal.substring(0, 10) 
+            : '';
         const isOfficial = !raw.signal_type || raw.signal_type === 'official_portal';
         return {
           id: row.id,
           type: raw.signal_type || 'official_portal',
-          source: row.source_name || raw.source_name || 'Public Data Registry',
+          source: row.source_name || 'Public Data Registry',
           title: raw.title || raw.package_name || `Source Record: ${row.external_key}`,
-          date: (raw.published_at || raw.start_date || row.retrieved_at || '').substring(0, 10),
+          date: dateStr,
           road_name: raw.road_name || raw.road_name_hint || 'Monitored Corridor',
-          lat: raw.lat ? parseFloat(raw.lat) : 12.9205,
-          lon: raw.lon ? parseFloat(raw.lon) : 77.6255,
+          lat: Number(raw.lat),
+          lon: Number(raw.lon),
           details: raw.details || (raw.work_type ? `${raw.work_type} (Status: ${raw.official_status || 'recorded'})` : `Tender/Source Record ${row.external_key}`),
           verified: false, // Invariant: news/social/external imports never assert verified ground condition
           status: isOfficial ? 'official_procurement_record' : 'publisher_reported',

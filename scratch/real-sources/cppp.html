@@ -1,0 +1,14 @@
+<html>
+<head>
+<script language="JavaScript" type="text/javascript">
+                function redirectError(){
+                        var arrUrl = window.location.href;
+                        var domainURL = arrUrl.substring(0,arrUrl.indexOf("/app"));
+                        if(domainURL)
+                                window.location.replace(domainURL+"/app?page=CommonErrorPage&service=page");
+		}
+</script>
+</head>
+<body onload="redirectError()">
+</body>
+</html>

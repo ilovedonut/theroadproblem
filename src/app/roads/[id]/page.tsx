@@ -38,11 +38,11 @@ export default function RoadDetailPage() {
 
   if (loading) {
     return (
-      <main className="max-w-5xl mx-auto px-4 py-8 text-slate-100 font-mono">
+      <main className="max-w-5xl mx-auto px-4 py-8 text-ink font-mono">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-slate-900 border border-slate-800 rounded w-1/2"></div>
-          <div className="h-4 bg-slate-900 border border-slate-800 rounded w-1/3"></div>
-          <div className="h-48 bg-slate-900 border border-slate-800 rounded"></div>
+          <div className="h-8 bg-surface border border-line rounded w-1/2"></div>
+          <div className="h-4 bg-surface border border-line rounded w-1/3"></div>
+          <div className="h-48 bg-surface border border-line rounded"></div>
         </div>
       </main>
     );
@@ -51,10 +51,10 @@ export default function RoadDetailPage() {
   if (error || !data || !data.road) {
     return (
       <main className="max-w-5xl mx-auto px-4 py-8">
-        <div className="p-5 bg-rose-950/40 border border-rose-900 rounded-lg text-rose-300 font-mono text-sm">
+        <div className="p-5 bg-rose-950/40 border border-rose-900 rounded-lg text-danger font-mono text-sm">
           <h2 className="font-bold text-base">Corridor Record Not Found</h2>
           <p className="mt-1">{error || 'The requested road corridor could not be found in the database.'}</p>
-          <Link href="/" className="inline-flex items-center gap-1.5 mt-4 text-cyan-400 hover:underline">
+          <Link href="/" className="inline-flex items-center gap-1.5 mt-4 text-information hover:underline">
             <ArrowLeft className="w-4 h-4" />
             <span>Return to National Map Deck</span>
           </Link>
@@ -66,42 +66,42 @@ export default function RoadDetailPage() {
   const { road, segments, active_incidents, official_works, timeline, coexistence_alert } = data;
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-6 w-full text-slate-100">
+    <main className="max-w-5xl mx-auto px-4 py-6 w-full text-ink">
       {/* Breadcrumb Navigation */}
-      <nav aria-label="Breadcrumb" className="mb-4 text-xs font-mono text-slate-400 flex items-center gap-2">
-        <Link href="/" className="hover:text-cyan-400 flex items-center gap-1 transition-colors">
+      <nav aria-label="Breadcrumb" className="mb-4 text-xs font-mono text-muted flex items-center gap-2">
+        <Link href="/" className="hover:text-information flex items-center gap-1 transition-colors">
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Observatory Deck</span>
         </Link>
-        <span className="text-slate-600">/</span>
-        <span className="text-white font-semibold">{road.name || road.ref}</span>
+        <span className="text-quiet">/</span>
+        <span className="text-ink font-semibold">{road.name || road.ref}</span>
       </nav>
 
       {/* Hero Corridor Dossier Header */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 mb-6 shadow-xl backdrop-blur-md">
+      <div className="bg-surface/90 border border-line rounded-xl p-5 mb-6 shadow-xl backdrop-blur-md">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1.5 font-mono">
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60">
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-cyan-950 text-information border border-cyan-800/60">
                 {road.road_class || 'Corridor'}
               </span>
               {road.ref && (
-                <span className="text-xs font-bold text-slate-400">
+                <span className="text-xs font-bold text-muted">
                   REF: {road.ref}
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-ink tracking-tight">
               {road.name || 'Unnamed Corridor'}
             </h1>
-            <p className="text-xs text-slate-400 font-mono mt-1">
-              Authority: <strong className="text-slate-200">{road.authority_name || 'Public Authority'}</strong> • {road.district}, {road.state}
+            <p className="text-xs text-muted font-mono mt-1">
+              Authority: <strong className="text-ink">{road.authority_name || 'Public Authority'}</strong> • {road.district}, {road.state}
             </p>
           </div>
 
           <Link
             href={`/report?roadId=${road.id}`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs font-mono rounded-lg transition-colors shadow-md"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs font-mono rounded-lg transition-colors shadow-md"
           >
             <PlusCircle className="w-4 h-4" />
             <span>Contribute Evidence</span>
@@ -109,29 +109,29 @@ export default function RoadDetailPage() {
         </div>
 
         {/* Telemetry Numbers */}
-        <div className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-slate-800/80 text-center font-mono">
-          <div className="p-2 rounded bg-slate-950/60 border border-slate-800">
-            <div className="text-lg font-bold text-white">{segments?.length || 1}</div>
-            <div className="text-[10px] text-slate-400 uppercase">Indexed Segments</div>
+        <div className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-line/80 text-center font-mono">
+          <div className="p-2 rounded bg-canvas/60 border border-line">
+            <div className="text-lg font-bold text-ink">{segments?.length || 1}</div>
+            <div className="text-[10px] text-muted uppercase">Indexed Segments</div>
           </div>
-          <div className="p-2 rounded bg-slate-950/60 border border-slate-800">
-            <div className="text-lg font-bold text-cyan-400">{official_works?.length || 0}</div>
-            <div className="text-[10px] text-slate-400 uppercase">Official Tenders</div>
+          <div className="p-2 rounded bg-canvas/60 border border-line">
+            <div className="text-lg font-bold text-information">{official_works?.length || 0}</div>
+            <div className="text-[10px] text-muted uppercase">Official Tenders</div>
           </div>
-          <div className="p-2 rounded bg-slate-950/60 border border-slate-800">
-            <div className="text-lg font-bold text-amber-400">{active_incidents?.length || 0}</div>
-            <div className="text-[10px] text-slate-400 uppercase">Ground Observations</div>
+          <div className="p-2 rounded bg-canvas/60 border border-line">
+            <div className="text-lg font-bold text-warning">{active_incidents?.length || 0}</div>
+            <div className="text-[10px] text-muted uppercase">Ground Observations</div>
           </div>
         </div>
       </div>
 
       {/* DUAL-STATE COEXISTENCE NOTICE */}
       {coexistence_alert?.alert && (
-        <div className="mb-6 p-4 bg-amber-950/40 border border-amber-500/40 rounded-xl text-amber-200 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="mb-6 p-4 bg-amber-950/40 border border-amber-500/40 rounded-xl text-warning flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
           <div className="text-xs">
-            <h2 className="font-bold text-sm text-white uppercase tracking-wider font-mono">Dual State Machine Alert</h2>
-            <p className="mt-1 leading-relaxed text-amber-200/90 font-sans">
+            <h2 className="font-bold text-sm text-ink uppercase tracking-wider font-mono">Dual State Machine Alert</h2>
+            <p className="mt-1 leading-relaxed text-warning/90 font-sans">
               {coexistence_alert.message} Official records certify project completion, but verified ground observations indicate subsequent carriageway excavation or deterioration. In our public ledger, ground truth does not overwrite official contracts, and official announcements do not erase ground reality.
             </p>
           </div>
@@ -139,13 +139,13 @@ export default function RoadDetailPage() {
       )}
 
       {/* Tab Controls */}
-      <div className="flex border-b border-slate-800 mb-6 space-x-6 text-xs font-mono">
+      <div className="flex border-b border-line mb-6 space-x-6 text-xs font-mono">
         <button
           onClick={() => setActiveTab('works')}
           className={`pb-3 border-b-2 font-bold transition-colors ${
             activeTab === 'works'
-              ? 'border-cyan-400 text-cyan-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-cyan-400 text-information'
+              : 'border-transparent text-muted hover:text-ink'
           }`}
         >
           Official Public Works ({official_works?.length || 0})
@@ -154,8 +154,8 @@ export default function RoadDetailPage() {
           onClick={() => setActiveTab('observations')}
           className={`pb-3 border-b-2 font-bold transition-colors ${
             activeTab === 'observations'
-              ? 'border-cyan-400 text-cyan-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-cyan-400 text-information'
+              : 'border-transparent text-muted hover:text-ink'
           }`}
         >
           Ground Observations ({active_incidents?.length || 0})
@@ -164,8 +164,8 @@ export default function RoadDetailPage() {
           onClick={() => setActiveTab('timeline')}
           className={`pb-3 border-b-2 font-bold transition-colors ${
             activeTab === 'timeline'
-              ? 'border-cyan-400 text-cyan-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-cyan-400 text-information'
+              : 'border-transparent text-muted hover:text-ink'
           }`}
         >
           Audit Ledger History ({timeline?.length || 0})
@@ -179,52 +179,52 @@ export default function RoadDetailPage() {
             official_works.map((w: any) => (
               <div
                 key={w.work_id}
-                className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4 font-mono text-xs"
+                className="bg-surface border border-line rounded-xl p-5 shadow-lg space-y-4 font-mono text-xs"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="px-2 py-0.5 font-bold rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60 uppercase">
+                  <span className="px-2 py-0.5 font-bold rounded bg-cyan-950 text-information border border-cyan-800/60 uppercase">
                     {w.work_type.replace('_', ' ')} • {w.official_status.replace('_', ' ')}
                   </span>
                   {w.contract_value_inr && (
-                    <span className="font-bold text-cyan-300 text-sm">
+                    <span className="font-bold text-information text-sm">
                       ₹{(Number(w.contract_value_inr) / 10000000).toFixed(2)} Crores
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <h2 className="text-base font-bold text-white font-sans">
+                  <h2 className="text-base font-bold text-ink font-sans">
                     {w.package_name}
                   </h2>
-                  <p className="text-slate-400 mt-1">
-                    Tender ID: <span className="text-slate-200">{w.tender_id || 'N/A'}</span> • Agreement: <span className="text-slate-200">{w.contract_id || 'N/A'}</span>
+                  <p className="text-muted mt-1">
+                    Tender ID: <span className="text-ink">{w.tender_id || 'N/A'}</span> • Agreement: <span className="text-ink">{w.contract_id || 'N/A'}</span>
                   </p>
                 </div>
 
                 {/* Awarded Contractor Card */}
-                <div className="p-4 bg-slate-950/80 rounded-lg border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] text-cyan-400 uppercase font-bold">
+                <div className="p-4 bg-canvas/80 rounded-lg border border-line space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-information uppercase font-bold">
                     <span>Awarded Contractor ({w.contractor_role})</span>
-                    <span className="text-emerald-400">{(w.match_confidence * 100).toFixed(0)}% Match Confidence</span>
+                    <span className="text-positive">{(w.match_confidence * 100).toFixed(0)}% Match Confidence</span>
                   </div>
-                  <div className="text-sm font-bold text-white font-sans">
+                  <div className="text-sm font-bold text-ink font-sans">
                     {w.contractor_name}
                   </div>
-                  <div className="text-slate-400 flex flex-wrap gap-x-4 pt-1">
-                    {w.cin && <span>CIN: <strong className="text-slate-200">{w.cin}</strong></span>}
-                    {w.gstin && <span>GSTIN: <strong className="text-slate-200">{w.gstin}</strong></span>}
+                  <div className="text-muted flex flex-wrap gap-x-4 pt-1">
+                    {w.cin && <span>CIN: <strong className="text-ink">{w.cin}</strong></span>}
+                    {w.gstin && <span>GSTIN: <strong className="text-ink">{w.gstin}</strong></span>}
                   </div>
                 </div>
 
                 {/* Provenance Footer */}
-                <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 flex flex-wrap items-center justify-between gap-2">
+                <div className="pt-3 border-t border-line/80 text-[11px] text-muted flex flex-wrap items-center justify-between gap-2">
                   <span>Publisher: {w.publisher || 'Government Authority'} (License: {w.license || 'GODL India'})</span>
                   {w.source_uri && (
                     <a
                       href={w.source_uri}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold"
+                      className="text-information hover:text-information flex items-center gap-1 font-semibold"
                     >
                       <span>Official Source Record</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -234,7 +234,7 @@ export default function RoadDetailPage() {
               </div>
             ))
           ) : (
-            <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-500 font-mono text-xs">
+            <div className="p-8 text-center bg-surface border border-line rounded-xl text-quiet font-mono text-xs">
               No official procurement work records matched to this corridor.
             </div>
           )}
@@ -247,31 +247,31 @@ export default function RoadDetailPage() {
             active_incidents.map((inc: any) => (
               <div
                 key={inc.id}
-                className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex items-start justify-between gap-2"
+                className="bg-surface border border-line rounded-lg p-4 flex items-start justify-between gap-2"
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800/60 uppercase font-bold text-[10px]">
+                    <span className="px-2 py-0.5 rounded bg-amber-950 text-warning border border-amber-800/60 uppercase font-bold text-[10px]">
                       {inc.category.replace('_', ' ')}
                     </span>
-                    <span className="text-slate-400">
+                    <span className="text-muted">
                       {inc.verification_state === 'corroborated' ? '✓ Corroborated' : '• Reported'}
                     </span>
                   </div>
-                  <p className="text-slate-400 mt-2 text-[11px]">
+                  <p className="text-muted mt-2 text-[11px]">
                     First seen: {new Date(inc.first_observed_at).toLocaleDateString()} • Reports: {inc.reports_count} • Corroborations: {inc.corroborations_count}
                   </p>
                 </div>
                 <Link 
                   href={`/incidents/${inc.id}`}
-                  className="text-cyan-400 hover:text-cyan-300 font-bold"
+                  className="text-information hover:text-information font-bold"
                 >
                   View Details →
                 </Link>
               </div>
             ))
           ) : (
-            <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-500">
+            <div className="p-8 text-center bg-surface border border-line rounded-xl text-quiet">
               No active ground damage or excavation recorded on this corridor.
             </div>
           )}
@@ -284,17 +284,17 @@ export default function RoadDetailPage() {
             timeline.map((ev: any) => (
               <div
                 key={ev.id}
-                className="p-3 bg-slate-900 border border-slate-800 rounded-lg"
+                className="p-3 bg-surface border border-line rounded-lg"
               >
-                <div className="flex items-center justify-between text-slate-400">
+                <div className="flex items-center justify-between text-muted">
                   <span>{new Date(ev.effective_at).toLocaleString()}</span>
-                  <span className="font-bold text-cyan-400 uppercase">{ev.event_type}</span>
+                  <span className="font-bold text-information uppercase">{ev.event_type}</span>
                 </div>
-                <p className="text-slate-200 mt-1 font-sans text-xs">{ev.reason}</p>
+                <p className="text-ink mt-1 font-sans text-xs">{ev.reason}</p>
               </div>
             ))
           ) : (
-            <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-500">
+            <div className="p-8 text-center bg-surface border border-line rounded-xl text-quiet">
               No historical event log recorded yet.
             </div>
           )}

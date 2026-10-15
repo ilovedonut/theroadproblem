@@ -67,7 +67,10 @@ export interface MultiSourceSignal {
   is_demo?: boolean;
 }
 
+import { normaliseMapBounds, parseMapBounds, type MapBounds } from '@/lib/map-bounds';
+
 interface GeospatialMapProps {
+  onViewportChange?: (bounds:MapBounds)=>void;
   roads: RoadFeature[];
   signals: MultiSourceSignal[];
   selectedRoadId: string | null;
@@ -83,6 +86,7 @@ interface GeospatialMapProps {
 }
 
 export function GeospatialMap({
+  onViewportChange,
   roads,
   signals,
   selectedRoadId,
@@ -99,6 +103,9 @@ export function GeospatialMap({
   signalsRef.current = signals;
   const onSelectSignalRef = useRef(onSelectSignal);
   onSelectSignalRef.current = onSelectSignal;
+
+  const viewportCallback=useRef(onViewportChange);
+  viewportCallback.current=onViewportChange;
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isGlobe, setIsGlobe] = useState(true);
@@ -128,7 +135,7 @@ export function GeospatialMap({
           id: 'cosmic-space-background',
           type: 'background',
           paint: {
-            'background-color': '#020617'
+            'background-color': '#eee9df'
           }
         },
         {
@@ -138,9 +145,9 @@ export function GeospatialMap({
           minzoom: 0,
           maxzoom: 19,
           paint: {
-            'raster-brightness-max': 0.35,
-            'raster-contrast': 0.45,
-            'raster-saturation': -0.92
+            'raster-brightness-max': 1,
+            'raster-contrast': 0,
+            'raster-saturation': 0
           }
         }
       ]
@@ -172,7 +179,18 @@ export function GeospatialMap({
       'bottom-left'
     );
 
+    const applyMapTheme = () => {
+      if (!map.getLayer('cosmic-space-background')) return;
+      const dark = document.documentElement.classList.contains('dark');
+      map.setPaintProperty('cosmic-space-background', 'background-color', dark ? '#211f1b' : '#eee9df');
+    };
+    const themeObserver = new MutationObserver(applyMapTheme);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    const publishBounds=()=>{const b=map.getBounds();viewportCallback.current?.(normaliseMapBounds(b.getWest(),b.getSouth(),b.getEast(),b.getNorth()))};
+    map.on('moveend',publishBounds);
     map.on('load', () => {
+      applyMapTheme();
       // Ensure globe projection is enabled
       try {
         (map as any).setProjection({ type: 'globe' });
@@ -181,6 +199,9 @@ export function GeospatialMap({
       }
       setMapLoaded(true);
       map.resize();
+      const requested=parseMapBounds(new URLSearchParams(window.location.search).get("bbox"));
+      if(requested)map.fitBounds([[requested[0],requested[1]],[requested[2],requested[3]]],{padding:50,duration:0});
+      publishBounds();
     });
 
     mapRef.current = map;
@@ -195,6 +216,7 @@ export function GeospatialMap({
     resizeObserver.observe(mapContainerRef.current);
 
     return () => {
+      themeObserver.disconnect();
       resizeObserver.disconnect();
       if (signalPopupRef.current) signalPopupRef.current.remove();
       if (roadPopupRef.current) roadPopupRef.current.remove();
@@ -410,9 +432,9 @@ export function GeospatialMap({
         roadPopupRef.current
           .setLngLat(e.lngLat)
           .setHTML(`
-            <div class="px-2.5 py-1.5 rounded-lg bg-slate-950/95 border border-slate-700/80 shadow-2xl text-slate-100 font-sans max-w-xs backdrop-blur-md pointer-events-none">
-              <p class="font-bold text-xs text-white leading-tight">${props.name}</p>
-              <p class="text-[10px] font-mono text-cyan-400 mt-0.5">${props.ref ? props.ref + ' • ' : ''}${props.authority}</p>
+            <div class="px-2.5 py-1.5 rounded-lg bg-canvas/95 border border-line/80 shadow-2xl text-ink font-sans max-w-xs backdrop-blur-md pointer-events-none">
+              <p class="font-bold text-xs text-ink leading-tight">${props.name}</p>
+              <p class="text-[10px] font-mono text-information mt-0.5">${props.ref ? props.ref + ' • ' : ''}${props.authority}</p>
             </div>
           `)
           .addTo(map);
@@ -614,16 +636,16 @@ export function GeospatialMap({
         signalPopupRef.current
           .setLngLat(coordinates)
           .setHTML(`
-            <div class="px-3 py-2 rounded-xl bg-slate-950/95 border border-slate-700/80 shadow-2xl text-slate-100 font-sans max-w-[280px] backdrop-blur-xl pointer-events-none">
-              <div class="flex items-center justify-between gap-2 font-mono text-[10px] pb-1 border-b border-slate-800">
-                <span class="font-bold text-cyan-300 uppercase">${props.source}</span>
-                <span class="text-slate-400 font-semibold">${props.date || 'SIGNAL'}</span>
+            <div class="px-3 py-2 rounded-xl bg-canvas/95 border border-line/80 shadow-2xl text-ink font-sans max-w-[280px] backdrop-blur-xl pointer-events-none">
+              <div class="flex items-center justify-between gap-2 font-mono text-[10px] pb-1 border-b border-line">
+                <span class="font-bold text-information uppercase">${props.source}</span>
+                <span class="text-muted font-semibold">${props.date || 'SIGNAL'}</span>
               </div>
-              <p class="font-bold text-xs text-white mt-1 leading-snug line-clamp-2">${props.title}</p>
-              <p class="text-[11px] font-mono text-cyan-400 mt-1 truncate">${props.road_name}</p>
-              <div class="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-400">
+              <p class="font-bold text-xs text-ink mt-1 leading-snug line-clamp-2">${props.title}</p>
+              <p class="text-[11px] font-mono text-information mt-1 truncate">${props.road_name}</p>
+              <div class="mt-1.5 pt-1 border-t border-line/80 flex items-center justify-between text-[10px] font-mono text-muted">
                 <span>Click to inspect</span>
-                <span class="text-cyan-400 font-semibold">Dossier →</span>
+                <span class="text-information font-semibold">Dossier →</span>
               </div>
             </div>
           `)
@@ -661,21 +683,21 @@ export function GeospatialMap({
   }, [signals, roads, mapLoaded, activeLayerFilters]);
 
   return (
-    <div className="absolute inset-0 w-full h-full bg-slate-950 overflow-hidden select-none">
+    <div className="absolute inset-0 w-full h-full bg-canvas overflow-hidden select-none">
       {/* 3D MapLibre Globe Canvas */}
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
 
       {/* Floating Top-Right Telemetry Controls */}
       <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 flex-wrap justify-end">
         {/* Layer Filters */}
-        <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-950/85 backdrop-blur-md border border-slate-800/80 shadow-xl text-[11px] font-mono">
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-canvas/85 backdrop-blur-md border border-line/80 shadow-xl text-[11px] font-mono">
           <button
             onClick={() => onToggleFilter('officialWorks')}
             title="Toggle Official Works"
             className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
               activeLayerFilters.officialWorks
-                ? 'bg-cyan-950/90 text-cyan-300 font-bold border border-cyan-500/40'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-cyan-950/90 text-information font-bold border border-cyan-500/40'
+                : 'text-muted hover:text-ink'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
@@ -687,8 +709,8 @@ export function GeospatialMap({
             title="Toggle Excavations & Digs"
             className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
               activeLayerFilters.excavations
-                ? 'bg-amber-950/90 text-amber-300 font-bold border border-amber-500/40'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-amber-950/90 text-warning font-bold border border-amber-500/40'
+                : 'text-muted hover:text-ink'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
@@ -700,8 +722,8 @@ export function GeospatialMap({
             title="Toggle Multi-Source Intel (News, Reddit, X)"
             className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
               activeLayerFilters.newsSocial
-                ? 'bg-purple-950/90 text-purple-300 font-bold border border-purple-500/40'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-purple-950/90 text-source font-bold border border-purple-500/40'
+                : 'text-muted hover:text-ink'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
@@ -713,8 +735,8 @@ export function GeospatialMap({
             title="Toggle Verified / In Warranty"
             className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
               activeLayerFilters.verifiedIntact
-                ? 'bg-emerald-950/90 text-emerald-300 font-bold border border-emerald-500/40'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-emerald-950/90 text-positive font-bold border border-emerald-500/40'
+                : 'text-muted hover:text-ink'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -726,7 +748,7 @@ export function GeospatialMap({
         <button
           onClick={toggleProjection}
           title={isGlobe ? 'Switch to 2D Mercator Flat Map' : 'Switch to 3D Spherical Globe'}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-950/85 backdrop-blur-md border border-slate-800/80 text-cyan-400 hover:text-cyan-300 hover:bg-slate-900 transition-colors shadow-xl text-[11px] font-mono font-semibold"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-canvas/85 backdrop-blur-md border border-line/80 text-information hover:text-information hover:bg-surface transition-colors shadow-xl text-[11px] font-mono font-semibold"
         >
           {isGlobe ? <Globe2 className="w-3.5 h-3.5" /> : <MapIcon className="w-3.5 h-3.5" />}
           <span>{isGlobe ? '3D Globe' : '2D Map'}</span>
@@ -736,14 +758,14 @@ export function GeospatialMap({
         <button
           onClick={flyToGlobalOrbit}
           title="Zoom out to Global Orbit"
-          className="p-1.5 rounded-lg bg-slate-950/85 backdrop-blur-md border border-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-900 transition-colors shadow-xl text-[11px] font-mono"
+          className="p-1.5 rounded-lg bg-canvas/85 backdrop-blur-md border border-line/80 text-muted hover:text-ink hover:bg-surface transition-colors shadow-xl text-[11px] font-mono"
         >
           <Compass className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Subtle Legend Indicator Bottom Right (Above controls) */}
-      <div className="absolute bottom-10 right-3 z-20 hidden lg:flex items-center gap-3 px-3 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-slate-800/80 text-[10px] font-mono text-slate-400 shadow-xl pointer-events-none">
+      <div className="absolute bottom-10 right-3 z-20 hidden lg:flex items-center gap-3 px-3 py-1 rounded-full bg-canvas/80 backdrop-blur-md border border-line/80 text-[10px] font-mono text-muted shadow-xl pointer-events-none">
         <span className="flex items-center gap-1">
           <span className="w-2 h-1 bg-cyan-400 rounded-full"></span>
           <span>Official Work</span>

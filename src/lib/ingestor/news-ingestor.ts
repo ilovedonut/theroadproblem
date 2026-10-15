@@ -102,8 +102,9 @@ export const CIVIC_SIGNALS_SEED: ParsedCivicSignal[] = [
 
 export async function runNewsIngestion(
   client: pg.PoolClient,
-  signals: ParsedCivicSignal[] = CIVIC_SIGNALS_SEED
+  signals: ParsedCivicSignal[] = []
 ): Promise<IngestRunSummary> {
+  if (!signals.length) throw new Error('Explicit records are required; demo defaults are disabled.');
   const startedAt = new Date().toISOString();
   let inserted = 0;
   let updated = 0;

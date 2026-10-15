@@ -23,3 +23,6 @@ bucket_name = "theroadproblem-derivatives-public"
 preview_bucket_name = "theroadproblem-derivatives-public-preview"
 
 
+
+[vars]
+R2_PUBLIC_URL = "https://pub-5d40049f0b7d4ed0973b3153dda47b71.r2.dev"

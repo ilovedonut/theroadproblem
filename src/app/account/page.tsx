@@ -31,19 +31,19 @@ export default function AccountPage() {
         <h1 className="text-3xl font-semibold">Your account</h1>
         <AccountPanel />
         <div className="flex gap-5 text-sm">
-          <Link href="/report" className="text-cyan-300 underline">
+          <Link href="/report" className="text-information underline">
             Add evidence
           </Link>
-          <Link href="/drafts" className="text-cyan-300 underline">
+          <Link href="/drafts" className="text-information underline">
             Saved drafts
           </Link>
         </div>
-        {error && <p className="text-sm text-slate-400">{error}</p>}
+        {error && <p className="text-sm text-muted">{error}</p>}
         {data && (
           <>
             <h2 className="text-xl font-semibold">My contributions</h2>
             {!data.reports.length && (
-              <p className="text-slate-400">
+              <p className="text-muted">
                 Your submitted evidence will appear here.
               </p>
             )}
@@ -51,17 +51,17 @@ export default function AccountPage() {
               <Link
                 key={r.id}
                 href={`/incidents/${r.incident_id}`}
-                className="block rounded-xl border border-slate-700 p-4"
+                className="block rounded-xl border border-line p-4"
               >
                 <p className="font-medium">
                   {r.category.replace(/_/g, " ")} · {r.publication_status}
                 </p>
-                <p className="text-sm text-slate-400 mt-1">{r.description}</p>
+                <p className="text-sm text-muted mt-1">{r.description}</p>
               </Link>
             ))}
             <h2 className="text-xl font-semibold">My location corrections</h2>
             {!data.corrections.length && (
-              <p className="text-slate-400">
+              <p className="text-muted">
                 You haven’t suggested a correction yet.
               </p>
             )}
@@ -69,10 +69,10 @@ export default function AccountPage() {
               <Link
                 key={c.id}
                 href={`/incidents/${c.incident_id}`}
-                className="block rounded-xl border border-slate-700 p-4"
+                className="block rounded-xl border border-line p-4"
               >
                 <p className="font-medium capitalize">{c.status}</p>
-                <p className="text-sm text-slate-400">{c.reason}</p>
+                <p className="text-sm text-muted">{c.reason}</p>
                 {c.review_reason && (
                   <p className="text-sm mt-2">Review: {c.review_reason}</p>
                 )}

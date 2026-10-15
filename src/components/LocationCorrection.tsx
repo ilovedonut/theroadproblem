@@ -22,11 +22,11 @@ export function LocationCorrection({
     [error, setError] = useState(""),
     [submitted, setSubmitted] = useState(false);
   return (
-    <section className="rounded-xl border border-slate-700 bg-slate-900 p-5 my-5 space-y-4">
+    <section className="rounded-xl border border-line bg-surface p-5 my-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold">Is the pin in the right place?</h2>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-muted mt-1">
             Suggest a more accurate location for this issue.
           </p>
         </div>
@@ -35,7 +35,7 @@ export function LocationCorrection({
         </button>
       </div>
       {submitted && (
-        <p role="status" className="text-cyan-200 text-sm">
+        <p role="status" className="text-information text-sm">
           Correction submitted for moderator review. The public pin stays where
           it is until approved.
         </p>
@@ -47,7 +47,7 @@ export function LocationCorrection({
             original={{ lat, lon }}
             onChange={setPin}
           />
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted">
             Corrections can move a pin up to 500 m. Report a separate issue for
             another location.
           </p>
@@ -63,7 +63,7 @@ export function LocationCorrection({
           </label>
           <AccountPanel />
           {error && (
-            <p role="alert" className="text-rose-300 text-sm">
+            <p role="alert" className="text-danger text-sm">
               {error}
             </p>
           )}

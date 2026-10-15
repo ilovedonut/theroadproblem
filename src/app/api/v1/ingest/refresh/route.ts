@@ -1,30 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runAllIngestors } from '@/lib/ingestor/runner';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-export async function POST(req: NextRequest) {
-  try {
-    const summary = await runAllIngestors();
-    return NextResponse.json({
-      status: 'success',
-      message: 'Ingestion refresh cycle completed successfully',
-      summary
-    }, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-      }
-    });
-  } catch (err: any) {
-    console.error('Error triggering ingestion refresh:', err);
-    return NextResponse.json({
-      status: 'error',
-      error: err.message
-    }, { status: 500 });
-  }
+export const dynamic='force-dynamic';
+export async function POST(req:NextRequest){
+  const token=process.env.INGEST_REFRESH_TOKEN;
+  if(!token||req.headers.get('authorization')!==`Bearer ${token}`)return NextResponse.json({error:'Authorized operator access is required.'},{status:401});
+  try{return NextResponse.json({status:'success',summary:await runAllIngestors()},{headers:{'Cache-Control':'no-store'}})}
+  catch(error){console.error('Official refresh failed',error);return NextResponse.json({error:'Official source refresh failed. Check the ingestion run ledger.'},{status:503})}
 }
-
-export async function GET(req: NextRequest) {
-  return POST(req);
-}
+export async function GET(){return NextResponse.json({error:'Use an authorized POST request.'},{status:405,headers:{Allow:'POST'}})}

@@ -48,8 +48,8 @@ function Review({ item, onReviewed }: { item: any; onReviewed: () => void }) {
     }
   }
   return (
-    <article className="rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3">
-      <p className="text-sm text-slate-400">
+    <article className="rounded-xl border border-line bg-surface p-5 space-y-3">
+      <p className="text-sm text-muted">
         {item.display_name} · {new Date(item.created_at).toLocaleString()}
       </p>
       <p>{item.reason}</p>
@@ -59,7 +59,7 @@ function Review({ item, onReviewed }: { item: any; onReviewed: () => void }) {
         readOnly
       />
       {item.stale && (
-        <p className="text-amber-300 text-sm">
+        <p className="text-warning text-sm">
           This proposal is stale. Reject it and request a new location.
         </p>
       )}
@@ -88,7 +88,7 @@ function Review({ item, onReviewed }: { item: any; onReviewed: () => void }) {
         />
       </label>
       {error && (
-        <p role="alert" className="text-rose-300 text-sm">
+        <p role="alert" className="text-danger text-sm">
           {error}
         </p>
       )}
@@ -141,7 +141,7 @@ export function CorrectionQueue() {
       {loading ? (
         <p>Loading corrections…</p>
       ) : error ? (
-        <p role="alert" className="text-rose-300">
+        <p role="alert" className="text-danger">
           {error}
         </p>
       ) : items.length ? (
@@ -149,7 +149,7 @@ export function CorrectionQueue() {
           <Review key={i.id} item={i} onReviewed={() => void load()} />
         ))
       ) : (
-        <p className="text-slate-400">No pending corrections.</p>
+        <p className="text-muted">No pending corrections.</p>
       )}
       <button className="evidence-secondary" onClick={() => void load()}>
         Refresh corrections

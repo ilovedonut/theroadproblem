@@ -67,35 +67,35 @@ export function AccountPanel({ onVerified }: { onVerified?: () => void }) {
   }
   return (
     <section
-      className="rounded-2xl border border-slate-700 bg-slate-900 p-5 space-y-4"
+      className="rounded-2xl border border-line bg-surface p-5 space-y-4"
       aria-label="Your account"
     >
       <div>
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className="text-lg font-semibold text-ink">
           {account
             ? `Hello, ${account.display_name}`
             : "Verify your email to contribute"}
         </h2>
-        <p className="text-sm text-slate-400 mt-1">
+        <p className="text-sm text-muted mt-1">
           {account
             ? "Your contributions are linked to your account."
             : "A one-time code signs you in. Your email stays private; your display name appears with your evidence."}
         </p>
       </div>
       {error && (
-        <p role="alert" className="text-sm text-rose-300">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}
       {!loaded ? (
-        <p className="text-sm text-slate-400">Checking your account…</p>
+        <p className="text-sm text-muted">Checking your account…</p>
       ) : account ? (
         <div className="flex flex-wrap gap-4 text-sm">
-          <Link href="/account" className="text-cyan-300 underline">
+          <Link href="/account" className="text-information underline">
             My contributions
           </Link>
           {["moderator", "admin"].includes(account.role) && (
-            <Link href="/mod" className="text-cyan-300 underline">
+            <Link href="/mod" className="text-information underline">
               Review corrections
             </Link>
           )}
@@ -148,7 +148,7 @@ export function AccountPanel({ onVerified }: { onVerified?: () => void }) {
           </label>
           {sent && (
             <>
-              <p role="status" className="text-sm text-cyan-200">
+              <p role="status" className="text-sm text-information">
                 Check your inbox for a code sent to {email}.
               </p>
               <label className="block text-sm">
@@ -179,7 +179,7 @@ export function AccountPanel({ onVerified }: { onVerified?: () => void }) {
                 type="button"
                 disabled={busy || cooldown > 0}
                 onClick={() => void submit("send")}
-                className="text-cyan-300 disabled:text-slate-500"
+                className="text-information disabled:text-quiet"
               >
                 {cooldown ? `Resend in ${cooldown}s` : "Resend code"}
               </button>

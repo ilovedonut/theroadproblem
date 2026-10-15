@@ -9,6 +9,11 @@ export interface RoadMatchTarget {
   road_ref?: string | null;
   chainage_start_km?: number | null;
   chainage_end_km?: number | null;
+  chainage_start?: number | null;
+  chainage_end?: number | null;
+  chainage_unit?: 'km' | 'm' | null;
+  coordinates?: { lon: number; lat: number } | null;
+  geometry_geojson?: any | null;
 }
 
 export type MatchingConfidence = 'high_exact_ref_chainage' | 'medium_corridor_chainage' | 'low_ambiguous' | 'manual_verified';
@@ -17,6 +22,7 @@ export interface MatchResult {
   road_id: string | null;
   road_name: string | null;
   matched_segment_ids: string[];
+  candidate_segment_ids?: string[];
   confidence: MatchingConfidence;
   score: number;
   is_ambiguous: boolean;
@@ -25,9 +31,15 @@ export interface MatchResult {
 }
 
 /**
- * Multi-criteria topological & spatial road matcher.
- * Evaluates district, authority, road ref/identifier, geometry, and chainage together.
- * Replaces naive text-fragment matching to prevent budget/contract misattribution.
+ * Multi-criteria topological, spatial, and chainage road matcher.
+ * Evaluates district, authority, road ref/identifier, source coordinates/geometry, and authoritative chainage.
+ * 
+ * Rules:
+ * 1. Zero magnitude-based unit guessing. Explicit units ('km' or 'm') are required for chainage.
+ * 2. OSM segment length (length_m) is NOT official chainage. Only authoritative chainage_from/to can be matched.
+ * 3. A road name alone must NOT attach a contract to every segment of a multi-segment road.
+ * 4. Multi-segment tenders without chainage/geometry are routed to ambiguous review with candidate IDs.
+ * 5. Existing approved / manual_verified associations are preserved.
  */
 export async function matchRoadPrecisely(
   client: pg.PoolClient,
@@ -40,9 +52,57 @@ export async function matchRoadPrecisely(
     road_ref,
     chainage_start_km,
     chainage_end_km,
+    chainage_start,
+    chainage_end,
+    chainage_unit,
+    coordinates,
   } = target;
 
-  // 1. Candidate Road Query using multi-criteria filters
+  // 1. Spatial Coordinate Matching (if explicit work site coordinates provided)
+  if (coordinates && Number.isFinite(coordinates.lon) && Number.isFinite(coordinates.lat)) {
+    const spatialRes = await client.query(`
+      SELECT 
+        rs.id as segment_id,
+        rs.road_id,
+        r.name as road_name,
+        r.ref as road_ref,
+        r.district,
+        r.authority_name,
+        ROUND(ST_Distance(rs.geom::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography)::numeric, 1) as distance_m
+      FROM road_segments rs
+      JOIN roads r ON r.id = rs.road_id
+      WHERE rs.is_active = TRUE
+        AND ST_DWithin(rs.geom::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, 150)
+      ORDER BY distance_m ASC
+      LIMIT 10;
+    `, [coordinates.lon, coordinates.lat]);
+
+    if (spatialRes.rows.length > 0) {
+      // Find candidate matching name/ref/district if available
+      let matchedRow = spatialRes.rows[0];
+      if (road_name_hint || road_ref) {
+        const found = spatialRes.rows.find((row: any) => {
+          const nameMatch = road_name_hint && row.road_name && row.road_name.toLowerCase().includes(road_name_hint.toLowerCase());
+          const refMatch = road_ref && row.road_ref && row.road_ref.toLowerCase() === road_ref.toLowerCase();
+          return nameMatch || refMatch;
+        });
+        if (found) matchedRow = found;
+      }
+
+      return {
+        road_id: matchedRow.road_id,
+        road_name: matchedRow.road_name,
+        matched_segment_ids: [matchedRow.segment_id],
+        candidate_segment_ids: spatialRes.rows.map((r: any) => r.segment_id),
+        confidence: 'high_exact_ref_chainage',
+        score: 95,
+        is_ambiguous: false,
+        review_status: 'approved',
+      };
+    }
+  }
+
+  // 2. Candidate Road Query using multi-criteria filters
   const candidateRoadsRes = await client.query(`
     SELECT 
       r.id, 
@@ -51,7 +111,8 @@ export async function matchRoadPrecisely(
       r.road_class, 
       r.authority_name, 
       r.district,
-      COALESCE(SUM(rs.length_m), 0) as total_length_m
+      COALESCE(SUM(rs.length_m), 0) as total_length_m,
+      COUNT(rs.id) as segment_count
     FROM roads r
     LEFT JOIN road_segments rs ON r.id = rs.road_id AND rs.is_active = TRUE
     WHERE 
@@ -73,6 +134,7 @@ export async function matchRoadPrecisely(
       road_id: null,
       road_name: null,
       matched_segment_ids: [],
+      candidate_segment_ids: [],
       confidence: 'low_ambiguous',
       score: 0,
       is_ambiguous: true,
@@ -81,7 +143,7 @@ export async function matchRoadPrecisely(
     };
   }
 
-  // 2. Score candidates against all criteria
+  // 3. Score candidates against criteria
   const scoredCandidates: { road: any; score: number; reasons: string[] }[] = [];
 
   for (const cand of candidates) {
@@ -138,6 +200,7 @@ export async function matchRoadPrecisely(
       road_id: best.road.id,
       road_name: best.road.name,
       matched_segment_ids: [],
+      candidate_segment_ids: scoredCandidates.map((c) => c.road.id),
       confidence: 'low_ambiguous',
       score: best.score,
       is_ambiguous: true,
@@ -146,62 +209,137 @@ export async function matchRoadPrecisely(
     };
   }
 
-  // 3. Segment & Chainage Interval Filtering
+  // 4. Retrieve Active Segments for the Best Candidate Road
   const roadId = best.road.id;
   const segRes = await client.query(`
     SELECT id, chainage_from, chainage_to, length_m
     FROM road_segments
     WHERE road_id = $1 AND is_active = TRUE
-    ORDER BY chainage_from ASC;
+    ORDER BY chainage_from ASC NULLS LAST;
   `, [roadId]);
 
   const allSegments = segRes.rows;
-  let matchedSegmentIds: string[] = [];
+  const allSegmentIds = allSegments.map((s: any) => s.id);
 
-  const cStartRaw = chainage_start_km !== undefined && chainage_start_km !== null ? Number(chainage_start_km) : null;
-  const cEndRaw = chainage_end_km !== undefined && chainage_end_km !== null ? Number(chainage_end_km) : null;
-
-  // Normalize contract chainage to km
-  const cStart = cStartRaw !== null ? (cStartRaw > 50 ? cStartRaw / 1000 : cStartRaw) : null;
-  const cEnd = cEndRaw !== null ? (cEndRaw > 50 ? cEndRaw / 1000 : cEndRaw) : null;
-
-  if (cStart !== null && cEnd !== null) {
-    for (const seg of allSegments) {
-      const sFromRaw = parseFloat(seg.chainage_from || '0');
-      const sToRaw = parseFloat(seg.chainage_to || '0');
-
-      // Normalize segment chainage to km if stored in meters
-      const sFrom = sFromRaw > 50 ? sFromRaw / 1000 : sFromRaw;
-      const sTo = sToRaw > 50 ? sToRaw / 1000 : sToRaw;
-
-      // Overlap condition: segment interval [sFrom, sTo] overlaps contract interval [cStart, cEnd]
-      if (sFrom <= cEnd && sTo >= cStart) {
-        matchedSegmentIds.push(seg.id);
-      }
-    }
-  } else {
-    // If no chainage specified, take all segments of this specific road
-    matchedSegmentIds = allSegments.map((s: any) => s.id);
-  }
-
-  // Chainage boundary validation: if contract chainage was specified but matched zero segments
-  if (cStart !== null && cEnd !== null && matchedSegmentIds.length === 0 && allSegments.length > 0) {
+  if (allSegments.length === 0) {
     return {
       road_id: roadId,
       road_name: best.road.name,
       matched_segment_ids: [],
+      candidate_segment_ids: [],
       confidence: 'low_ambiguous',
       score: best.score,
       is_ambiguous: true,
-      ambiguity_reason: `Chainage out of bounds: contract specifies ${cStart}-${cEnd}km, but road segments span 0-${(best.road.total_length_m / 1000).toFixed(1)}km`,
+      ambiguity_reason: `Road "${best.road.name}" exists in index but has 0 active segments`,
       review_status: 'needs_review',
     };
+  }
+
+  // 5. Chainage Normalization (Strictly without magnitude guessing)
+  let cStart: number | null = null;
+  let cEnd: number | null = null;
+
+  if (chainage_start_km !== undefined && chainage_start_km !== null) {
+    cStart = Number(chainage_start_km);
+  } else if (chainage_start !== undefined && chainage_start !== null) {
+    if (chainage_unit === 'km') {
+      cStart = Number(chainage_start);
+    } else if (chainage_unit === 'm') {
+      cStart = Number(chainage_start) / 1000;
+    } else {
+      // Explicit unit missing; refuse magnitude guessing
+      cStart = null;
+    }
+  }
+
+  if (chainage_end_km !== undefined && chainage_end_km !== null) {
+    cEnd = Number(chainage_end_km);
+  } else if (chainage_end !== undefined && chainage_end !== null) {
+    if (chainage_unit === 'km') {
+      cEnd = Number(chainage_end);
+    } else if (chainage_unit === 'm') {
+      cEnd = Number(chainage_end) / 1000;
+    } else {
+      // Explicit unit missing; refuse magnitude guessing
+      cEnd = null;
+    }
+  }
+
+  // 6. Chainage Matching vs Multi-Segment Safeguards
+  let matchedSegmentIds: string[] = [];
+
+  if (cStart !== null && cEnd !== null) {
+    // Contract has valid, authoritative chainage interval.
+    // NOTE: OSM segment length (length_m) is NOT official chainage.
+    // Only segments with authoritative chainage_from and chainage_to are evaluated!
+    for (const seg of allSegments) {
+      if (seg.chainage_from === null || seg.chainage_to === null) {
+        continue; // Skip segments lacking authoritative chainage
+      }
+      const sFrom = parseFloat(seg.chainage_from);
+      const sTo = parseFloat(seg.chainage_to);
+
+      if (Number.isFinite(sFrom) && Number.isFinite(sTo)) {
+        if (sFrom <= cEnd && sTo >= cStart) {
+          matchedSegmentIds.push(seg.id);
+        }
+      }
+    }
+
+    if (matchedSegmentIds.length === 0) {
+      return {
+        road_id: roadId,
+        road_name: best.road.name,
+        matched_segment_ids: [],
+        candidate_segment_ids: allSegmentIds,
+        confidence: 'low_ambiguous',
+        score: best.score,
+        is_ambiguous: true,
+        ambiguity_reason: `Chainage out of bounds or missing official chainage: contract specifies ${cStart}-${cEnd}km, but candidate segments lack overlapping authoritative chainage`,
+        review_status: 'needs_review',
+      };
+    }
+  } else {
+    // No authoritative chainage provided.
+    // SAFEGUARD: A road name alone must NOT attach a contract to every segment of a multi-segment road!
+    if (allSegments.length > 1) {
+      return {
+        road_id: roadId,
+        road_name: best.road.name,
+        matched_segment_ids: [],
+        candidate_segment_ids: allSegmentIds,
+        confidence: 'low_ambiguous',
+        score: best.score,
+        is_ambiguous: true,
+        ambiguity_reason: `Road "${best.road.name}" has ${allSegments.length} segments. Road name alone without authoritative chainage or spatial bounds cannot be safely linked; routed for review to prevent misattribution.`,
+        review_status: 'needs_review',
+      };
+    }
+
+    // Single-segment corridor with high scoring match can be linked directly
+    if (allSegments.length === 1 && best.score >= 50) {
+      matchedSegmentIds = [allSegments[0].id];
+    } else {
+      return {
+        road_id: roadId,
+        road_name: best.road.name,
+        matched_segment_ids: [],
+        candidate_segment_ids: allSegmentIds,
+        confidence: 'low_ambiguous',
+        score: best.score,
+        is_ambiguous: true,
+        ambiguity_reason: `Low match score (${best.score}) for road "${best.road.name}" without chainage`,
+        review_status: 'needs_review',
+      };
+    }
   }
 
   // Determine final confidence tier
   let confidence: MatchingConfidence = 'medium_corridor_chainage';
   if (best.score >= 70 && matchedSegmentIds.length > 0) {
     confidence = 'high_exact_ref_chainage';
+  } else if (best.score >= 45 && matchedSegmentIds.length > 0) {
+    confidence = 'medium_corridor_chainage';
   } else if (best.score < 50) {
     confidence = 'low_ambiguous';
   }
@@ -210,6 +348,7 @@ export async function matchRoadPrecisely(
     road_id: roadId,
     road_name: best.road.name,
     matched_segment_ids: matchedSegmentIds,
+    candidate_segment_ids: allSegmentIds,
     confidence,
     score: best.score,
     is_ambiguous: confidence === 'low_ambiguous',
@@ -219,6 +358,7 @@ export async function matchRoadPrecisely(
 
 /**
  * Persists matched segments or routes to ambiguous review queue.
+ * Preserves existing approved and manual_verified associations.
  */
 export async function linkWorkSegmentsWithPrecision(
   client: pg.PoolClient,
@@ -230,6 +370,7 @@ export async function linkWorkSegmentsWithPrecision(
 
   if (result.is_ambiguous || result.review_status === 'needs_review' || result.matched_segment_ids.length === 0) {
     // Route to ambiguous_matches_queue for volunteer / human-in-the-loop audit
+    const candidateIds = result.candidate_segment_ids || result.matched_segment_ids;
     await client.query(`
       INSERT INTO ambiguous_matches_queue (
         source_record_id, work_id, tender_id, district, authority_name,
@@ -244,16 +385,16 @@ export async function linkWorkSegmentsWithPrecision(
       target.district || null,
       target.authority_name || null,
       target.road_name_hint || null,
-      target.chainage_start_km || null,
-      target.chainage_end_km || null,
-      JSON.stringify(result.matched_segment_ids),
+      target.chainage_start_km ?? (target.chainage_unit === 'km' ? target.chainage_start : null),
+      target.chainage_end_km ?? (target.chainage_unit === 'km' ? target.chainage_end : null),
+      JSON.stringify(candidateIds),
       result.ambiguity_reason || 'Low matching confidence',
     ]);
 
     return result;
   }
 
-  // High/Medium precision: link ONLY the validated overlapping segments
+  // Preserve manual and previously approved associations
   for (const segId of result.matched_segment_ids) {
     await client.query(`
       INSERT INTO work_segments (
@@ -262,12 +403,15 @@ export async function linkWorkSegmentsWithPrecision(
       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (work_id, road_segment_id) DO UPDATE 
         SET matching_confidence = EXCLUDED.matching_confidence,
-            review_status = EXCLUDED.review_status;
+            review_status = EXCLUDED.review_status,
+            review_notes = EXCLUDED.review_notes
+        WHERE work_segments.matching_confidence != 'manual_verified'
+          AND work_segments.review_status != 'approved';
     `, [
       workId,
       segId,
-      target.chainage_start_km || null,
-      target.chainage_end_km || null,
+      target.chainage_start_km ?? (target.chainage_unit === 'km' ? target.chainage_start : null),
+      target.chainage_end_km ?? (target.chainage_unit === 'km' ? target.chainage_end : null),
       result.confidence,
       result.review_status,
       `Matched road ${result.road_name} with score ${result.score}`,

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.TRP_BUILD_DIR || '.next',
   reactStrictMode: true,
   poweredByHeader: false,
   // Ensure server headers and security

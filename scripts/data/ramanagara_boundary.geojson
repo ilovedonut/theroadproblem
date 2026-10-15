@@ -1,0 +1,28 @@
+{
+  "type": "Feature",
+  "properties": {
+    "place_id": 249716278,
+    "osm_type": "node",
+    "osm_id": 718889046,
+    "place_rank": 18,
+    "category": "place",
+    "type": "town",
+    "importance": 0.4247821346186361,
+    "addresstype": "town",
+    "name": "Ramanagara",
+    "display_name": "Ramanagara, Khanapura taluku, Belagavi, Karnataka, 591301, India"
+  },
+  "bbox": [
+    74.4487881,
+    15.3821246,
+    74.5287881,
+    15.4621246
+  ],
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      74.4887881,
+      15.4221246
+    ]
+  }
+}

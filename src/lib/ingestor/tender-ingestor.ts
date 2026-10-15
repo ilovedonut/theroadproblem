@@ -209,8 +209,9 @@ export const OFFICIAL_TENDERS_SEED: ParsedTender[] = [
 
 export async function runTenderIngestion(
   client: pg.PoolClient,
-  tenders: ParsedTender[] = OFFICIAL_TENDERS_SEED
+  tenders: ParsedTender[] = []
 ): Promise<IngestRunSummary> {
+  if (!tenders.length) throw new Error('Explicit records are required; demo defaults are disabled.');
   const startedAt = new Date().toISOString();
   let inserted = 0;
   let updated = 0;

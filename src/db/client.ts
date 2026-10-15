@@ -1,7 +1,6 @@
 import pg from 'pg';
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 
 const { Pool } = pg;
 
@@ -29,20 +28,8 @@ if (!process.env.DATABASE_URL) {
 }
 
 function resolveDatabaseUrl(): string {
-  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('127.0.0.1') && !process.env.DATABASE_URL.includes('localhost')) {
-    return process.env.DATABASE_URL;
-  }
-  if (process.platform === 'win32') {
-    try {
-      const wslIp = execSync('wsl -d Ubuntu -- hostname -I', { encoding: 'utf8' }).trim().split(/\s+/)[0];
-      if (wslIp) {
-        return `postgres://postgres:postgres@${wslIp}:5432/theroadproblem`;
-      }
-    } catch {
-      // fallback
-    }
-  }
-  return process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/theroadproblem';
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  throw new Error('DATABASE_URL is required; refusing an implicit database target.');
 }
 
 const connectionStringRaw = resolveDatabaseUrl();
@@ -58,7 +45,8 @@ if (isRemoteSsl) {
   // Resolve CA certificate
   let caCert: string | undefined = process.env.DB_CA_CERT;
   if (!caCert) {
-    const certPath = path.resolve(process.cwd(), 'certs/supabase-ca.pem');
+    const isPooler = new URL(connectionStringRaw).hostname.endsWith('.pooler.supabase.com');
+    const certPath = path.resolve(process.cwd(), isPooler ? 'certs/supabase-pooler-ca.crt' : 'certs/supabase-ca.pem');
     if (fs.existsSync(certPath)) {
       caCert = fs.readFileSync(certPath, 'utf8');
     }
@@ -67,7 +55,6 @@ if (isRemoteSsl) {
   sslConfig = {
     ca: caCert,
     rejectUnauthorized: true,
-    checkServerIdentity: () => undefined,
   };
 }
 

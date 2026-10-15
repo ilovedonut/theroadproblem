@@ -1,3 +1,4 @@
+import './test-bootstrap.mjs';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -8,10 +9,11 @@ import { getStorageObject } from '../src/lib/storage.ts';
 
 async function verifySingleIngestionFlow() {
   console.log('\n======================================================================');
-  console.log(' VERIFYING SINGLE REAL INGESTION FLOW: PUBLIC WORKS TENDER PIPELINE');
+  console.log(' VERIFYING SYNTHETIC TENDER FLOW IN ISOLATED TEST DATABASE');
   console.log('======================================================================\n');
 
   const client = await pool.connect();
+  await client.query('BEGIN');
 
   try {
     // A single, realistic MoRTH / NHAI tender for Outer Ring Road resurfacing
@@ -133,6 +135,7 @@ async function verifySingleIngestionFlow() {
     console.log(' ALL VERIFICATION CHECKS PASSED: END-TO-END INGESTION FLOW IS HEALTHY!');
     console.log('======================================================================\n');
   } finally {
+    await client.query('ROLLBACK');
     client.release();
     await pool.end();
   }

@@ -10,9 +10,11 @@ import {
 } from 'lucide-react';
 import { GeospatialMap, RoadFeature, MultiSourceSignal } from '@/components/GeospatialMap';
 
+import { AreaOverview } from '@/components/AreaOverview';
+import type { MapBounds } from '@/lib/map-bounds';
+
 export default function GeospatialDeckPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'works' | 'excavated' | 'completed'>('all');
+  const [mapBounds,setMapBounds]=useState<MapBounds|null>(null);
   
   const [roads, setRoads] = useState<RoadFeature[]>([]);
   const [signals, setSignals] = useState<MultiSourceSignal[]>([]);
@@ -100,28 +102,6 @@ export default function GeospatialDeckPage() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
-  const filteredRoads = roads.filter(road => {
-    const matchesSearch = 
-      road.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (road.ref && road.ref.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (road.district && road.district.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (road.works?.[0]?.contractor_name && road.works[0].contractor_name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    if (!matchesSearch) return false;
-
-    if (selectedFilter === 'works') {
-      return road.works && road.works.length > 0;
-    }
-    if (selectedFilter === 'excavated') {
-      return road.incidents && road.incidents.length > 0;
-    }
-    if (selectedFilter === 'completed') {
-      return road.works && road.works.some(w => w.official_status === 'officially_completed');
-    }
-
-    return true;
-  });
 
   const primaryWork = selectedRoad?.works && selectedRoad.works.length > 0 ? selectedRoad.works[0] : null;
   const hasExcavation = selectedRoad?.incidents && selectedRoad.incidents.length > 0;
@@ -238,30 +218,31 @@ export default function GeospatialDeckPage() {
   const getTimelineBadgeClasses = (style: 'cyan' | 'purple' | 'orange' | 'emerald' | 'amber') => {
     switch (style) {
       case 'cyan':
-        return { dotBg: 'bg-cyan-950 border-cyan-400', dotFill: 'bg-cyan-400', text: 'text-cyan-400' };
+        return { dotBg: 'bg-cyan-950 border-cyan-400', dotFill: 'bg-cyan-400', text: 'text-information' };
       case 'purple':
-        return { dotBg: 'bg-purple-950 border-purple-400', dotFill: 'bg-purple-400', text: 'text-purple-400' };
+        return { dotBg: 'bg-purple-950 border-purple-400', dotFill: 'bg-purple-400', text: 'text-source' };
       case 'orange':
-        return { dotBg: 'bg-orange-950 border-orange-400', dotFill: 'bg-orange-400', text: 'text-orange-400' };
+        return { dotBg: 'bg-orange-950 border-orange-400', dotFill: 'bg-orange-400', text: 'text-warning' };
       case 'emerald':
-        return { dotBg: 'bg-emerald-950 border-emerald-400', dotFill: 'bg-emerald-400', text: 'text-emerald-400' };
+        return { dotBg: 'bg-emerald-950 border-emerald-400', dotFill: 'bg-emerald-400', text: 'text-positive' };
       case 'amber':
       default:
-        return { dotBg: 'bg-amber-950 border-amber-400', dotFill: 'bg-amber-400', text: 'text-amber-400' };
+        return { dotBg: 'bg-amber-950 border-amber-400', dotFill: 'bg-amber-400', text: 'text-warning' };
     }
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-slate-950 text-slate-100 select-none">
+    <div className="relative w-full h-full overflow-hidden bg-canvas text-ink select-none">
       {/* Background 3D Globe Canvas (Full Viewport) */}
       <div className="absolute inset-0 w-full h-full">
         {loading ? (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950 text-cyan-400 font-mono gap-3">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas text-information font-mono gap-3">
             <RefreshCw className="w-8 h-8 animate-spin" />
             <span className="text-xs tracking-wider">CONNECTING TO GEOSPATIAL OBSERVATORY...</span>
           </div>
         ) : (
           <GeospatialMap
+            onViewportChange={setMapBounds}
             roads={roads}
             signals={signals}
             selectedRoadId={selectedRoad?.id || null}
@@ -285,14 +266,14 @@ export default function GeospatialDeckPage() {
       {isDeckCollapsed && (
         <button
           onClick={() => setIsDeckCollapsed(false)}
-          className="absolute top-3 left-3 z-30 flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950/90 backdrop-blur-xl border border-slate-800 text-slate-200 hover:text-white shadow-2xl text-xs font-mono transition-all hover:border-cyan-500/50"
+          className="absolute top-3 left-3 z-30 flex items-center gap-2 px-3 py-2 rounded-xl bg-canvas/90 backdrop-blur-xl border border-line text-ink hover:text-ink shadow-2xl text-xs font-mono transition-all hover:border-cyan-500/50"
           title="Expand Corridor Deck"
         >
-          <Layers className="w-4 h-4 text-cyan-400" />
-          <span className="font-semibold text-white truncate max-w-[180px]">
-            {selectedRoad ? selectedRoad.name : `Corridors (${roads.length})`}
+          <Layers className="w-4 h-4 text-information" />
+          <span className="font-semibold text-ink truncate max-w-[180px]">
+            {selectedRoad ? selectedRoad.name : 'Area overview'}
           </span>
-          <ChevronRight className="w-4 h-4 text-slate-400" />
+          <ChevronRight className="w-4 h-4 text-muted" />
         </button>
       )}
 
@@ -304,27 +285,27 @@ export default function GeospatialDeckPage() {
             : 'opacity-100 translate-x-0 w-[calc(100vw-24px)] sm:w-96 md:w-[410px]'
         }`}
       >
-        <div className="flex-1 bg-slate-950/92 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100">
+        <div className="flex-1 bg-surface/95 backdrop-blur-xl border border-line/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-ink">
           
           {/* Deck Header: Mode-Dependent */}
           {selectedRoad ? (
             /* Selected Road Header */
-            <div className="p-3.5 border-b border-slate-800/80 bg-slate-900/60 flex items-start justify-between gap-2 flex-shrink-0">
+            <div className="p-3.5 border-b border-line/80 bg-surface/60 flex items-start justify-between gap-2 flex-shrink-0">
               <div className="min-w-0">
                 <button
                   onClick={() => {
                     setSelectedRoad(null);
                     setSelectedSignal(null);
                   }}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors mb-1.5 font-semibold"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-mono text-information hover:text-information transition-colors mb-1.5 font-semibold"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>All Corridors</span>
+                  <span>Area overview</span>
                 </button>
-                <h2 className="text-sm font-bold text-white leading-snug truncate">
+                <h2 className="text-sm font-bold text-ink leading-snug truncate">
                   {selectedRoad.name}
                 </h2>
-                <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+                <p className="text-[11px] text-muted font-mono truncate mt-0.5">
                   {selectedRoad.ref ? `${selectedRoad.ref} • ` : ''}{selectedRoad.district}, {selectedRoad.state}
                 </p>
               </div>
@@ -333,15 +314,15 @@ export default function GeospatialDeckPage() {
                 <button
                   onClick={handleShare}
                   title="Copy link to clipboard"
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors text-xs flex items-center gap-1 font-mono"
+                  className="p-1.5 rounded-lg hover:bg-soft text-muted hover:text-ink transition-colors text-xs flex items-center gap-1 font-mono"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  {copied && <span className="text-[10px] text-cyan-300">Copied</span>}
+                  {copied && <span className="text-[10px] text-information">Copied</span>}
                 </button>
                 <button
                   onClick={() => setIsDeckCollapsed(true)}
                   title="Collapse Inspector Card"
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-soft text-muted hover:text-ink transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -349,89 +330,27 @@ export default function GeospatialDeckPage() {
             </div>
           ) : selectedSignal ? (
             /* Selected Signal Header */
-            <div className="p-3.5 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between gap-2 flex-shrink-0">
+            <div className="p-3.5 border-b border-line/80 bg-surface/60 flex items-center justify-between gap-2 flex-shrink-0">
               <button
                 onClick={() => {
                   setSelectedSignal(null);
                   setSelectedRoad(null);
                 }}
-                className="inline-flex items-center gap-1.5 text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors font-semibold"
+                className="inline-flex items-center gap-1.5 text-[11px] font-mono text-information hover:text-information transition-colors font-semibold"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>All Corridors</span>
+                <span>Area overview</span>
               </button>
               <button
                 onClick={() => setIsDeckCollapsed(true)}
                 title="Collapse Inspector Card"
-                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                className="p-1.5 rounded-lg hover:bg-soft text-muted hover:text-ink transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
           ) : (
-            /* Directory Search & Filter Header */
-            <div className="p-3.5 border-b border-slate-800/80 bg-slate-900/40 space-y-2.5 flex-shrink-0">
-              <div className="flex items-center justify-between gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search corridor, highway, contractor..."
-                    className="w-full pl-8 pr-3 py-1.5 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-mono text-slate-200 placeholder-slate-400 focus:outline-none focus:border-cyan-400 transition-colors"
-                  />
-                </div>
-                <button
-                  onClick={() => setIsDeckCollapsed(true)}
-                  title="Collapse Deck"
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex-shrink-0"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Filter Pills */}
-              <div className="flex items-center gap-1 overflow-x-auto text-xs font-mono py-0.5">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'works', label: 'Tenders' },
-                  { id: 'excavated', label: 'Ground Digs' },
-                  { id: 'completed', label: 'Warranty' }
-                ].map((pill) => (
-                  <button
-                    key={pill.id}
-                    onClick={() => setSelectedFilter(pill.id as any)}
-                    className={`px-2.5 py-1 rounded-md text-[11px] whitespace-nowrap transition-colors font-semibold ${
-                      selectedFilter === pill.id
-                        ? 'bg-cyan-950 border border-cyan-500/60 text-cyan-300'
-                        : 'bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                    }`}
-                  >
-                    {pill.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Telemetry Count & Sync Trigger */}
-              <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-0.5">
-                <div className="flex items-center gap-2">
-                  <span>{filteredRoads.length} Corridors Indexed</span>
-                  <button
-                    onClick={handleSyncSources}
-                    disabled={isSyncing}
-                    title="Trigger automated government ingestion and update database"
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/40 text-[10px] text-cyan-300 hover:bg-cyan-900 transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-2.5 h-2.5 ${isSyncing ? 'animate-spin text-cyan-400' : ''}`} />
-                    <span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
-                  </button>
-                </div>
-                {summary && (
-                  <span className="text-cyan-300 font-bold">₹{summary.total_spend_tracked_cr} Cr Tracked</span>
-                )}
-              </div>
-            </div>
+            <div className="p-4 border-b border-line flex items-center justify-between"><h2 className="font-semibold text-lg">Area overview</h2><button aria-label="Collapse area overview" onClick={()=>setIsDeckCollapsed(true)} className="p-2 hover:bg-soft rounded-lg"><ChevronLeft className="w-4 h-4"/></button></div>
           )}
 
           {/* Deck Body: Directory vs. Road Dossier vs. Signal Dossier */}
@@ -439,50 +358,50 @@ export default function GeospatialDeckPage() {
             /* Mode B: Road Dossier */
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Dual-State Machine Integrity Banner */}
-              <div className="p-3 bg-slate-900/80 border-b border-slate-800/80 flex-shrink-0">
-                <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+              <div className="p-3 bg-surface/80 border-b border-line/80 flex-shrink-0">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2 flex items-center justify-between">
                   <span>Dual State Machine Integrity</span>
-                  <span className="text-cyan-400 font-semibold">Non-Overwriting Model</span>
+                  <span className="text-information font-semibold">Non-Overwriting Model</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* Official Public Works State */}
-                  <div className="p-2.5 rounded-lg bg-slate-950/90 border border-cyan-500/30">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-cyan-400 mb-0.5">
+                  <div className="p-2.5 rounded-lg bg-canvas/90 border border-cyan-500/30">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-information mb-0.5">
                       <Building2 className="w-3 h-3" />
                       <span>OFFICIAL STATUS</span>
                     </div>
                     {primaryWork ? (
                       <div>
-                        <p className="font-semibold text-white capitalize text-[11px] leading-tight">
+                        <p className="font-semibold text-ink capitalize text-[11px] leading-tight">
                           {primaryWork.official_status.replace(/_/g, ' ')}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+                        <p className="text-[10px] text-muted font-mono mt-0.5 truncate">
                           {primaryWork.tender_id || 'Tender Package Active'}
                         </p>
                       </div>
                     ) : (
-                      <p className="text-slate-400 text-[11px]">No active tender</p>
+                      <p className="text-muted text-[11px]">No active tender</p>
                     )}
                   </div>
 
                   {/* Observed Ground Reality State */}
-                  <div className="p-2.5 rounded-lg bg-slate-950/90 border border-amber-500/30">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 mb-0.5">
+                  <div className="p-2.5 rounded-lg bg-canvas/90 border border-amber-500/30">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-warning mb-0.5">
                       <AlertTriangle className="w-3 h-3" />
                       <span>GROUND REALITY</span>
                     </div>
                     {hasExcavation ? (
                       <div>
-                        <p className="font-semibold text-white text-[11px] leading-tight">Active Dig Reported</p>
-                        <p className="text-[10px] text-amber-300/80 font-mono mt-0.5">
+                        <p className="font-semibold text-ink text-[11px] leading-tight">Active Dig Reported</p>
+                        <p className="text-[10px] text-warning/80 font-mono mt-0.5">
                           {selectedRoad.incidents?.length} Ground observation(s)
                         </p>
                       </div>
                     ) : (
                       <div>
-                        <p className="font-semibold text-emerald-400 text-[11px] leading-tight">Passable / Restored</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">No open trenches</p>
+                        <p className="font-semibold text-positive text-[11px] leading-tight">Passable / Restored</p>
+                        <p className="text-[10px] text-muted font-mono mt-0.5">No open trenches</p>
                       </div>
                     )}
                   </div>
@@ -490,13 +409,13 @@ export default function GeospatialDeckPage() {
               </div>
 
               {/* Dossier Tabs */}
-              <div className="flex border-b border-slate-800 text-xs font-mono bg-slate-950 flex-shrink-0">
+              <div className="flex border-b border-line text-xs font-mono bg-canvas flex-shrink-0">
                 <button
                   onClick={() => setActiveDossierTab('overview')}
                   className={`flex-1 py-2 text-center font-semibold border-b-2 transition-colors ${
                     activeDossierTab === 'overview'
-                      ? 'border-cyan-400 text-cyan-300'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                      ? 'border-cyan-400 text-information'
+                      : 'border-transparent text-muted hover:text-ink'
                   }`}
                 >
                   Dossier
@@ -505,8 +424,8 @@ export default function GeospatialDeckPage() {
                   onClick={() => setActiveDossierTab('contractor')}
                   className={`flex-1 py-2 text-center font-semibold border-b-2 transition-colors ${
                     activeDossierTab === 'contractor'
-                      ? 'border-cyan-400 text-cyan-300'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                      ? 'border-cyan-400 text-information'
+                      : 'border-transparent text-muted hover:text-ink'
                   }`}
                 >
                   Contractor & Spend
@@ -515,8 +434,8 @@ export default function GeospatialDeckPage() {
                   onClick={() => setActiveDossierTab('timeline')}
                   className={`flex-1 py-2 text-center font-semibold border-b-2 transition-colors ${
                     activeDossierTab === 'timeline'
-                      ? 'border-cyan-400 text-cyan-300'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                      ? 'border-cyan-400 text-information'
+                      : 'border-transparent text-muted hover:text-ink'
                   }`}
                 >
                   Intel Feed
@@ -529,21 +448,21 @@ export default function GeospatialDeckPage() {
                   <div className="space-y-3">
                     {/* Metrics Row */}
                     <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-mono block">LENGTH</span>
-                        <span className="font-bold text-xs text-white font-mono">
+                      <div className="p-2 rounded-lg bg-surface border border-line">
+                        <span className="text-[10px] text-muted font-mono block">LENGTH</span>
+                        <span className="font-bold text-xs text-ink font-mono">
                           {(parseFloat(selectedRoad.total_length_m || '0') / 1000).toFixed(1)} km
                         </span>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-mono block">SEGMENTS</span>
-                        <span className="font-bold text-xs text-white font-mono">
+                      <div className="p-2 rounded-lg bg-surface border border-line">
+                        <span className="text-[10px] text-muted font-mono block">SEGMENTS</span>
+                        <span className="font-bold text-xs text-ink font-mono">
                           {selectedRoad.segments?.length || 1}
                         </span>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-mono block">SPEND</span>
-                        <span className="font-bold text-xs text-cyan-300 font-mono">
+                      <div className="p-2 rounded-lg bg-surface border border-line">
+                        <span className="text-[10px] text-muted font-mono block">SPEND</span>
+                        <span className="font-bold text-xs text-information font-mono">
                           {spendCr ? `₹${spendCr} Cr` : 'Pending'}
                         </span>
                       </div>
@@ -551,36 +470,36 @@ export default function GeospatialDeckPage() {
 
                     {/* Primary Work Card */}
                     {primaryWork && (
-                      <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
+                      <div className="p-3 rounded-lg bg-surface/90 border border-line space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-cyan-400 uppercase font-mono">
+                          <span className="text-[10px] font-bold text-information uppercase font-mono">
                             Work Package
                           </span>
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60">
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-information border border-cyan-800/60">
                             {primaryWork.official_status}
                           </span>
                         </div>
-                        <p className="text-slate-200 font-medium text-xs leading-relaxed">
+                        <p className="text-ink font-medium text-xs leading-relaxed">
                           {primaryWork.package_name}
                         </p>
-                        <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                          <span>Contractor: <strong className="text-white">{primaryWork.contractor_name}</strong></span>
-                          <span>Spend: <strong className="text-cyan-300">₹{spendCr} Cr</strong></span>
+                        <div className="pt-2 border-t border-line/60 flex items-center justify-between text-[11px] text-muted font-mono">
+                          <span>Contractor: <strong className="text-ink">{primaryWork.contractor_name}</strong></span>
+                          <span>Spend: <strong className="text-information">₹{spendCr} Cr</strong></span>
                         </div>
                       </div>
                     )}
 
                     {/* Ground Evidence Action Card */}
-                    <div className="p-3 rounded-lg bg-slate-900/60 border border-cyan-500/20 flex items-center justify-between gap-2">
+                    <div className="p-3 rounded-lg bg-surface/60 border border-cyan-500/20 flex items-center justify-between gap-2">
                       <div>
-                        <p className="font-bold text-white text-xs">Have visual ground evidence?</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="font-bold text-ink text-xs">Have visual ground evidence?</p>
+                        <p className="text-[11px] text-muted mt-0.5">
                           Attach geotagged observation to this road ledger.
                         </p>
                       </div>
                       <Link
                         href="/report"
-                        className="px-3 py-1.5 rounded-md bg-cyan-600 hover:bg-cyan-500 text-cyan-950 font-bold font-mono text-xs whitespace-nowrap transition-colors"
+                        className="px-3 py-1.5 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white font-bold font-mono text-xs whitespace-nowrap transition-colors"
                       >
                         + Add Evidence
                       </Link>
@@ -589,7 +508,7 @@ export default function GeospatialDeckPage() {
                     {/* Full Ledger Link */}
                     <Link
                       href={`/roads/${selectedRoad.id}`}
-                      className="block text-center py-2 px-3 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400 hover:text-cyan-300 font-mono text-xs font-semibold transition-colors"
+                      className="block text-center py-2 px-3 rounded-lg bg-surface border border-line text-information hover:text-information font-mono text-xs font-semibold transition-colors"
                     >
                       Open Full Historical Ledger Page →
                     </Link>
@@ -599,56 +518,56 @@ export default function GeospatialDeckPage() {
                 {activeDossierTab === 'contractor' && (
                   <div className="space-y-3">
                     {primaryWork ? (
-                      <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-2.5">
+                      <div className="p-3 rounded-lg bg-surface border border-line space-y-2.5">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <span className="text-[10px] uppercase font-mono text-cyan-400 block">Awarded Contractor</span>
-                            <h3 className="text-xs font-bold text-white mt-0.5">{primaryWork.contractor_name}</h3>
+                            <span className="text-[10px] uppercase font-mono text-information block">Awarded Contractor</span>
+                            <h3 className="text-xs font-bold text-ink mt-0.5">{primaryWork.contractor_name}</h3>
                           </div>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-soft text-muted">
                             Primary
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-2 border-t border-slate-800 text-slate-400">
+                        <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-2 border-t border-line text-muted">
                           <div>
                             <span>CIN:</span>
-                            <p className="text-slate-200 font-bold">{primaryWork.cin || 'CIN Registered'}</p>
+                            <p className="text-ink font-bold">{primaryWork.cin || 'CIN Registered'}</p>
                           </div>
                           <div>
                             <span>GSTIN:</span>
-                            <p className="text-slate-200 font-bold">{primaryWork.gstin || 'GST Verified'}</p>
+                            <p className="text-ink font-bold">{primaryWork.gstin || 'GST Verified'}</p>
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-800 space-y-1 text-[11px] text-slate-400 font-mono">
+                        <div className="pt-2 border-t border-line space-y-1 text-[11px] text-muted font-mono">
                           <div className="flex justify-between">
                             <span>Tender Ref:</span>
-                            <span className="text-slate-200">{primaryWork.tender_id}</span>
+                            <span className="text-ink">{primaryWork.tender_id}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Agreement ID:</span>
-                            <span className="text-slate-200">{primaryWork.contract_id}</span>
+                            <span className="text-ink">{primaryWork.contract_id}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Sanctioned Budget:</span>
-                            <span className="text-cyan-300 font-bold">₹{spendCr} Crores</span>
+                            <span className="text-information font-bold">₹{spendCr} Crores</span>
                           </div>
                           {primaryWork.defect_liability_end_date && (
-                            <div className="flex justify-between text-emerald-400">
+                            <div className="flex justify-between text-positive">
                               <span>Warranty Active Until:</span>
                               <span>{primaryWork.defect_liability_end_date}</span>
                             </div>
                           )}
                         </div>
 
-                        <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-500 font-mono flex items-center justify-between">
+                        <div className="pt-2 border-t border-line/80 text-[10px] text-quiet font-mono flex items-center justify-between">
                           <span>Provenance: {primaryWork.authority_name || 'MoRTH / CPPP'}</span>
-                          <span className="text-cyan-400 font-semibold">GODL India 1.0</span>
+                          <span className="text-information font-semibold">GODL India 1.0</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 text-center text-slate-400 font-mono bg-slate-900/50 rounded-lg border border-slate-800 text-xs">
+                      <div className="p-4 text-center text-muted font-mono bg-surface/50 rounded-lg border border-line text-xs">
                         No contractor allocated in public procurement registry yet.
                       </div>
                     )}
@@ -657,16 +576,16 @@ export default function GeospatialDeckPage() {
 
                 {activeDossierTab === 'timeline' && (
                   <div className="space-y-2.5">
-                    <p className="text-[11px] text-slate-400 font-mono mb-2">
+                    <p className="text-[11px] text-muted font-mono mb-2">
                       Multi-source intelligence aggregated across government portals, regional news, community feeds, and field observations:
                     </p>
 
                     {roadTimelineEvents.length === 0 ? (
-                      <div className="p-4 text-center text-slate-400 font-mono bg-slate-900/50 rounded-lg border border-slate-800 text-xs">
+                      <div className="p-4 text-center text-muted font-mono bg-surface/50 rounded-lg border border-line text-xs">
                         No multi-source intelligence reports recorded for this corridor yet.
                       </div>
                     ) : (
-                      <div className="space-y-2 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-800">
+                      <div className="space-y-2 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-soft">
                         {roadTimelineEvents.map((evt) => {
                           const cls = getTimelineBadgeClasses(evt.badgeStyle);
                           return (
@@ -674,19 +593,19 @@ export default function GeospatialDeckPage() {
                               <div className={`absolute left-1.5 top-1.5 w-3 h-3 rounded-full ${cls.dotBg} border flex items-center justify-center`}>
                                 <span className={`w-1 h-1 rounded-full ${cls.dotFill}`}></span>
                               </div>
-                              <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800 space-y-1">
+                              <div className="p-2.5 rounded bg-surface/90 border border-line space-y-1">
                                 <div className="flex items-center justify-between font-mono text-[10px]">
                                   <span className={`${cls.text} font-bold`}>{evt.sourceBadge}</span>
-                                  <span className="text-slate-500">{evt.date}</span>
+                                  <span className="text-quiet">{evt.date}</span>
                                 </div>
-                                <p className="font-semibold text-white text-xs">{evt.title}</p>
-                                <p className="text-slate-400 text-[11px] leading-relaxed">{evt.description}</p>
+                                <p className="font-semibold text-ink text-xs">{evt.title}</p>
+                                <p className="text-muted text-[11px] leading-relaxed">{evt.description}</p>
                                 {evt.url && (
                                   <a
                                     href={evt.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 font-mono pt-0.5"
+                                    className="inline-flex items-center gap-1 text-[10px] text-information hover:text-information font-mono pt-0.5"
                                   >
                                     <span>Source Record</span>
                                     <ExternalLink className="w-2.5 h-2.5" />
@@ -709,47 +628,47 @@ export default function GeospatialDeckPage() {
                 <div className="flex items-center gap-1.5">
                   <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded font-semibold ${
                     selectedSignal.status === 'publisher_reported'
-                      ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
-                      : 'bg-purple-950 text-purple-300 border border-purple-800/60'
+                      ? 'bg-amber-950/80 text-warning border border-amber-800/60'
+                      : 'bg-purple-950 text-source border border-purple-800/60'
                   }`}>
                     {selectedSignal.status === 'publisher_reported' ? 'Publisher Claim (Unverified)' : (selectedSignal.status || 'Public Signal')}
                   </span>
                   {selectedSignal.is_demo && (
-                    <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                    <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-soft text-muted border border-line">
                       Demo Content
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-slate-400 font-mono">{selectedSignal.date}</span>
+                <span className="text-[11px] text-muted font-mono">{selectedSignal.date}</span>
               </div>
 
               <div>
-                <h2 className="text-sm font-bold text-white leading-snug">{selectedSignal.title}</h2>
-                <p className="text-[11px] font-mono text-cyan-400 mt-1 flex items-center gap-1">
+                <h2 className="text-sm font-bold text-ink leading-snug">{selectedSignal.title}</h2>
+                <p className="text-[11px] font-mono text-information mt-1 flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" />
                   <span>{selectedSignal.road_name}</span>
                 </p>
               </div>
 
               {selectedSignal.disclaimer && (
-                <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-800/40 text-[11px] text-amber-200/90 leading-relaxed font-mono">
-                  <span className="font-bold text-amber-300">Notice: </span>
+                <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-800/40 text-[11px] text-warning/90 leading-relaxed font-mono">
+                  <span className="font-bold text-warning">Notice: </span>
                   {selectedSignal.disclaimer}
                 </div>
               )}
 
-              <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-300 leading-relaxed text-xs">
+              <div className="p-3 rounded-lg bg-surface/90 border border-line text-muted leading-relaxed text-xs">
                 {selectedSignal.details}
               </div>
 
-              <div className="pt-2 border-t border-slate-800 space-y-1.5 text-xs">
-                <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
+              <div className="pt-2 border-t border-line space-y-1.5 text-xs">
+                <div className="flex items-center justify-between text-muted font-mono text-[11px]">
                   <span>Source Channel:</span>
-                  <span className="font-semibold text-slate-200">{selectedSignal.source}</span>
+                  <span className="font-semibold text-ink">{selectedSignal.source}</span>
                 </div>
-                <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
+                <div className="flex items-center justify-between text-muted font-mono text-[11px]">
                   <span>Coordinates:</span>
-                  <span className="text-slate-300">{selectedSignal.lat.toFixed(4)}° N, {selectedSignal.lon.toFixed(4)}° E</span>
+                  <span className="text-muted">{selectedSignal.lat.toFixed(4)}° N, {selectedSignal.lon.toFixed(4)}° E</span>
                 </div>
               </div>
 
@@ -758,7 +677,7 @@ export default function GeospatialDeckPage() {
                   href={selectedSignal.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950 border border-cyan-500/50 text-cyan-300 hover:bg-cyan-900 transition-colors text-xs font-mono font-semibold"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950 border border-cyan-500/50 text-information hover:bg-cyan-900 transition-colors text-xs font-mono font-semibold"
                 >
                   <span>Inspect Source Record</span>
                   <ExternalLink className="w-3 h-3" />
@@ -766,63 +685,7 @@ export default function GeospatialDeckPage() {
               )}
             </div>
           ) : (
-            /* Mode A: Indexed Corridors List */
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="divide-y divide-slate-800/60 flex-1 overflow-y-auto">
-                {filteredRoads.map((road) => {
-                  const hasWorks = road.works && road.works.length > 0;
-                  const hasIncidents = road.incidents && road.incidents.length > 0;
-
-                  return (
-                    <button
-                      key={road.id}
-                      onClick={() => {
-                        setSelectedRoad(road);
-                        setSelectedSignal(null);
-                      }}
-                      className="w-full text-left p-3 transition-colors flex items-start justify-between gap-2 hover:bg-slate-900/70 text-slate-300 group"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-xs text-white group-hover:text-cyan-300 transition-colors truncate block">
-                          {road.name}
-                        </span>
-                        <p className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
-                          {road.ref ? `${road.ref} • ` : ''}{road.district}
-                        </p>
-                        {hasWorks && (
-                          <p className="text-[10px] text-cyan-400 font-mono mt-0.5 truncate">
-                            Contractor: {road.works?.[0].contractor_name}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        {hasIncidents ? (
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800/60 font-semibold">
-                            Excavated
-                          </span>
-                        ) : hasWorks ? (
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-semibold">
-                            Work Active
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                            Indexed
-                          </span>
-                        )}
-                        <span className="text-[10px] text-slate-500 font-mono">
-                          {(parseFloat(road.total_length_m || '0') / 1000).toFixed(1)} km
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="p-3 border-t border-slate-800/80 bg-slate-900/40 text-[10px] text-slate-400 font-mono flex-shrink-0 leading-tight">
-                Data sourced from MoRTH, BBMP, PMGSY & OSM under GODL India 1.0. Tap any corridor to inspect.
-              </div>
-            </div>
+            <div className="flex-1 overflow-y-auto"><AreaOverview bounds={mapBounds}/></div>
           )}
 
         </div>

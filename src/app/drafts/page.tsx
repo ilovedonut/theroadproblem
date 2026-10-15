@@ -51,13 +51,13 @@ export default function DraftsPage() {
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
         <h1 className="text-3xl font-semibold">Saved evidence drafts</h1>
-        <p className="text-slate-400">
+        <p className="text-muted">
           Drafts stay on this device until both the report and its photo are
           submitted successfully.
         </p>
         <AccountPanel />
         {error && (
-          <p role="alert" className="text-rose-300">
+          <p role="alert" className="text-danger">
             {error}
           </p>
         )}
@@ -65,7 +65,7 @@ export default function DraftsPage() {
           <p
             key={r.id}
             role={r.error ? "alert" : "status"}
-            className={r.error ? "text-rose-300" : "text-cyan-200"}
+            className={r.error ? "text-danger" : "text-information"}
           >
             {r.error || "Evidence submitted. "}
             {r.incident_id && (
@@ -85,9 +85,9 @@ export default function DraftsPage() {
           </button>
         )}
         {!drafts.length && (
-          <p className="text-slate-400">
+          <p className="text-muted">
             No pending drafts.{" "}
-            <Link href="/report" className="text-cyan-300 underline">
+            <Link href="/report" className="text-information underline">
               Add evidence
             </Link>
           </p>
@@ -95,12 +95,12 @@ export default function DraftsPage() {
         {drafts.map((d) => (
           <article
             key={d.id}
-            className="rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3"
+            className="rounded-xl border border-line bg-surface p-5 space-y-3"
           >
             <h2 className="font-semibold">
               {d.category.replace(/_/g, " ")} · {d.road_name}
             </h2>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted">
               {d.lat.toFixed(5)}, {d.lon.toFixed(5)}
             </p>
             <p>{d.description}</p>
@@ -114,13 +114,13 @@ export default function DraftsPage() {
             <div className="flex gap-5 text-sm">
               <Link
                 href={`/report?draft=${encodeURIComponent(d.id)}`}
-                className="text-cyan-300 underline"
+                className="text-information underline"
               >
                 Review draft
               </Link>
               <button
                 disabled={busy}
-                className="text-rose-300"
+                className="text-danger"
                 onClick={() => {
                   if (!confirm("Discard this saved draft and its photo?"))
                     return;
