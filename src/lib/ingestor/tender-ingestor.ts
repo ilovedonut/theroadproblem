@@ -24,7 +24,9 @@ export const OFFICIAL_TENDERS_SEED: ParsedTender[] = [
     defect_liability_end_date: "2029-08-30",
     external_key: "KPPP-5401",
     source_uri: "https://kppp.karnataka.gov.in/portal/tender/5401",
+    district: "Bengaluru Urban",
     road_name_hint: "Outer Ring Road",
+    road_ref: "ORR / NH-44",
     chainage_start_km: 0.0,
     chainage_end_km: 17.5,
     contractor: {
@@ -50,7 +52,9 @@ export const OFFICIAL_TENDERS_SEED: ParsedTender[] = [
     defect_liability_end_date: "2028-06-18",
     external_key: "CPPP-NHAI-NH44-ELEV",
     source_uri: "https://eprocure.gov.in/eprocure/app?page=FrontEndTenderDetails&tenderId=NHAI-2023-09",
-    road_name_hint: "Hosur Road (Elevated",
+    district: "Bengaluru Urban",
+    road_name_hint: "Hosur Road (Elevated Tollway)",
+    road_ref: "NH-44",
     chainage_start_km: 0.0,
     chainage_end_km: 9.98,
     contractor: {
@@ -76,7 +80,9 @@ export const OFFICIAL_TENDERS_SEED: ParsedTender[] = [
     defect_liability_end_date: "2029-11-10",
     external_key: "BENSCL-2024-11",
     source_uri: "https://smartcities.gov.in/bengaluru/tender-benscl-2024-11",
+    district: "Bengaluru Urban",
     road_name_hint: "Mahatma Gandhi Road",
+    road_ref: "MG Road",
     chainage_start_km: 0.0,
     chainage_end_km: 2.1,
     contractor: {
@@ -102,7 +108,9 @@ export const OFFICIAL_TENDERS_SEED: ParsedTender[] = [
     defect_liability_end_date: "2029-04-25",
     external_key: "OMMAS-KA-25-01",
     source_uri: "http://omms.nic.in/StateProjects/RoadDetails/KA-25-01",
-    road_name_hint: "Bidadi to Byramangala",
+    district: "Ramanagara",
+    road_name_hint: "Bidadi to Byramangala PMGSY Road",
+    road_ref: "KA-25-01",
     chainage_start_km: 0.0,
     chainage_end_km: 4.95,
     contractor: {
@@ -112,13 +120,98 @@ export const OFFICIAL_TENDERS_SEED: ParsedTender[] = [
       cin: "U45203KA2015PTC082910",
       gstin: "29AAVCS8291H1Z2"
     }
+  },
+  {
+    source_name: "MoRTH Central Public Procurement Portal (CPPP)",
+    authority_name: "National Highways Authority of India (NHAI)",
+    tender_id: "NHAI/RO-BNG/NH-44/SURF/2024-02",
+    contract_id: "NHAI-CTR-44-SURF-2024",
+    package_name: "Periodic Resurfacing, Stormwater Drain Rehabilitation & Pedestrian Footpath Integration of Hosur Road Surface Service Lanes (Bommanahalli to Electronic City)",
+    work_type: "Surface Service Carriageway Pavement & Drainage Works",
+    official_status: "awarded",
+    contract_value_inr: 187500000, // ₹18.75 Cr
+    start_date: "2024-05-10",
+    target_completion_date: "2025-03-31",
+    actual_completion_date: null,
+    defect_liability_end_date: "2028-03-31",
+    external_key: "CPPP-NHAI-NH44-SURF",
+    source_uri: "https://eprocure.gov.in/eprocure/app?page=FrontEndTenderDetails&tenderId=NHAI-SURF-2024-02",
+    district: "Bengaluru Urban",
+    road_name_hint: "Hosur Road (Surface Service Carriageway)",
+    road_ref: "Service Lane NH-44",
+    chainage_start_km: 0.0,
+    chainage_end_km: 12.5,
+    contractor: {
+      legal_name: "Navayuga Engineering Company Limited",
+      normalized_name: "navayuga-engineering-company",
+      vendor_identifier: "VND-NAV-4402",
+      cin: "U45200AP1986PLC006880",
+      gstin: "37AAACN0688J1Z9"
+    }
+  },
+  {
+    source_name: "eProcurement Portal Karnataka (KPPP)",
+    authority_name: "MoRTH / BBMP",
+    tender_id: "BBMP/2025-26/RD/ORR-BELL-8820",
+    contract_id: "BBMP-ENG-BLR-2025-8820",
+    package_name: "Bellandur to Kadubeesanahalli Grade Separator & White-topping Integration Package 2",
+    work_type: "Grade Separator Flyover & White-topping Pavement",
+    official_status: "awarded",
+    contract_value_inr: 743000000, // ₹74.30 Cr
+    start_date: "2025-12-01",
+    target_completion_date: "2026-11-30",
+    actual_completion_date: null,
+    defect_liability_end_date: "2031-11-30",
+    external_key: "KPPP-8820-ORR",
+    source_uri: "https://kppp.karnataka.gov.in/portal/tender/8820",
+    district: "Bengaluru Urban",
+    road_name_hint: "Outer Ring Road",
+    road_ref: "ORR / NH-44",
+    chainage_start_km: 6.5,
+    chainage_end_km: 14.2,
+    contractor: {
+      legal_name: "Afcons Infrastructure Limited",
+      normalized_name: "afcons-infrastructure-limited",
+      vendor_identifier: "VND-AFC-8820",
+      cin: "L45200MH1976PLC019335",
+      gstin: "27AAAAC1933F1Z1"
+    }
+  },
+  {
+    source_name: "Online Management, Monitoring and Accounting System (OMMAS)",
+    authority_name: "National Rural Infrastructure Development Agency (NRIDA)",
+    tender_id: "KRRDA/RAM/MDR104/2024-03",
+    contract_id: "CTR-KRRDA-MDR104-2024",
+    package_name: "Kanakapura to Sangama Rural Major District Road Pavement Strengthening & Bridge Protection",
+    work_type: "Rural Road Reconstruction & Structural CD Works",
+    official_status: "officially_completed",
+    contract_value_inr: 64500000, // ₹6.45 Cr
+    start_date: "2023-09-01",
+    target_completion_date: "2024-05-30",
+    actual_completion_date: "2024-05-25",
+    defect_liability_end_date: "2029-05-25",
+    external_key: "OMMAS-KA-25-02",
+    source_uri: "http://omms.nic.in/StateProjects/RoadDetails/KA-25-02",
+    district: "Ramanagara",
+    road_name_hint: "Ramanagara Kanakapura Rural Road",
+    road_ref: "MDR-104",
+    chainage_start_km: 0.0,
+    chainage_end_km: 18.5,
+    contractor: {
+      legal_name: "Kaveri Infra Projects India Ltd",
+      normalized_name: "kaveri-infra-projects-india",
+      vendor_identifier: "VND-KAV-1043",
+      cin: "U45200KA2012PLC064890",
+      gstin: "29AABCK4890K1Z4"
+    }
   }
 ];
 
 export async function runTenderIngestion(
   client: pg.PoolClient,
-  tenders: ParsedTender[] = OFFICIAL_TENDERS_SEED
+  tenders: ParsedTender[] = []
 ): Promise<IngestRunSummary> {
+  if (!tenders.length) throw new Error('Explicit records are required; demo defaults are disabled.');
   const startedAt = new Date().toISOString();
   let inserted = 0;
   let updated = 0;

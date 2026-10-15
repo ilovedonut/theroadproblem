@@ -1,3 +1,4 @@
+import './test-bootstrap.mjs';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
@@ -11,8 +12,12 @@ async function verifyCitizenReportFlow() {
   console.log('======================================================================\n');
 
   const client = await pool.connect();
+  await client.query('BEGIN');
 
   try {
+    const fixturePoint=(await client.query(`SELECT id,ST_X(ST_LineInterpolatePoint(geom,0.5)) AS lon,ST_Y(ST_LineInterpolatePoint(geom,0.5)) AS lat FROM road_segments WHERE is_active ORDER BY id LIMIT 1`)).rows[0];
+    assert.ok(fixturePoint,'Seeded test road required');
+    const testLon=Number(fixturePoint.lon),testLat=Number(fixturePoint.lat);
     const reporterA = '99990000-0000-4000-8000-000000000002';
     const reporterB = '99990000-0000-4000-8000-000000000003';
     const reporterC = '99990000-0000-4000-8000-000000000004';
@@ -35,15 +40,15 @@ async function verifyCitizenReportFlow() {
     const reportResA = await client.query(`
       SELECT submit_report_atomic(
         $1::uuid,
-        77.6340::double precision,
-        12.9260::double precision,
+        ${testLon}::double precision,
+        ${testLat}::double precision,
         'pothole'::text,
         'damaged'::text,
         'Deep waterlogged pothole on outer carriage lane near Ecospace'::text,
         NOW()::timestamptz,
         $2::text,
         NULL::uuid,
-        NULL::uuid
+        '${fixturePoint.id}'::uuid
       ) as result;
     `, [reporterA, idempotencyKeyA]);
 
@@ -110,15 +115,15 @@ async function verifyCitizenReportFlow() {
     const reportResB = await client.query(`
       SELECT submit_report_atomic(
         $1::uuid,
-        77.6341::double precision,
-        12.9261::double precision,
+        ${testLon+0.00005}::double precision,
+        ${testLat+0.00005}::double precision,
         'pothole'::text,
         'unsafe_workzone'::text,
         'Corroborating: Two wheeler skid observed here this morning'::text,
         NOW()::timestamptz,
         $2::text,
         $3::uuid,
-        NULL::uuid
+        '${fixturePoint.id}'::uuid
       ) as result;
     `, [reporterB, `idemp-b-${Date.now()}`, resultA.incident_id]);
 
@@ -141,6 +146,7 @@ async function verifyCitizenReportFlow() {
     
     // Negative Control: Reporter B (already an author) cannot self-corroborate
     let selfCorrobBlocked = false;
+    await client.query('SAVEPOINT self_corrob_control');
     try {
       await client.query(`
         SELECT corroborate_incident_atomic(
@@ -152,6 +158,7 @@ async function verifyCitizenReportFlow() {
         ) as result;
       `, [reporterB, resultA.incident_id]);
     } catch (err) {
+      await client.query('ROLLBACK TO SAVEPOINT self_corrob_control');
       selfCorrobBlocked = err.message.includes('Anti-inflation invariant');
     }
     assert.ok(selfCorrobBlocked, 'Database must block author from self-corroborating');
@@ -197,15 +204,15 @@ async function verifyCitizenReportFlow() {
     const replayRes = await client.query(`
       SELECT submit_report_atomic(
         $1::uuid,
-        77.6340::double precision,
-        12.9260::double precision,
+        ${testLon}::double precision,
+        ${testLat}::double precision,
         'pothole'::text,
         'damaged'::text,
         'Identical duplicate submission'::text,
         NOW()::timestamptz,
         $2::text,
         NULL::uuid,
-        NULL::uuid
+        '${fixturePoint.id}'::uuid
       ) as result;
     `, [reporterA, idempotencyKeyA]);
 
@@ -218,6 +225,7 @@ async function verifyCitizenReportFlow() {
     console.log(' ALL VERIFICATION CHECKS PASSED: CITIZEN REPORT FLOW IS HEALTHY!');
     console.log('======================================================================\n');
   } finally {
+    await client.query('ROLLBACK');
     client.release();
     await pool.end();
   }

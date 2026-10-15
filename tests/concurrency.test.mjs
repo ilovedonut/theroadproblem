@@ -1,3 +1,4 @@
+import { testDatabaseUrl } from '../scripts/test-bootstrap.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
@@ -5,18 +6,7 @@ import { execSync } from 'node:child_process';
 
 const { Pool } = pg;
 
-function resolveDatabaseUrl() {
-  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('127.0.0.1') && !process.env.DATABASE_URL.includes('localhost')) {
-    return process.env.DATABASE_URL;
-  }
-  try {
-    const wslIp = execSync('wsl -d Ubuntu -- hostname -I', { encoding: 'utf8' }).trim().split(/\s+/)[0];
-    if (wslIp) {
-      return `postgres://postgres:postgres@${wslIp}:5432/theroadproblem`;
-    }
-  } catch {}
-  return process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/theroadproblem';
-}
+function resolveDatabaseUrl() { return testDatabaseUrl; }
 
 const pool = new Pool({ connectionString: resolveDatabaseUrl(), max: 25 });
 

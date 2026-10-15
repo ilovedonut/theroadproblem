@@ -1,27 +1,37 @@
 import pg from 'pg';
+import fs from 'node:fs';
+import path from 'node:path';
 import { execSync } from 'node:child_process';
 
 const { Pool } = pg;
 
-function resolveDatabaseUrl(): string {
-  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('127.0.0.1') && !process.env.DATABASE_URL.includes('localhost')) {
-    return process.env.DATABASE_URL;
-  }
-  if (process.platform === 'win32') {
-    try {
-      const wslIp = execSync('wsl -d Ubuntu -- hostname -I', { encoding: 'utf8' }).trim().split(/\s+/)[0];
-      if (wslIp) {
-        return `postgres://postgres:postgres@${wslIp}:5432/theroadproblem`;
+// Ensure .env.local is loaded if process.env.DATABASE_URL is not set
+if (!process.env.DATABASE_URL) {
+  try {
+    const envPath = path.resolve(process.cwd(), '.env.local');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+          const idx = trimmed.indexOf('=');
+          const key = trimmed.slice(0, idx).trim();
+          const val = trimmed.slice(idx + 1).trim();
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
       }
-    } catch {
-      // fallback
     }
+  } catch {
+    // fallback
   }
-  return process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/theroadproblem';
 }
 
-import fs from 'node:fs';
-import path from 'node:path';
+function resolveDatabaseUrl(): string {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  throw new Error('DATABASE_URL is required; refusing an implicit database target.');
+}
 
 const connectionStringRaw = resolveDatabaseUrl();
 const isRemoteSsl = connectionStringRaw.includes('supabase') || connectionStringRaw.includes('sslmode=require');
@@ -45,7 +55,6 @@ if (isRemoteSsl) {
   sslConfig = {
     ca: caCert,
     rejectUnauthorized: true,
-    checkServerIdentity: () => undefined,
   };
 }
 

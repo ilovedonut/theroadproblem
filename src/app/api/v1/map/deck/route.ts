@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/db/client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
+    const dbInfo = await query('SELECT inet_server_addr(), current_database(), current_user');
+    console.log('Deck DB Info:', dbInfo.rows[0]);
     // 1. Fetch roads with segments GeoJSON, associated official works, and active ground incidents
     const roadsQuery = `
       SELECT 
@@ -14,14 +19,14 @@ export async function GET(req: NextRequest) {
         r.state,
         r.district,
         COALESCE(SUM(rs.length_m), 0) as total_length_m,
-        json_agg(DISTINCT jsonb_build_object(
+        COALESCE(json_agg(DISTINCT jsonb_build_object(
           'segment_id', rs.id,
           'chainage_from', rs.chainage_from,
           'chainage_to', rs.chainage_to,
           'length_m', rs.length_m,
           'geojson', ST_AsGeoJSON(rs.geom)::json
-        )) FILTER (WHERE rs.id IS NOT NULL) as segments,
-        json_agg(DISTINCT jsonb_build_object(
+        )) FILTER (WHERE rs.id IS NOT NULL), '[]'::json) as segments,
+        COALESCE(json_agg(DISTINCT jsonb_build_object(
           'work_id', w.id,
           'package_name', w.package_name,
           'authority_name', w.authority_name,
@@ -36,8 +41,8 @@ export async function GET(req: NextRequest) {
           'target_completion_date', w.target_completion_date,
           'actual_completion_date', w.actual_completion_date,
           'defect_liability_end_date', w.defect_liability_end_date
-        )) FILTER (WHERE w.id IS NOT NULL) as works,
-        json_agg(DISTINCT jsonb_build_object(
+        )) FILTER (WHERE w.id IS NOT NULL), '[]'::json) as works,
+        COALESCE(json_agg(DISTINCT jsonb_build_object(
           'incident_id', i.id,
           'category', i.category,
           'lifecycle_status', i.lifecycle_status,
@@ -45,7 +50,7 @@ export async function GET(req: NextRequest) {
           'last_observed_at', i.last_observed_at,
           'lat', ST_Y(i.centroid),
           'lon', ST_X(i.centroid)
-        )) FILTER (WHERE i.id IS NOT NULL) as incidents
+        )) FILTER (WHERE i.id IS NOT NULL), '[]'::json) as incidents
       FROM roads r
       LEFT JOIN road_segments rs ON r.id = rs.road_id AND rs.is_active = TRUE
       LEFT JOIN work_segments ws ON rs.id = ws.road_segment_id
@@ -53,6 +58,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN work_contractors wc ON w.id = wc.work_id
       LEFT JOIN contractors c ON wc.contractor_id = c.id
       LEFT JOIN incidents i ON rs.id = i.road_segment_id AND i.lifecycle_status = 'active'
+      WHERE r.name NOT LIKE 'Test %'
       GROUP BY r.id
       ORDER BY r.name ASC;
     `;
@@ -71,6 +77,7 @@ export async function GET(req: NextRequest) {
         ds.publisher
       FROM source_records sr
       JOIN data_sources ds ON sr.source_id = ds.id
+      WHERE sr.raw_content ? 'lat' AND sr.raw_content ? 'lon'
       ORDER BY sr.retrieved_at DESC
       LIMIT 50;
     `);
@@ -80,16 +87,22 @@ export async function GET(req: NextRequest) {
     if (sourceRecordsRes.rows.length > 0) {
       multiSourceSignals = sourceRecordsRes.rows.map((row: any) => {
         const raw = row.raw_content || {};
+        const dateVal = raw.published_at || raw.start_date || row.retrieved_at;
+        const dateStr = dateVal instanceof Date 
+          ? dateVal.toISOString().substring(0, 10) 
+          : typeof dateVal === 'string' 
+            ? dateVal.substring(0, 10) 
+            : '';
         const isOfficial = !raw.signal_type || raw.signal_type === 'official_portal';
         return {
           id: row.id,
           type: raw.signal_type || 'official_portal',
-          source: row.source_name || raw.source_name || 'Public Data Registry',
+          source: row.source_name || 'Public Data Registry',
           title: raw.title || raw.package_name || `Source Record: ${row.external_key}`,
-          date: (raw.published_at || raw.start_date || row.retrieved_at || '').substring(0, 10),
+          date: dateStr,
           road_name: raw.road_name || raw.road_name_hint || 'Monitored Corridor',
-          lat: raw.lat ? parseFloat(raw.lat) : 12.9205,
-          lon: raw.lon ? parseFloat(raw.lon) : 77.6255,
+          lat: Number(raw.lat),
+          lon: Number(raw.lon),
           details: raw.details || (raw.work_type ? `${raw.work_type} (Status: ${raw.official_status || 'recorded'})` : `Tender/Source Record ${row.external_key}`),
           verified: false, // Invariant: news/social/external imports never assert verified ground condition
           status: isOfficial ? 'official_procurement_record' : 'publisher_reported',
@@ -100,122 +113,6 @@ export async function GET(req: NextRequest) {
           is_demo: false
         };
       });
-    } else {
-      // Fallback demonstrative signals with STRICT verified: false and explicit demo labeling
-      multiSourceSignals = [
-        {
-          id: 'demo-sig-01',
-          type: 'official_portal',
-          source: 'MoRTH CPPP / eProcurement',
-          title: 'Work Order Issued: Silk Board to Marathahalli ORR Resurfacing & SWD',
-          date: '2025-11-04',
-          road_name: 'Outer Ring Road (ORR / NH-44)',
-          lat: 12.9205,
-          lon: 77.6255,
-          details: 'Tender ID BBMP/2025-26/RD/WORK_INDENT_5401 sanctioned for ₹48.50 Cr awarded to KNR Constructions Limited.',
-          verified: false,
-          status: 'official_procurement_record',
-          disclaimer: 'Administrative tender award. Denotes fiscal allocation, not inspected pavement quality.',
-          is_demo: true,
-          source_url: 'https://data.gov.in/resource/major-road-works-bengaluru-package-5401'
-        },
-        {
-          id: 'demo-sig-02',
-          type: 'news_media',
-          source: 'Deccan Herald Civic Beat',
-          title: 'BWSSB Pipeline Excavation Cuts Through Newly Laid Lane on Outer Ring Road',
-          date: '2026-03-12',
-          road_name: 'Outer Ring Road (ORR / NH-44)',
-          lat: 12.9348,
-          lon: 77.6712,
-          details: 'Cauvery Stage V pipeline connection trench dug across newly surfaced carriage lane near Bellandur junction. Commuters face severe delays.',
-          verified: false,
-          status: 'publisher_reported',
-          disclaimer: 'Publisher reported claim. Physical road condition has not been independently verified.',
-          is_demo: true,
-          source_url: 'https://deccanherald.com/city/top-bengaluru-stories/orr-resurfaced-stretch-dug-up-bwssb'
-        },
-        {
-          id: 'demo-sig-03',
-          type: 'reddit_community',
-          source: 'Reddit r/bangalore Civic Watch',
-          title: 'ORR near Ecospace has been dug up for the 3rd time in 6 months despite ₹48 Cr tender',
-          date: '2026-04-18',
-          road_name: 'Outer Ring Road (ORR / NH-44)',
-          lat: 12.9262,
-          lon: 77.6845,
-          details: 'Megathread documenting recurrent trenching between Silk Board and Iblur. Multiple dashcam clips confirm exposed rebar and unbarricaded pits.',
-          verified: false,
-          status: 'publisher_reported',
-          disclaimer: 'Unverified community forum report. Represents commuter sentiment, not engineering ground audit.',
-          is_demo: true,
-          source_url: 'https://reddit.com/r/bangalore/comments/orr_excavation_audit'
-        },
-        {
-          id: 'demo-sig-04',
-          type: 'twitter_signal',
-          source: 'Twitter / X @BLRTrafficWatch',
-          title: 'Unbarricaded excavation pit causing bottleneck on Hosur Road Surface Service Lane',
-          date: '2026-05-02',
-          road_name: 'Hosur Road (Surface Service Carriageway)',
-          lat: 12.8870,
-          lon: 77.6430,
-          details: 'Visual evidence tagged to @BBMPCOMM. Surface lane reduced to single file. No cautionary blinker installed.',
-          verified: false,
-          status: 'publisher_reported',
-          disclaimer: 'Social post alert. Unverified public observation.',
-          is_demo: true,
-          source_url: 'https://x.com/BLRTrafficWatch/status/17892301923'
-        },
-        {
-          id: 'demo-sig-05',
-          type: 'official_portal',
-          source: 'NHAI Project Monitoring Information System (PMIS)',
-          title: 'NH-44 Elevated Expressway Periodic Maintenance Package Declared in Warranty',
-          date: '2025-08-15',
-          road_name: 'Hosur Road (Elevated Tollway)',
-          lat: 12.9030,
-          lon: 77.6320,
-          details: 'Contractor Larsen & Toubro Infrastructure Engineering Ltd. Defect Liability Period active until August 2028. Total spend ₹28.45 Cr.',
-          verified: false,
-          status: 'official_procurement_record',
-          disclaimer: 'Official authority warranty status registry.',
-          is_demo: true,
-          source_url: 'https://nhai.gov.in/project-monitoring/nh44-blr'
-        },
-        {
-          id: 'demo-sig-06',
-          type: 'news_media',
-          source: 'The Hindu',
-          title: 'BBMP initiates ₹12 Cr Smart City white-topping audit on MG Road',
-          date: '2026-02-20',
-          road_name: 'Mahatma Gandhi Road (MG Road)',
-          lat: 12.9748,
-          lon: 77.6074,
-          details: 'Inspections reveal utility duct covers intact along Anil Kumble Circle stretch. Pavement condition index rated satisfactory.',
-          verified: false,
-          status: 'publisher_reported',
-          disclaimer: 'Publisher reported journalistic account.',
-          is_demo: true,
-          source_url: 'https://thehindu.com/news/cities/bangalore/mg-road-corridor-audit'
-        },
-        {
-          id: 'demo-sig-07',
-          type: 'official_portal',
-          source: 'PMGSY / OMMAS Rural Road Registry',
-          title: 'Package KA-25-01 Completed under PMGSY Batch III in Ramanagara',
-          date: '2024-11-10',
-          road_name: 'Bidadi to Byramangala PMGSY Road',
-          lat: 12.8040,
-          lon: 77.4020,
-          details: '4.95 km all-weather rural road connecting Bidadi industrial corridor to Byramangala village. 5-year routine maintenance obligation active.',
-          verified: false,
-          status: 'official_procurement_record',
-          disclaimer: 'Government portal entry (OMMAS). Reflects administrative completion, not real-time physical inspection.',
-          is_demo: true,
-          source_url: 'http://omms.nic.in/StateProjects/RoadDetails/KA-25-01'
-        }
-      ];
     }
 
     // Compute summary metrics for the telemetry deck
@@ -253,8 +150,9 @@ export async function GET(req: NextRequest) {
       signals: multiSourceSignals
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
-        'Cloudflare-CDN-Cache-Control': 'max-age=600',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       }
     });
   } catch (err: any) {

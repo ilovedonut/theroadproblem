@@ -1,9 +1,31 @@
+import './test-bootstrap.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import pg from 'pg';
 
 const { Pool } = pg;
+
+// Ensure .env.local is loaded if process.env.DATABASE_URL is not set
+if (!process.env.DATABASE_URL) {
+  try {
+    const envPath = path.resolve(process.cwd(), '.env.local');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+          const idx = trimmed.indexOf('=');
+          const key = trimmed.slice(0, idx).trim();
+          const val = trimmed.slice(idx + 1).trim();
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
+      }
+    }
+  } catch {}
+}
 
 function resolveDatabaseUrl() {
   if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('127.0.0.1') && !process.env.DATABASE_URL.includes('localhost')) {
@@ -18,14 +40,29 @@ function resolveDatabaseUrl() {
   return process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/theroadproblem';
 }
 
-const connectionString = resolveDatabaseUrl();
-const isRemoteSsl = connectionString.includes('supabase') || connectionString.includes('sslmode=require');
+const connectionStringRaw = resolveDatabaseUrl();
+const isRemoteSsl = connectionStringRaw.includes('supabase') || connectionStringRaw.includes('sslmode=require');
+
+let sslConfig = undefined;
+let connectionString = connectionStringRaw;
+
 if (isRemoteSsl) {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  connectionString = connectionStringRaw.replace(/[\?&]sslmode=[^&]+/, '');
+  const certPath = path.resolve('certs/supabase-ca.pem');
+  let caCert = undefined;
+  if (fs.existsSync(certPath)) {
+    caCert = fs.readFileSync(certPath, 'utf8');
+  }
+  sslConfig = {
+    ca: caCert,
+    rejectUnauthorized: true,
+    checkServerIdentity: () => undefined,
+  };
 }
+
 const pool = new Pool({
   connectionString,
-  ssl: isRemoteSsl ? { rejectUnauthorized: false } : undefined
+  ssl: sslConfig
 });
 
 export async function importRoadsAndLocalities(client) {
