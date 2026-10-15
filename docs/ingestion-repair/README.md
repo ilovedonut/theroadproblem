@@ -58,3 +58,23 @@ Public derivatives use the configured `R2_PUBLIC_URL`; raw evidence and
 government response archives stay in the private bucket. The current r2.dev
 public delivery URL is rate-limited; a custom domain is appropriate before
 production photo traffic grows.
+
+## Verified production result — 15 October 2026
+
+GitHub proof run: https://github.com/ilovedonut/theroadproblem/actions/runs/38699838483
+
+The first live fetch created 22 source versions, 22 project records, and 22
+source events. The second live fetch created none and skipped all 22 rows.
+The exact original HTML checksum matched its private R2 object. The citizen
+report count remained five. All 22 road associations require review; none
+was guessed. Source revision and reversion were tested separately in the
+isolated database. These are real historical approvals, not 22 current
+awards or completed repairs. Existing unrelated historic/demo records were
+not deleted or reclassified by this repair.
+
+GitHub uses the project dashboard's IPv4-compatible session-pooler endpoint
+with its official Supabase root certificate, certificate verification and
+hostname verification. Local production credentials were not printed or
+committed. The synthetic tests use a private/local database instead.
+
+The restored schedule is 00:00 and 12:00 UTC (05:30 and 17:30 IST).
