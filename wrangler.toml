@@ -1,7 +1,7 @@
 name = "theroadproblem"
 main = ".open-next/worker.js"
 compatibility_date = "2024-12-30"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 
 [assets]
 directory = ".open-next/assets"
