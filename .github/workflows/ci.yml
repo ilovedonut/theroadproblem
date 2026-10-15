@@ -27,6 +27,7 @@ jobs:
 
     env:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/theroadproblem_ci_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/theroadproblem_ci_test
     steps:
       - uses: actions/checkout@v7.0.1
 
