@@ -2,11 +2,13 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl, { Map as MapLibreMap } from 'maplibre-gl';
-import { Compass, Globe2, Map as MapIcon, Layers, RefreshCw } from 'lucide-react';
+import { Compass, Globe2, Map as MapIcon } from 'lucide-react';
 
 export interface RoadFeature {
   id: string;
   name: string;
+  display_name?: string;
+  has_official_name?: boolean;
   ref: string | null;
   road_class: string;
   authority_name: string | null;
@@ -70,7 +72,7 @@ export interface MultiSourceSignal {
 import { normaliseMapBounds, parseMapBounds, type MapBounds } from '@/lib/map-bounds';
 
 interface GeospatialMapProps {
-  onViewportChange?: (bounds:MapBounds)=>void;
+  onViewportChange?: (bounds: MapBounds, zoom?: number) => void;
   roads: RoadFeature[];
   signals: MultiSourceSignal[];
   selectedRoadId: string | null;
@@ -101,11 +103,16 @@ export function GeospatialMap({
   const roadPopupRef = useRef<maplibregl.Popup | null>(null);
   const signalsRef = useRef<MultiSourceSignal[]>(signals);
   signalsRef.current = signals;
+  const roadsRef = useRef<RoadFeature[]>(roads);
+  roadsRef.current = roads;
+  const onSelectRoadRef = useRef(onSelectRoad);
+  onSelectRoadRef.current = onSelectRoad;
   const onSelectSignalRef = useRef(onSelectSignal);
   onSelectSignalRef.current = onSelectSignal;
+  const lastSwoopedRoadIdRef = useRef<string | null>(null);
 
-  const viewportCallback=useRef(onViewportChange);
-  viewportCallback.current=onViewportChange;
+  const viewportCallback = useRef(onViewportChange);
+  viewportCallback.current = onViewportChange;
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isGlobe, setIsGlobe] = useState(true);
@@ -114,7 +121,6 @@ export function GeospatialMap({
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    // Dark high-contrast telemetry basemap style
     const darkGlobeStyle: any = {
       version: 8,
       projection: {
@@ -156,7 +162,7 @@ export function GeospatialMap({
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: darkGlobeStyle,
-      center: [77.625, 12.92], // Karnataka pilot center
+      center: [77.625, 12.92], // Bengaluru Urban pilot center
       zoom: 10.5,
       pitch: 42,
       bearing: -15,
@@ -174,7 +180,7 @@ export function GeospatialMap({
     map.addControl(
       new maplibregl.AttributionControl({
         compact: true,
-        customAttribution: 'theroadproblem.quest • God\'s Eye 3D Engine'
+        customAttribution: 'theroadproblem.quest • Bengaluru Urban District Index'
       }),
       'bottom-left'
     );
@@ -187,11 +193,17 @@ export function GeospatialMap({
     const themeObserver = new MutationObserver(applyMapTheme);
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
-    const publishBounds=()=>{const b=map.getBounds();viewportCallback.current?.(normaliseMapBounds(b.getWest(),b.getSouth(),b.getEast(),b.getNorth()))};
-    map.on('moveend',publishBounds);
+    const publishBounds = () => {
+      const b = map.getBounds();
+      const z = Number(map.getZoom().toFixed(2));
+      viewportCallback.current?.(
+        normaliseMapBounds(b.getWest(), b.getSouth(), b.getEast(), b.getNorth()),
+        z
+      );
+    };
+    map.on('moveend', publishBounds);
     map.on('load', () => {
       applyMapTheme();
-      // Ensure globe projection is enabled
       try {
         (map as any).setProjection({ type: 'globe' });
       } catch (err) {
@@ -199,14 +211,13 @@ export function GeospatialMap({
       }
       setMapLoaded(true);
       map.resize();
-      const requested=parseMapBounds(new URLSearchParams(window.location.search).get("bbox"));
-      if(requested)map.fitBounds([[requested[0],requested[1]],[requested[2],requested[3]]],{padding:50,duration:0});
+      const requested = parseMapBounds(new URLSearchParams(window.location.search).get('bbox'));
+      if (requested) map.fitBounds([[requested[0], requested[1]], [requested[2], requested[3]]], { padding: 50, duration: 0 });
       publishBounds();
     });
 
     mapRef.current = map;
 
-    // Window / container resize observer
     const resizeObserver = new ResizeObserver(() => {
       if (mapRef.current) {
         mapRef.current.resize();
@@ -253,7 +264,7 @@ export function GeospatialMap({
     if (!map) return;
 
     map.flyTo({
-      center: [78.9629, 20.5937], // India national center
+      center: [78.9629, 20.5937],
       zoom: 3.8,
       pitch: 35,
       bearing: 0,
@@ -263,25 +274,15 @@ export function GeospatialMap({
     });
   }, []);
 
-  // Pilot Reset (Focus on Bengaluru / Ramanagara pilot network)
-  const flyToPilot = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    map.flyTo({
-      center: [77.625, 12.92],
-      zoom: 11,
-      pitch: 45,
-      bearing: -15,
-      speed: 1.1,
-      essential: true
-    });
-  }, []);
-
-  // Smooth camera swoop when road corridor is selected (from panel or canvas)
+  // Smooth camera swoop only when selectedRoadId changes (does NOT re-swoop when viewport refreshes roads)
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoaded || !selectedRoadId || !roads || roads.length === 0) return;
+    if (!selectedRoadId) {
+      lastSwoopedRoadIdRef.current = null;
+      return;
+    }
+    if (!map || !mapLoaded || !roads || roads.length === 0) return;
+    if (lastSwoopedRoadIdRef.current === selectedRoadId) return;
 
     const matchedRoad = roads.find((r) => r.id === selectedRoadId);
     if (!matchedRoad || !matchedRoad.segments || matchedRoad.segments.length === 0) return;
@@ -289,6 +290,7 @@ export function GeospatialMap({
     const allCoords = matchedRoad.segments.flatMap((s) => s.geojson?.coordinates || []);
     if (allCoords.length === 0) return;
 
+    lastSwoopedRoadIdRef.current = selectedRoadId;
     const midIdx = Math.floor(allCoords.length / 2);
     const centerCoord = allCoords[midIdx];
 
@@ -305,7 +307,7 @@ export function GeospatialMap({
   // Update Vector Road Networks on the Map
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoaded || !roads || roads.length === 0) return;
+    if (!map || !mapLoaded || !roads) return;
 
     const features: any[] = [];
 
@@ -313,14 +315,13 @@ export function GeospatialMap({
       const hasWorks = road.works && road.works.length > 0;
       const hasIncidents = road.incidents && road.incidents.length > 0;
 
-      let statusColor = '#06b6d4'; // cyan: active work package
+      let statusColor = '#06b6d4';
       if (hasIncidents) {
-        statusColor = '#f59e0b'; // amber: active excavation / damage
+        statusColor = '#f59e0b';
       } else if (hasWorks && road.works?.[0]?.official_status === 'officially_completed') {
-        statusColor = '#10b981'; // emerald: completed / warranty
+        statusColor = '#10b981';
       }
 
-      // Check layer visibility filters
       let isVisible = true;
       if (hasIncidents && !activeLayerFilters.excavations) isVisible = false;
       if (hasWorks && !hasIncidents && !activeLayerFilters.officialWorks) isVisible = false;
@@ -333,9 +334,9 @@ export function GeospatialMap({
               id: `${road.id}-${seg.segment_id}`,
               properties: {
                 road_id: road.id,
-                name: road.name,
+                name: road.display_name || road.name,
                 ref: road.ref || '',
-                authority: road.authority_name || 'Public Authority',
+                authority: road.authority_name || 'Authority unrecorded',
                 status_color: statusColor,
                 is_selected: road.id === selectedRoadId
               },
@@ -359,7 +360,6 @@ export function GeospatialMap({
         data: geojsonData as any
       });
 
-      // Ambient neon underglow
       map.addLayer({
         id: 'roads-glow',
         type: 'line',
@@ -376,7 +376,6 @@ export function GeospatialMap({
         }
       });
 
-      // Crisp vector road line
       map.addLayer({
         id: 'roads-line',
         type: 'line',
@@ -395,23 +394,9 @@ export function GeospatialMap({
       map.on('click', 'roads-line', (e) => {
         if (!e.features || e.features.length === 0) return;
         const roadId = e.features[0].properties.road_id;
-        const matchedRoad = roads.find((r) => r.id === roadId);
+        const matchedRoad = roadsRef.current.find((r) => r.id === roadId);
         if (matchedRoad) {
-          onSelectRoad(matchedRoad);
-
-          // Swoop camera to the clicked corridor
-          if (matchedRoad.segments?.[0]?.geojson?.coordinates?.[0]) {
-            const coord = matchedRoad.segments[0].geojson.coordinates[0];
-            map.flyTo({
-              center: [coord[0], coord[1]],
-              zoom: 12.5,
-              pitch: 50,
-              bearing: -15,
-              speed: 1.2,
-              curve: 1.4,
-              essential: true
-            });
-          }
+          onSelectRoadRef.current(matchedRoad);
         }
       });
 
@@ -453,36 +438,35 @@ export function GeospatialMap({
         }
       });
     }
-  }, [roads, mapLoaded, selectedRoadId, activeLayerFilters, onSelectRoad]);
+  }, [roads, mapLoaded, selectedRoadId, activeLayerFilters]);
 
-  // Update Multi-Source Intelligence & Incidents via Native WebGL Layers (Glued to 3D Globe)
+  // Update Multi-Source Intelligence & Incidents via Native WebGL Layers
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
     const features: any[] = [];
 
-    // 1. Multi-source public signals (News, Reddit, X, Field Photos)
     if (activeLayerFilters.newsSocial) {
       signals.forEach((sig) => {
-        let color = '#22d3ee'; // cyan default
+        let color = '#22d3ee';
         let haloColor = '#0891b2';
         let categoryLabel = 'SIGNAL';
 
         if (sig.type === 'news_media') {
-          color = '#c084fc'; // purple
+          color = '#c084fc';
           haloColor = '#7e22ce';
           categoryLabel = 'NEWS';
         } else if (sig.type === 'reddit_community') {
-          color = '#fb923c'; // orange
+          color = '#fb923c';
           haloColor = '#c2410c';
           categoryLabel = 'REDDIT';
         } else if (sig.type === 'twitter_signal') {
-          color = '#38bdf8'; // sky
+          color = '#38bdf8';
           haloColor = '#0284c7';
           categoryLabel = 'INTEL';
         } else if (sig.type === 'field_evidence') {
-          color = '#34d399'; // emerald
+          color = '#34d399';
           haloColor = '#059669';
           categoryLabel = 'PHOTO';
         }
@@ -512,7 +496,6 @@ export function GeospatialMap({
       });
     }
 
-    // 2. Active ground excavation bubbles
     if (activeLayerFilters.excavations) {
       roads.forEach((road) => {
         if (road.incidents && road.incidents.length > 0) {
@@ -529,7 +512,7 @@ export function GeospatialMap({
                   title: `${inc.category.replace(/_/g, ' ').toUpperCase()}`,
                   road_name: road.name,
                   date: inc.last_observed_at ? inc.last_observed_at.split('T')[0] : 'Recent',
-                  color: '#f59e0b', // amber
+                  color: '#f59e0b',
                   halo_color: '#b45309',
                   category_label: 'EXCAVATION',
                   lat: inc.lat,
@@ -559,7 +542,6 @@ export function GeospatialMap({
         data: geojsonData as any
       });
 
-      // Outer radar halo circle (interpolated with zoom)
       map.addLayer({
         id: 'signals-halo',
         type: 'circle',
@@ -577,7 +559,6 @@ export function GeospatialMap({
         }
       });
 
-      // Solid core bubble
       map.addLayer({
         id: 'signals-bubble',
         type: 'circle',
@@ -596,7 +577,6 @@ export function GeospatialMap({
         }
       });
 
-      // Center bright telemetry core
       map.addLayer({
         id: 'signals-center',
         type: 'circle',
@@ -613,7 +593,6 @@ export function GeospatialMap({
         }
       });
 
-      // Hover Tooltip: Anchored precisely to coordinate in 3D WebGL space
       map.on('mouseenter', 'signals-bubble', (e) => {
         if (!e.features || e.features.length === 0) return;
         map.getCanvas().style.cursor = 'pointer';
@@ -659,7 +638,6 @@ export function GeospatialMap({
         }
       });
 
-      // Click: Selects signal / incident and flies camera in 3D orbit
       map.on('click', 'signals-bubble', (e) => {
         if (!e.features || e.features.length === 0) return;
         if (signalPopupRef.current) {
@@ -754,7 +732,7 @@ export function GeospatialMap({
           <span>{isGlobe ? '3D Globe' : '2D Map'}</span>
         </button>
 
-        {/* Global Orbit & Pilot Focus Buttons */}
+        {/* Global Orbit Button */}
         <button
           onClick={flyToGlobalOrbit}
           title="Zoom out to Global Orbit"

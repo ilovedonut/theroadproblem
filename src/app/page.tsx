@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { 
-  Search, ShieldCheck, AlertTriangle, Layers, Building2, 
-  Banknote, Calendar, RefreshCw, Compass, MapPin, Database, 
-  ExternalLink, ChevronRight, ChevronLeft, Activity, Newspaper, MessageSquare, Twitter, PlusCircle,
-  Share2, X, ArrowLeft, SlidersHorizontal, CheckCircle2, Clock
+  AlertTriangle, Layers, Building2, 
+  RefreshCw, MapPin, 
+  ExternalLink, ChevronRight, ChevronLeft,
+  Share2, ArrowLeft
 } from 'lucide-react';
 import { GeospatialMap, RoadFeature, MultiSourceSignal } from '@/components/GeospatialMap';
 
@@ -14,8 +14,9 @@ import { AreaOverview } from '@/components/AreaOverview';
 import type { MapBounds } from '@/lib/map-bounds';
 
 export default function GeospatialDeckPage() {
-  const [mapBounds,setMapBounds]=useState<MapBounds|null>(null);
-  
+  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
+  const [mapZoom, setMapZoom] = useState<number>(10.5);
+
   const [roads, setRoads] = useState<RoadFeature[]>([]);
   const [signals, setSignals] = useState<MultiSourceSignal[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -28,6 +29,11 @@ export default function GeospatialDeckPage() {
   const [copied, setCopied] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  const deckAbortRef = useRef<AbortController | null>(null);
+  const deckReqIdRef = useRef(0);
+  const selectedRoadIdRef = useRef<string | null>(null);
+  selectedRoadIdRef.current = selectedRoad?.id || null;
+
   const [activeLayerFilters, setActiveLayerFilters] = useState({
     officialWorks: true,
     excavations: true,
@@ -35,13 +41,72 @@ export default function GeospatialDeckPage() {
     verifiedIntact: true
   });
 
+  const fetchDeckData = useCallback(async (bounds?: MapBounds | null, zoom?: number, isInitial = false) => {
+    if (deckAbortRef.current) {
+      deckAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    deckAbortRef.current = controller;
+    const reqId = ++deckReqIdRef.current;
+
+    if (isInitial) {
+      setLoading(true);
+    }
+
+    try {
+      const qs = new URLSearchParams();
+      if (bounds) qs.set('bbox', bounds.join(','));
+      if (zoom !== undefined && Number.isFinite(zoom)) qs.set('zoom', String(zoom));
+      if (selectedRoadIdRef.current) qs.set('selected_road_id', selectedRoadIdRef.current);
+      qs.set('_t', String(Date.now()));
+
+      const res = await fetch(`/api/v1/map/deck?${qs.toString()}`, {
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (res.ok && reqId === deckReqIdRef.current) {
+        const data = await res.json();
+        const nextRoads: RoadFeature[] = data.roads || [];
+        setRoads(nextRoads);
+        setSignals(data.signals || []);
+        setSummary(data.summary || null);
+
+        // Preserve selectedRoad inspection state when visible map data refreshes
+        setSelectedRoad((prev) => {
+          if (!prev) return null;
+          const updated = nextRoads.find((r) => r.id === prev.id);
+          return updated || prev;
+        });
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Failed to load deck telemetry', err);
+      }
+    } finally {
+      if (isInitial && reqId === deckReqIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
   useEffect(() => {
-    // Responsive default: collapse on very small mobile screens
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
       setIsDeckCollapsed(true);
     }
-    fetchDeckData();
-  }, []);
+    fetchDeckData(null, 10.5, true);
+    return () => {
+      deckAbortRef.current?.abort();
+    };
+  }, [fetchDeckData]);
+
+  // Debounced viewport-bounded fetch on map pan/zoom with stale-request cancellation
+  useEffect(() => {
+    if (!mapBounds) return;
+    const timer = setTimeout(() => {
+      fetchDeckData(mapBounds, mapZoom, false);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [mapBounds, mapZoom, fetchDeckData]);
 
   // Keyboard shortcut: Esc returns to directory mode
   useEffect(() => {
@@ -57,36 +122,12 @@ export default function GeospatialDeckPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedRoad, selectedSignal]);
 
-  const fetchDeckData = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/v1/map/deck?_t=${Date.now()}`, { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        setRoads(data.roads || []);
-        setSignals(data.signals || []);
-        setSummary(data.summary || null);
-      }
-    } catch (err) {
-      console.error('Failed to load deck telemetry', err);
-    } finally {
-      setLoading(false);
+  const handleViewportChange = useCallback((bounds: MapBounds, zoom?: number) => {
+    setMapBounds(bounds);
+    if (zoom !== undefined) {
+      setMapZoom(zoom);
     }
-  };
-
-  const handleSyncSources = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await fetch('/api/v1/ingest/refresh', { method: 'POST' });
-      if (res.ok) {
-        await fetchDeckData();
-      }
-    } catch (err) {
-      console.error('Failed to sync sources', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  }, []);
 
   const handleToggleFilter = (key: 'officialWorks' | 'excavations' | 'newsSocial' | 'verifiedIntact') => {
     setActiveLayerFilters(prev => ({
@@ -109,7 +150,6 @@ export default function GeospatialDeckPage() {
     ? (parseFloat(String(primaryWork.contract_value_inr)) / 10000000).toFixed(2)
     : null;
 
-  // Dynamic multi-source timeline aggregated for the selected corridor
   const roadTimelineEvents = React.useMemo(() => {
     if (!selectedRoad) return [];
 
@@ -124,7 +164,6 @@ export default function GeospatialDeckPage() {
       url?: string;
     }> = [];
 
-    // 1. Works events (official tenders & contracts)
     if (selectedRoad.works && selectedRoad.works.length > 0) {
       for (const w of selectedRoad.works) {
         const startDate = w.start_date ? new Date(w.start_date) : null;
@@ -157,7 +196,6 @@ export default function GeospatialDeckPage() {
       }
     }
 
-    // 2. Multi-source signals matching this road
     const rNameLower = selectedRoad.name.toLowerCase();
     const rRefLower = selectedRoad.ref?.toLowerCase();
     const matchingSignals = signals.filter((sig) => {
@@ -192,7 +230,6 @@ export default function GeospatialDeckPage() {
       });
     }
 
-    // 3. Incidents / Ground observations
     if (selectedRoad.incidents && selectedRoad.incidents.length > 0) {
       for (const inc of selectedRoad.incidents) {
         const incDate = inc.last_observed_at ? new Date(inc.last_observed_at) : null;
@@ -210,7 +247,6 @@ export default function GeospatialDeckPage() {
       }
     }
 
-    // Sort newest first
     events.sort((a, b) => b.timestamp - a.timestamp);
     return events;
   }, [selectedRoad, signals]);
@@ -242,7 +278,7 @@ export default function GeospatialDeckPage() {
           </div>
         ) : (
           <GeospatialMap
-            onViewportChange={setMapBounds}
+            onViewportChange={handleViewportChange}
             roads={roads}
             signals={signals}
             selectedRoadId={selectedRoad?.id || null}
@@ -289,7 +325,6 @@ export default function GeospatialDeckPage() {
           
           {/* Deck Header: Mode-Dependent */}
           {selectedRoad ? (
-            /* Selected Road Header */
             <div className="p-3.5 border-b border-line/80 bg-surface/60 flex items-start justify-between gap-2 flex-shrink-0">
               <div className="min-w-0">
                 <button
@@ -303,9 +338,10 @@ export default function GeospatialDeckPage() {
                   <span>Area overview</span>
                 </button>
                 <h2 className="text-sm font-bold text-ink leading-snug truncate">
-                  {selectedRoad.name}
+                  {selectedRoad.display_name || selectedRoad.name}
                 </h2>
                 <p className="text-[11px] text-muted font-mono truncate mt-0.5">
+                  {selectedRoad.has_official_name === false ? 'Unnamed road • ' : ''}
                   {selectedRoad.ref ? `${selectedRoad.ref} • ` : ''}{selectedRoad.district}, {selectedRoad.state}
                 </p>
               </div>
@@ -329,7 +365,6 @@ export default function GeospatialDeckPage() {
               </div>
             </div>
           ) : selectedSignal ? (
-            /* Selected Signal Header */
             <div className="p-3.5 border-b border-line/80 bg-surface/60 flex items-center justify-between gap-2 flex-shrink-0">
               <button
                 onClick={() => {
@@ -355,9 +390,7 @@ export default function GeospatialDeckPage() {
 
           {/* Deck Body: Directory vs. Road Dossier vs. Signal Dossier */}
           {selectedRoad ? (
-            /* Mode B: Road Dossier */
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Dual-State Machine Integrity Banner */}
               <div className="p-3 bg-surface/80 border-b border-line/80 flex-shrink-0">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2 flex items-center justify-between">
                   <span>Dual State Machine Integrity</span>
@@ -365,7 +398,6 @@ export default function GeospatialDeckPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  {/* Official Public Works State */}
                   <div className="p-2.5 rounded-lg bg-canvas/90 border border-cyan-500/30">
                     <div className="flex items-center gap-1 text-[10px] font-bold text-information mb-0.5">
                       <Building2 className="w-3 h-3" />
@@ -385,7 +417,6 @@ export default function GeospatialDeckPage() {
                     )}
                   </div>
 
-                  {/* Observed Ground Reality State */}
                   <div className="p-2.5 rounded-lg bg-canvas/90 border border-amber-500/30">
                     <div className="flex items-center gap-1 text-[10px] font-bold text-warning mb-0.5">
                       <AlertTriangle className="w-3 h-3" />
@@ -408,7 +439,6 @@ export default function GeospatialDeckPage() {
                 </div>
               </div>
 
-              {/* Dossier Tabs */}
               <div className="flex border-b border-line text-xs font-mono bg-canvas flex-shrink-0">
                 <button
                   onClick={() => setActiveDossierTab('overview')}
@@ -442,11 +472,9 @@ export default function GeospatialDeckPage() {
                 </button>
               </div>
 
-              {/* Dossier Tab Content */}
               <div className="p-3.5 flex-1 overflow-y-auto space-y-3.5 text-xs font-sans">
                 {activeDossierTab === 'overview' && (
                   <div className="space-y-3">
-                    {/* Metrics Row */}
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div className="p-2 rounded-lg bg-surface border border-line">
                         <span className="text-[10px] text-muted font-mono block">LENGTH</span>
@@ -468,7 +496,6 @@ export default function GeospatialDeckPage() {
                       </div>
                     </div>
 
-                    {/* Primary Work Card */}
                     {primaryWork && (
                       <div className="p-3 rounded-lg bg-surface/90 border border-line space-y-2">
                         <div className="flex items-center justify-between">
@@ -489,7 +516,6 @@ export default function GeospatialDeckPage() {
                       </div>
                     )}
 
-                    {/* Ground Evidence Action Card */}
                     <div className="p-3 rounded-lg bg-surface/60 border border-cyan-500/20 flex items-center justify-between gap-2">
                       <div>
                         <p className="font-bold text-ink text-xs">Have visual ground evidence?</p>
@@ -505,7 +531,6 @@ export default function GeospatialDeckPage() {
                       </Link>
                     </div>
 
-                    {/* Full Ledger Link */}
                     <Link
                       href={`/roads/${selectedRoad.id}`}
                       className="block text-center py-2 px-3 rounded-lg bg-surface border border-line text-information hover:text-information font-mono text-xs font-semibold transition-colors"
@@ -622,7 +647,6 @@ export default function GeospatialDeckPage() {
               </div>
             </div>
           ) : selectedSignal ? (
-            /* Mode C: Public Signal Dossier */
             <div className="p-4 flex-1 overflow-y-auto space-y-3.5 text-xs font-sans">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
