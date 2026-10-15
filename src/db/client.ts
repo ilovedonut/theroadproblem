@@ -82,9 +82,11 @@ function getPool(): pg.Pool {
   const createdPool = new Pool({
     connectionString,
     ssl: sslConfig,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    // Production's session pool has 15 slots shared with Hyperdrive and jobs.
+    // Each local server must leave capacity for the ingestor and importer.
+    max: 4,
+    idleTimeoutMillis: 5000,
+    connectionTimeoutMillis: 10000,
   });
 
   activePool = createdPool;

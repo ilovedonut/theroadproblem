@@ -12,6 +12,8 @@ enabled = true
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"
+# Remote resource origin_connection_limit=5 (soft limit); Supabase session pool=15.
+# Leave remaining capacity for scheduled ingestion, imports and local/admin clients.
 id = "1ba95380b51740bab244bff09a028b15"
 # OpenNext also initializes local bindings while deploying. This dedicated test
 # target is only for local emulation; production uses Hyperdrive's stored origin.

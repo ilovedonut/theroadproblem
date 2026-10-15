@@ -3,10 +3,24 @@ import assert from 'node:assert/strict';
 import { loadMapDeckPages } from '../src/lib/map-deck-loader.ts';
 import { matchRoadPrecisely, linkWorkSegmentsWithPrecision, normalizeChainage } from '../src/lib/matcher.ts';
 import {importOsmRoads} from '../src/lib/osm/importer.ts';
+import {connectForIngestion} from '../src/lib/ingestor/connection.ts';
 
 const base={tender_id:'regression',package_name:'Regression',district:'Bengaluru Urban',road_name_hint:'First Main',coordinates:{lon:77.6,lat:12.97}};
 const row={segment_id:'segment-one',road_id:'road-one',road_name:'First Main',road_ref:'NH-1',district:'Bengaluru Urban',layer:0};
 const clientFor=rows=>({query:async()=>({rows})});
+
+test('ingestion retries temporary session exhaustion before any writes',async()=>{
+  let attempts=0;const delays=[];const client={};
+  const result=await connectForIngestion({connect:async()=>{attempts++;if(attempts<3)throw Error('(EMAXCONNSESSION) max clients reached');return client;}},async ms=>{delays.push(ms);});
+  assert.equal(result,client);assert.equal(attempts,3);assert.deepEqual(delays,[500,1000]);
+});
+test('ingestion connection retries stop after three attempts and never retry authentication failures',async()=>{
+  let attempts=0;
+  await assert.rejects(()=>connectForIngestion({connect:async()=>{attempts++;throw Error('(EMAXCONNSESSION) max clients reached');}},async()=>{}),/max clients/);
+  assert.equal(attempts,3);attempts=0;
+  await assert.rejects(()=>connectForIngestion({connect:async()=>{attempts++;throw Error('password authentication failed');}},async()=>{}),/authentication/);
+  assert.equal(attempts,1);
+});
 
 test('an arbitrary resume offset cannot skip roads without a verified saved run',async()=>{
   await assert.rejects(()=>importOsmRoads({query:async()=>{throw Error('No DB query expected');}},

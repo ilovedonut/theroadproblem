@@ -662,6 +662,20 @@ test('10 & 11. Accurate Counts Without Join Multiplication and Bounded Viewport 
 });
 
 test('12. Nearby-Road Selection at Geographically Separated Markers, Ambiguous Cases, and Real Extract Dry-Run', async () => {
+  // Fresh CI databases do not inherit a completed import/coverage sector from
+  // a developer's previous local run. Publish the real fixture and only the
+  // two bounded test windows exercised here; never claim district completeness.
+  const fixtureClient=await pool.connect();
+  try {
+    await importOsmRoads(fixtureClient,{
+      sourceFilePath:path.resolve('scripts/data/bengaluru_roads_osm_sample.json'),
+      isCompleteExtract:false,
+    });
+    await fixtureClient.query(`INSERT INTO imported_coverage_sectors(district,sector_key,sector_name,bounds_geom,ways_count,status)
+      VALUES ('Bengaluru Urban','test_nearest_mg','Isolated MG Road fixture',ST_MakeEnvelope(77.590,12.968,77.600,12.976,4326),1,'completed'),
+             ('Bengaluru Urban','test_nearest_silk','Isolated Silk Board fixture',ST_MakeEnvelope(77.622,12.914,77.629,12.921,4326),1,'completed')
+      ON CONFLICT(district,sector_key) DO NOTHING`);
+  } finally { fixtureClient.release(); }
   // 12a. Central Bengaluru (MG Road)
   const mgReq = new Request(
     'http://localhost/api/v1/roads/nearest?lon=77.5946&lat=12.9716&radius=150'
