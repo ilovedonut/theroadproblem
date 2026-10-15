@@ -13,6 +13,9 @@ enabled = true
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "1ba95380b51740bab244bff09a028b15"
+# OpenNext also initializes local bindings while deploying. This dedicated test
+# target is only for local emulation; production uses Hyperdrive's stored origin.
+localConnectionString = "postgres://postgres:postgres@127.0.0.1:5432/theroadproblem_ingestion_test"
 
 # Private bucket: Unvetted user uploads and raw source records (ZERO public access)
 [[r2_buckets]]
