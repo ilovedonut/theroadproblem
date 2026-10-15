@@ -10,6 +10,10 @@ binding = "ASSETS"
 [observability]
 enabled = true
 
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "1ba95380b51740bab244bff09a028b15"
+
 # Private bucket: Unvetted user uploads and raw source records (ZERO public access)
 [[r2_buckets]]
 binding = "QUARANTINE_BUCKET"

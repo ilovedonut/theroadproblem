@@ -1,6 +1,7 @@
 import pg from 'pg';
 import fs from 'node:fs';
 import path from 'node:path';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 const { Pool } = pg;
 
@@ -9,6 +10,20 @@ let activePool: pg.Pool | undefined;
 // Build tools import route modules without runtime credentials. Resolve the
 // database target only when a caller actually uses the database.
 function getPool(): pg.Pool {
+  if (typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers') {
+    // Hyperdrive verifies the origin TLS certificate and owns the origin pool.
+    // Worker sockets belong to the current invocation and must never be reused
+    // by a later request. maxUses closes each client after query/transaction release.
+    const { env } = getCloudflareContext();
+    const hyperdrive = env.HYPERDRIVE;
+    if (!hyperdrive) throw new Error('HYPERDRIVE binding is required in Cloudflare Workers.');
+    return new Pool({
+      connectionString: hyperdrive.connectionString,
+      maxUses: 1,
+      max: 5,
+      connectionTimeoutMillis: 10000,
+    });
+  }
   if (activePool) return activePool;
   // Ensure .env.local is loaded if process.env.DATABASE_URL is not set
   if (!process.env.DATABASE_URL) {
