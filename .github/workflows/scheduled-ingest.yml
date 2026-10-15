@@ -1,7 +1,5 @@
 name: Scheduled Civic Data Ingestion
 on:
-  schedule:
-    - cron: '0 0,12 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
