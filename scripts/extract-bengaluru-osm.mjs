@@ -38,6 +38,29 @@ function parseCliArgs(argv) {
   return args;
 }
 
+function runOsmium(osmiumArgs) {
+  try {
+    execFileSync('osmium', ['--version'], { stdio: 'ignore' });
+    execFileSync('osmium', osmiumArgs, { stdio: 'inherit' });
+    return;
+  } catch {
+    const wslArgs = osmiumArgs.map((arg) => {
+      if (typeof arg === 'string') {
+        if (arg.startsWith('\\\\wsl.localhost\\Ubuntu') || arg.startsWith('\\\\wsl$\\Ubuntu')) {
+          return arg.replace(/^\\\\wsl(\.localhost)?\\Ubuntu/, '').replace(/\\/g, '/');
+        }
+        if (arg.includes(':\\') || arg.includes(':/') || fs.existsSync(arg)) {
+          const abs = path.resolve(arg);
+          const drive = abs[0].toLowerCase();
+          return `/mnt/${drive}/${abs.slice(3).replace(/\\/g, '/')}`;
+        }
+      }
+      return arg;
+    });
+    execFileSync('wsl', ['-d', 'Ubuntu', '--', 'osmium', ...wslArgs], { stdio: 'inherit' });
+  }
+}
+
 async function main() {
   const args = parseCliArgs(process.argv.slice(2));
   const boundary = loadVerifiedBengaluruBoundary(args.boundaryPath);
@@ -54,21 +77,17 @@ async function main() {
       throw new Error(`Regional .osm.pbf file not found: ${args.regionalPbf}`);
     }
     console.log(`  Clipping regional PBF via osmium extract...`);
-    execFileSync(
-      'osmium',
-      [
-        'extract',
-        '--polygon',
-        args.boundaryPath,
-        '--strategy',
-        'complete_ways',
-        args.regionalPbf,
-        '-o',
-        args.extractedPbf,
-        '--overwrite',
-      ],
-      { stdio: 'inherit' }
-    );
+    runOsmium([
+      'extract',
+      '--polygon',
+      args.boundaryPath,
+      '--strategy',
+      'complete_ways',
+      args.regionalPbf,
+      '-o',
+      args.extractedPbf,
+      '--overwrite',
+    ]);
   }
 
   if (!fs.existsSync(args.extractedPbf)) {
@@ -84,27 +103,19 @@ async function main() {
   const tmpFilteredPbf = `${args.extractedPbf}.highways.osm.pbf`;
   const tmpGeojsonSeq = `${args.extractedPbf}.highways.geojsonseq`;
 
-  execFileSync(
-    'osmium',
-    ['tags-filter', args.extractedPbf, 'w/highway', '-o', tmpFilteredPbf, '--overwrite'],
-    { stdio: 'inherit' }
-  );
+  runOsmium(['tags-filter', args.extractedPbf, 'w/highway', '-o', tmpFilteredPbf, '--overwrite']);
 
-  execFileSync(
-    'osmium',
-    [
-      'export',
-      tmpFilteredPbf,
-      '-f',
-      'geojsonseq',
-      '-a',
-      'id,type,version,timestamp',
-      '-o',
-      tmpGeojsonSeq,
-      '--overwrite',
-    ],
-    { stdio: 'inherit' }
-  );
+  runOsmium([
+    'export',
+    tmpFilteredPbf,
+    '-f',
+    'geojsonseq',
+    '-a',
+    'id,type,version,timestamp',
+    '-o',
+    tmpGeojsonSeq,
+    '--overwrite',
+  ]);
 
   const lines = fs
     .readFileSync(tmpGeojsonSeq, 'utf8')

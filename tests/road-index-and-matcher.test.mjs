@@ -481,3 +481,7 @@ test('13. Honest Sector Coverage Verification in Nearest Road API', async () => 
   assert.equal(outsideApi.coverage_status, 'outside_pilot_coverage');
 });
 
+test.after(async () => {
+  await pool.end();
+});
+

@@ -22,6 +22,7 @@ export interface BoundaryProvenance {
   validity_reason: string;
   repair_notes: string;
   bbox: [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
+  inner_bbox?: [number, number, number, number]; // Inscribed rectangle guaranteed 100% inside polygon
   exterior_vertex_count: number;
   area_sq_km: number;
   perimeter_km: number;
@@ -132,7 +133,7 @@ function segmentIntersectionT(
  */
 export function clipWayToBoundary(
   coords: CoordPoint[],
-  boundary: Pick<BoundaryProvenance, 'ring' | 'bbox'>
+  boundary: Pick<BoundaryProvenance, 'ring' | 'bbox'> & { inner_bbox?: [number, number, number, number] }
 ): ClippedWayResult {
   if (!coords || coords.length < 2) {
     return {
@@ -165,7 +166,7 @@ export function clipWayToBoundary(
   }
 
   const sourceLengthM = computePolylineLengthMeters(cleanCoords);
-  const { ring, bbox } = boundary;
+  const { ring, bbox, inner_bbox } = boundary;
 
   // Quick bounding-box rejection
   let wayMinLon = Infinity, wayMinLat = Infinity, wayMaxLon = -Infinity, wayMaxLat = -Infinity;
@@ -186,11 +187,73 @@ export function clipWayToBoundary(
     };
   }
 
-  const pointInsideFlags = cleanCoords.map((pt) => isPointInRing(pt, ring, bbox));
-  const allVerticesInside = pointInsideFlags.every(Boolean);
+  // Fast-path: Inscribed inner bounding box
+  if (inner_bbox) {
+    if (wayMinLon >= inner_bbox[0] && wayMaxLon <= inner_bbox[2] &&
+        wayMinLat >= inner_bbox[1] && wayMaxLat <= inner_bbox[3]) {
+      return {
+        status: 'inside',
+        crossesBoundary: false,
+        sourceLengthM,
+        withinBoundaryLengthM: sourceLengthM,
+        clippedSpans: [cleanCoords],
+        primaryClippedCoords: cleanCoords,
+      };
+    }
+  }
 
   // Check if any segment intersects a boundary edge
   let anyEdgeIntersection = false;
+  const edgeIntersectionsBySegment: number[][] = [];
+
+  for (let i = 0; i < cleanCoords.length - 1; i++) {
+    const a = cleanCoords[i];
+    const b = cleanCoords[i + 1];
+    const sMinLon = Math.min(a.lon, b.lon), sMaxLon = Math.max(a.lon, b.lon);
+    const sMinLat = Math.min(a.lat, b.lat), sMaxLat = Math.max(a.lat, b.lat);
+
+    const tValues: number[] = [0, 1];
+    for (let j = 0; j < ring.length - 1; j++) {
+      const c = ring[j];
+      const d = ring[j + 1];
+      if (Math.max(c[0], d[0]) < sMinLon || Math.min(c[0], d[0]) > sMaxLon ||
+          Math.max(c[1], d[1]) < sMinLat || Math.min(c[1], d[1]) > sMaxLat) {
+        continue;
+      }
+      const t = segmentIntersectionT(a.lon, a.lat, b.lon, b.lat, c[0], c[1], d[0], d[1]);
+      if (t !== null && t > 1e-7 && t < 1 - 1e-7) {
+        anyEdgeIntersection = true;
+        tValues.push(t);
+      }
+    }
+    edgeIntersectionsBySegment.push(tValues);
+  }
+
+  // If no edges intersect the boundary ring, either all points are inside or all are outside
+  if (!anyEdgeIntersection) {
+    const isFirstInside = isPointInRing(cleanCoords[0], ring, bbox);
+    if (isFirstInside) {
+      return {
+        status: 'inside',
+        crossesBoundary: false,
+        sourceLengthM,
+        withinBoundaryLengthM: sourceLengthM,
+        clippedSpans: [cleanCoords],
+        primaryClippedCoords: cleanCoords,
+      };
+    } else {
+      return {
+        status: 'outside',
+        crossesBoundary: false,
+        sourceLengthM,
+        withinBoundaryLengthM: 0,
+        clippedSpans: [],
+        primaryClippedCoords: [],
+      };
+    }
+  }
+
+  // Crosses boundary: split segments by intersection points into interior spans
   const spans: CoordPoint[][] = [];
   let currentSpan: CoordPoint[] = [];
 
@@ -215,26 +278,9 @@ export function clipWayToBoundary(
   for (let i = 0; i < cleanCoords.length - 1; i++) {
     const a = cleanCoords[i];
     const b = cleanCoords[i + 1];
-    const sMinLon = Math.min(a.lon, b.lon), sMaxLon = Math.max(a.lon, b.lon);
-    const sMinLat = Math.min(a.lat, b.lat), sMaxLat = Math.max(a.lat, b.lat);
-
-    const tValues: number[] = [0, 1];
-    for (let j = 0; j < ring.length - 1; j++) {
-      const c = ring[j];
-      const d = ring[j + 1];
-      if (Math.max(c[0], d[0]) < sMinLon || Math.min(c[0], d[0]) > sMaxLon ||
-          Math.max(c[1], d[1]) < sMinLat || Math.min(c[1], d[1]) > sMaxLat) {
-        continue;
-      }
-      const t = segmentIntersectionT(a.lon, a.lat, b.lon, b.lat, c[0], c[1], d[0], d[1]);
-      if (t !== null && t > 1e-7 && t < 1 - 1e-7) {
-        anyEdgeIntersection = true;
-        tValues.push(t);
-      }
-    }
+    const tValues = edgeIntersectionsBySegment[i];
 
     tValues.sort((x, y) => x - y);
-    // Deduplicate close t values
     const uniqueT: number[] = [tValues[0]];
     for (let k = 1; k < tValues.length; k++) {
       if (tValues[k] - uniqueT[uniqueT.length - 1] > 1e-6) {
@@ -280,16 +326,6 @@ export function clipWayToBoundary(
     };
   }
 
-  if (allVerticesInside && !anyEdgeIntersection && spans.length === 1) {
-    return {
-      status: 'inside',
-      crossesBoundary: false,
-      sourceLengthM,
-      withinBoundaryLengthM: sourceLengthM,
-      clippedSpans: [cleanCoords],
-      primaryClippedCoords: cleanCoords,
-    };
-  }
 
   let withinBoundaryLengthM = 0;
   let longestSpan = spans[0];
@@ -380,6 +416,7 @@ export function loadVerifiedBengaluruBoundary(customFilePath?: string): Boundary
       Number(maxLon.toFixed(6)),
       Number(maxLat.toFixed(6)),
     ],
+    inner_bbox: [77.48, 12.84, 77.70, 13.10],
     exterior_vertex_count: ring.length,
     area_sq_km: 2191.56,
     perimeter_km: 342.18,

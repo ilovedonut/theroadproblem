@@ -68,6 +68,25 @@
         "missing_all_access_tags_marked_unknown": 3448,
         "within_boundary_length_km": 670.44
       }
+    },
+    "complete_city_extract": {
+      "file_path": "scripts/data/bengaluru_urban_roads.osm.json",
+      "source": "OpenStreetMap Contributors via Geofabrik Southern Zone (ODbL 1.0)",
+      "retrieved_at": "2026-10-15T10:40:33.000Z",
+      "checksum_sha256": "25abfc12816a268e99ef5bba1a4a905422184c11c1581fa83f88d1670997ad72",
+      "elements_count": 241908,
+      "measured_summary": {
+        "total_elements": 241908,
+        "eligible_motor_ways": 217680,
+        "new_segments_inserted": 212432,
+        "updated_segment_versions": 1221,
+        "unchanged_ways_skipped": 4027,
+        "boundary_crossing_ways": 620,
+        "unexpected_deactivations": 0,
+        "review_routed_work_associations": 0,
+        "within_boundary_length_km": 30083.13,
+        "motor_road_length_km": 30083.13
+      }
     }
   },
   "parser": {

@@ -45,5 +45,7 @@ storage_public/
 supabase/.temp/
 
 
-
 .next-codex/
+*.pbf
+scripts/data/bengaluru_urban_roads.osm.json
+scratch/
