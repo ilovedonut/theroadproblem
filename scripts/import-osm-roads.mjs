@@ -62,9 +62,14 @@ async function main() {
   // verification unchanged while allowing a bounded connection handshake.
   pool.options.connectionTimeoutMillis = 30000;
   const client = await pool.connect();
+  // A checked-out pg client can emit an error while preparing the next batch.
+  // Keep it observable instead of crashing before normal checkpoint recovery.
+  client.on('error', error => console.error('Import connection lost; committed checkpoints are retained.', {code:error.code || 'CONNECTION_ERROR'}));
   try {
     await client.query("SET statement_timeout='120s'");
     await client.query("SET lock_timeout='10s'");
+    await client.query("SET idle_in_transaction_session_timeout='120s'");
+    await client.query("SET application_name='theroadproblem-osm-import'");
     const summary = await importOsmRoads(client, {
       district: opts.district,
       state: opts.state,

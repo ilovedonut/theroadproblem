@@ -88,6 +88,9 @@ function getPool(): pg.Pool {
     idleTimeoutMillis: 5000,
     connectionTimeoutMillis: 10000,
   });
+  createdPool.on('error', (error: Error & { code?: string }) => {
+    console.error('Idle database connection failed', { code: error.code || 'CONNECTION_ERROR' });
+  });
 
   activePool = createdPool;
   return createdPool;
