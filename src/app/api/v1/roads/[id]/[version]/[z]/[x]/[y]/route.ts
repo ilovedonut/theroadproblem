@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { query } from '../../../../../../../../../db/client.ts';
+import { withTransaction } from '../../../../../../../../../db/client.ts';
+import { getCityById } from '../../../../../../../../../lib/city-catalogue.ts';
 
 interface RouteContext {
   params: Promise<{
@@ -38,6 +39,78 @@ async function getR2Bucket(): Promise<any | null> {
   }
 
   return null;
+}
+
+/**
+ * Zoom hierarchy SQL filter:
+ * - Zoom 10-11: Major highways only and official corridors.
+ * - Zoom 12-13: Secondary, tertiary, and collectors.
+ * - Zoom 14+: All active motor carriageways.
+ */
+export function getZoomHierarchyFilter(z: number): string {
+  if (z <= 11) {
+    const majorClasses =
+      "'motorway','trunk','primary','secondary','tertiary','motorway_link','trunk_link','primary_link','secondary_link'";
+    return `AND (COALESCE(rs.road_class, r.road_class) IN (${majorClasses}) OR r.is_official_corridor = true)`;
+  } else if (z <= 13) {
+    const collectorClasses =
+      "'motorway','trunk','primary','secondary','tertiary','motorway_link','trunk_link','primary_link','secondary_link','tertiary_link','unclassified','road'";
+    return `AND (COALESCE(rs.road_class, r.road_class) IN (${collectorClasses}) OR r.is_official_corridor = true)`;
+  } else {
+    // Zoom 14+: All active motor carriageways
+    return ``;
+  }
+}
+
+/**
+ * Generate a single MVT tile directly using PostGIS native functions:
+ * ST_TileEnvelope and ST_AsMVT with ST_AsMVTGeom, bounded with a 5-second statement timeout.
+ */
+export async function buildRoadTile(z: number, x: number, y: number): Promise<Buffer> {
+  const zoomFilter = getZoomHierarchyFilter(z);
+  const sql = `
+    WITH bounds AS (
+      SELECT
+        ST_TileEnvelope($1, $2, $3) AS geom_3857,
+        ST_Transform(ST_TileEnvelope($1, $2, $3), 4326) AS geom_4326
+    ),
+    tile_features AS (
+      SELECT
+        rs.id,
+        rs.road_id,
+        r.name,
+        r.ref,
+        COALESCE(rs.road_class, r.road_class) AS road_class,
+        r.authority_name,
+        rs.chainage_from,
+        rs.chainage_to,
+        ST_AsMVTGeom(
+          ST_Transform(rs.geom, 3857),
+          b.geom_3857,
+          4096,
+          64,
+          true
+        ) AS geom
+      FROM road_segments rs
+      LEFT JOIN roads r ON rs.road_id = r.id
+      CROSS JOIN bounds b
+      WHERE rs.is_active = true
+        AND (rs.usage_category IS NULL OR rs.usage_category IN ('public_motor', 'restricted_motor'))
+        AND rs.geom && b.geom_4326
+        AND ST_Intersects(rs.geom, b.geom_4326)
+        ${zoomFilter}
+    )
+    SELECT ST_AsMVT(tile_features, 'roads', 4096, 'geom') AS mvt
+    FROM tile_features
+    WHERE geom IS NOT NULL
+  `;
+
+  return withTransaction(async (client) => {
+    await client.query("SET TRANSACTION READ ONLY; SET LOCAL statement_timeout = '5000'; SET LOCAL lock_timeout = '2000'");
+    const res = await client.query(sql, [z, x, y]);
+    const mvt = res.rows[0]?.mvt;
+    return Buffer.isBuffer(mvt) ? mvt : Buffer.alloc(0);
+  });
 }
 
 export async function GET(req: NextRequest, context: RouteContext) {
@@ -104,31 +177,34 @@ export async function GET(req: NextRequest, context: RouteContext) {
     });
   }
 
-  // 2a. Check if pre-rendered tile file exists on disk
+  // Lookup Priority 1: Check public/tiles/roads/${city}/${version}/${zInt}/${xInt}/${yInt}.mvt
   try {
-    const diskPath = path.resolve(
+    const publicDiskPath = path.resolve(
       process.cwd(),
-      'output',
+      'public',
       'tiles',
+      'roads',
       normalizedCity,
+      version,
       String(zInt),
       String(xInt),
       `${yInt}.mvt`
     );
 
-    if (fs.existsSync(diskPath)) {
-      const diskBuffer = fs.readFileSync(diskPath);
-      if (!diskBuffer || diskBuffer.length === 0) {
+    if (fs.existsSync(publicDiskPath)) {
+      const publicBuffer = fs.readFileSync(publicDiskPath);
+      if (!publicBuffer || publicBuffer.length === 0) {
         return new Response(null, {
           status: 204,
           headers: {
             'Cache-Control': 'public, max-age=31536000, immutable',
+            'ETag': etag,
             'Access-Control-Allow-Origin': '*',
           },
         });
       }
 
-      return new Response(diskBuffer, {
+      return new Response(new Uint8Array(publicBuffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.mapbox-vector-tile',
@@ -139,10 +215,49 @@ export async function GET(req: NextRequest, context: RouteContext) {
       });
     }
   } catch (err) {
-    // Disk read error or not present in local filesystem; proceed to R2 / PostGIS
+    // Proceed to Priority 2
   }
 
-  // 2b. Check Cloudflare R2 bucket: PUBLIC_DERIVATIVES_BUCKET
+  // Lookup Priority 2: Check output/tiles/${city}/${zInt}/${xInt}/${yInt}.mvt
+  try {
+    const outputDiskPath = path.resolve(
+      process.cwd(),
+      'output',
+      'tiles',
+      normalizedCity,
+      String(zInt),
+      String(xInt),
+      `${yInt}.mvt`
+    );
+
+    if (fs.existsSync(outputDiskPath)) {
+      const diskBuffer = fs.readFileSync(outputDiskPath);
+      if (!diskBuffer || diskBuffer.length === 0) {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            'ETag': etag,
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
+      return new Response(new Uint8Array(diskBuffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/vnd.mapbox-vector-tile',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'ETag': etag,
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+  } catch (err) {
+    // Proceed to Priority 3
+  }
+
+  // Lookup Priority 3: Check Cloudflare R2 bucket (PUBLIC_DERIVATIVES_BUCKET)
   try {
     const r2Bucket = await getR2Bucket();
     if (r2Bucket) {
@@ -156,12 +271,13 @@ export async function GET(req: NextRequest, context: RouteContext) {
             status: 204,
             headers: {
               'Cache-Control': 'public, max-age=31536000, immutable',
+              'ETag': etag,
               'Access-Control-Allow-Origin': '*',
             },
           });
         }
 
-        return new Response(r2Buffer, {
+        return new Response(new Uint8Array(r2Buffer), {
           status: 200,
           headers: {
             'Content-Type': 'application/vnd.mapbox-vector-tile',
@@ -173,54 +289,41 @@ export async function GET(req: NextRequest, context: RouteContext) {
       }
     }
   } catch (err) {
-    // R2 lookup failed; proceed to PostGIS fallback
+    // Proceed to Priority 4
   }
 
-  // 2c. Fallback for development/on-demand: Query PostGIS dynamically using ST_AsMVT
-  try {
-    const tileSql = `
-      WITH bounds AS (
-        SELECT ST_TileEnvelope($1, $2, $3) AS geom_3857,
-               ST_Transform(ST_TileEnvelope($1, $2, $3), 4326) AS geom_4326
-      ),
-      mvtdata AS (
-        SELECT
-          rs.id,
-          rs.road_id,
-          r.name,
-          r.ref,
-          r.road_class,
-          rs.chainage_from,
-          rs.chainage_to,
-          ST_AsMVTGeom(
-            ST_Transform(rs.geom, 3857),
-            b.geom_3857,
-            4096,
-            64,
-            true
-          ) AS geom
-        FROM bounds b
-        JOIN road_segments rs ON rs.is_active = true AND rs.geom && b.geom_4326
-        LEFT JOIN roads r ON rs.road_id = r.id
-        WHERE ST_Intersects(rs.geom, b.geom_4326)
-      )
-      SELECT ST_AsMVT(mvtdata, 'roads', 4096, 'geom') AS mvt FROM mvtdata;
-    `;
+  // Lookup Priority 4: PostGIS dynamic fallback using buildRoadTile with zoom hierarchy & 5s timeout
+  // Only attempt dynamic PostGIS generation for indexed cities (bengaluru).
+  // NEVER fall back to Bengaluru or invent geometry for an unindexed city!
+  const cityEntry = getCityById(normalizedCity);
+  const isIndexedCity = normalizedCity === 'bengaluru' || (cityEntry && cityEntry.capabilities.road_coverage === 'indexed');
 
-    const res = await query(tileSql, [zInt, xInt, yInt]);
-    const mvt = res.rows[0]?.mvt;
+  if (!isIndexedCity) {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'ETag': etag,
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
+
+  try {
+    const mvt = await buildRoadTile(zInt, xInt, yInt);
 
     if (!mvt || mvt.length === 0) {
       return new Response(null, {
         status: 204,
         headers: {
           'Cache-Control': 'public, max-age=31536000, immutable',
+          'ETag': etag,
           'Access-Control-Allow-Origin': '*',
         },
       });
     }
 
-    return new Response(mvt, {
+    return new Response(new Uint8Array(mvt), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.mapbox-vector-tile',

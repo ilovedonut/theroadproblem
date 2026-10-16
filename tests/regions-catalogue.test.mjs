@@ -164,7 +164,9 @@ test('4. API GET /api/v1/regions/[id]/manifest: Bengaluru manifest matches speci
   assert.equal(manifest.schema_version, '1.0.0');
   assert.equal(manifest.region_id, 'bengaluru');
   assert.equal(manifest.publication_id, 'pub_bengaluru_20261016_v1');
-  assert.equal(manifest.active_version, '2026.10.16');
+  assert.equal(manifest.active_version, '20261016');
+  assert.equal(manifest.tile_template, '/api/v1/roads/bengaluru/20261016/{z}/{x}/{y}.mvt');
+  assert.equal(manifest.tileset_url, '/api/v1/roads/bengaluru/20261016/{z}/{x}/{y}.mvt');
   assert.equal(manifest.format, 'mvt');
 
   // Footprint
@@ -201,7 +203,10 @@ test('5. API GET /api/v1/regions/[id]/manifest: Chennai, Mumbai, Delhi, and Noid
   assert.equal(chennaiManifest.region_id, 'chennai');
   assert.equal(chennaiManifest.capabilities.jurisdiction, 'verified');
   assert.equal(chennaiManifest.capabilities.road_coverage, 'pending');
+  assert.equal(chennaiManifest.status, 'pending');
+  assert.equal(chennaiManifest.tileset_url, null);
   assert.equal(chennaiManifest.road_release.status, 'pending');
+  assert.equal(chennaiManifest.road_release.tileset_url, null);
   const gccScheme = chennaiManifest.jurisdiction_schemes.find((s) => s.scheme_id === 'gcc_administrative_2022');
   assert.ok(gccScheme);
   assert.equal(gccScheme.units_count, 200);
