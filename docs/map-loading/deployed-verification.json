@@ -1,0 +1,66 @@
+{
+  "base": "https://theroadproblem.quest",
+  "checked_at": "2026-10-16T16:23:29.265Z",
+  "cases": [
+    {
+      "name": "requested-area",
+      "roads": 358,
+      "pages": [
+        {
+          "ms": 1593,
+          "roads": 358
+        }
+      ],
+      "road_ms": 1595,
+      "summary_ms": 743,
+      "summary_roads": 358
+    },
+    {
+      "name": "city-view",
+      "roads": 5998,
+      "pages": [
+        {
+          "ms": 10949,
+          "roads": 2500
+        },
+        {
+          "ms": 2661,
+          "roads": 2500
+        },
+        {
+          "ms": 14015,
+          "roads": 998
+        }
+      ],
+      "road_ms": 27628,
+      "summary_ms": 9444,
+      "summary_roads": 144578
+    },
+    {
+      "name": "fitted-city-viewport",
+      "roads": 7513,
+      "pages": [
+        {
+          "ms": 10046,
+          "roads": 2500
+        },
+        {
+          "ms": 2255,
+          "roads": 2500
+        },
+        {
+          "ms": 2199,
+          "roads": 2500
+        },
+        {
+          "ms": 1294,
+          "roads": 13
+        }
+      ],
+      "road_ms": 15795,
+      "summary_ms": 11264,
+      "summary_roads": 191503
+    }
+  ],
+  "passed": true
+}

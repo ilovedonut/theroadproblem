@@ -14,5 +14,5 @@ Scope: repair connection starvation caused by expensive city-view map queries wh
   EXPECT: Generating static pages
   CWD: ../..
   EVIDENCE: automatic-evidence=v1; definition-sha256=d813e15a0f156714ca07a24e96ccbede7f3949d554a5c0f517f628347f886c46; exit=0; EXPECT=matched; output-sha256=bf691809940e01b6c35698bedf69b1534d07e04bda1361f6fdacc3ad8b42ccdd; output-bytes=3288; shell=C:\WINDOWS\system32\cmd.exe; cwd=C:\Users\shiva\Desktop\the road problem; path=990094cb57c9/40 entries
-- [ ] G3: The deployed close-up and city-view API and browser finish loading without connection errors.
-  EVIDENCE: pending; compare read-only query timings and observe the deployed map.
+- [x] G3: The deployed close-up and city-view API and browser finish loading without connection errors.
+  EVIDENCE: Deployed 0260c22; deployed-verification.json confirms exact road-ID equality for 358, 5998 and 7513 roads; browser-verification.json confirms close-up and fitted city completion, all API responses 200, one initial road request, and summary starting after road pagination. Screenshots: output/playwright/map-loading-close-up-final.png and output/playwright/map-loading-city-final.png.

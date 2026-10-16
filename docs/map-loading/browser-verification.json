@@ -1,0 +1,87 @@
+{
+  "passed": true,
+  "checked_at": "2026-10-16T16:23:16.631Z",
+  "results": [
+    {
+      "name": "close-up",
+      "ms": 7030,
+      "screenshot": "output/playwright/map-loading-close-up-final.png",
+      "requests": [
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&bbox=77.59515636030892%2C12.964507635689195%2C77.60984363969578%2C12.973060153092952&zoom=16.42&_t=1792167755890",
+          "ms": 2642
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/summary?bbox=77.59515636030892,12.964507635689195,77.60984363969578,12.973060153092952",
+          "ms": 5672
+        }
+      ],
+      "responses": [
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&bbox=77.59515636030892%2C12.964507635689195%2C77.60984363969578%2C12.973060153092952&zoom=16.42&_t=1792167755890",
+          "ms": 5300,
+          "status": 200
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/summary?bbox=77.59515636030892,12.964507635689195,77.60984363969578,12.973060153092952",
+          "ms": 6778,
+          "status": 200
+        }
+      ]
+    },
+    {
+      "name": "city",
+      "ms": 36186,
+      "screenshot": "output/playwright/map-loading-city-final.png",
+      "requests": [
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&limit=2500&bbox=77.10973151424355%2C12.785095942028317%2C78.10452969152993%2C13.364246671374257&zoom=10.35&_t=1792167762290",
+          "ms": 1856
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&limit=2500&bbox=77.10973151424355%2C12.785095942028317%2C78.10452969152993%2C13.364246671374257&zoom=10.35&_t=1792167762290&cursor=558027b8-7a69-4623-9c31-87f8238037b6",
+          "ms": 13718
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&limit=2500&bbox=77.10973151424355%2C12.785095942028317%2C78.10452969152993%2C13.364246671374257&zoom=10.35&_t=1792167762290&cursor=a8ad6c89-9022-43e4-9d8d-7ea21a55fc69",
+          "ms": 16698
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&limit=2500&bbox=77.10973151424355%2C12.785095942028317%2C78.10452969152993%2C13.364246671374257&zoom=10.35&_t=1792167762290&cursor=ff748173-a101-47c7-a8e0-b0c1688bacc0",
+          "ms": 19229
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/summary?bbox=77.10973151424355,12.785095942028317,78.10452969152993,13.364246671374257",
+          "ms": 20736
+        }
+      ],
+      "responses": [
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&limit=2500&bbox=77.10973151424355%2C12.785095942028317%2C78.10452969152993%2C13.364246671374257&zoom=10.35&_t=1792167762290",
+          "ms": 13678,
+          "status": 200
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&limit=2500&bbox=77.10973151424355%2C12.785095942028317%2C78.10452969152993%2C13.364246671374257&zoom=10.35&_t=1792167762290&cursor=558027b8-7a69-4623-9c31-87f8238037b6",
+          "ms": 16655,
+          "status": 200
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&limit=2500&bbox=77.10973151424355%2C12.785095942028317%2C78.10452969152993%2C13.364246671374257&zoom=10.35&_t=1792167762290&cursor=a8ad6c89-9022-43e4-9d8d-7ea21a55fc69",
+          "ms": 19195,
+          "status": 200
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/deck?include_index_stats=false&limit=2500&bbox=77.10973151424355%2C12.785095942028317%2C78.10452969152993%2C13.364246671374257&zoom=10.35&_t=1792167762290&cursor=ff748173-a101-47c7-a8e0-b0c1688bacc0",
+          "ms": 20373,
+          "status": 200
+        },
+        {
+          "url": "https://theroadproblem.quest/api/v1/map/summary?bbox=77.10973151424355,12.785095942028317,78.10452969152993,13.364246671374257",
+          "ms": 36023,
+          "status": 200
+        }
+      ]
+    }
+  ]
+}
