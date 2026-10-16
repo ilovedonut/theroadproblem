@@ -65,6 +65,7 @@ test('persisted review deduplication, metre units and automatic-link revision pr
 test('fast city pages preserve fallback classes, selected roads and exact clipped area lengths',async()=>{
   const client=await pool.connect();
   const ids=Array.from({length:5},()=>crypto.randomUUID());
+  const workId=crypto.randomUUID(),incidentId=crypto.randomUUID();
   const bbox='77.800,12.800,77.810,12.810';
   try {
     await client.query('BEGIN');
@@ -78,6 +79,13 @@ test('fast city pages preserve fallback classes, selected roads and exact clippe
         VALUES($1,'Karnataka','Bengaluru Urban',0,1,1000,ST_GeomFromText($2,4326),TRUE,$3)`,
         [id,line,index===0||index===3?'residential':index===1?null:'primary']);
     }
+    await client.query(`INSERT INTO works(id,package_name,authority_name,work_type,official_status)
+      VALUES($1,'Map evidence fixture','Map fixture authority','maintenance','unknown')`,[workId]);
+    await client.query(`INSERT INTO work_segments(work_id,road_segment_id)
+      SELECT $1,id FROM road_segments WHERE road_id=$2`,[workId,ids[2]]);
+    await client.query(`INSERT INTO incidents(id,road_segment_id,category,first_observed_at,last_observed_at,centroid)
+      SELECT $1,id,'pothole',NOW(),NOW(),ST_SetSRID(ST_MakePoint(77.801,12.801),4326)
+      FROM road_segments WHERE road_id=$2`,[incidentId,ids[2]]);
     await client.query('COMMIT');
     const response=await deck(new Request(`http://test/api/v1/map/deck?bbox=${bbox}&zoom=10&include_index_stats=false&selected_road_id=${ids[3]}`));
     assert.equal(response.status,200);
@@ -87,6 +95,12 @@ test('fast city pages preserve fallback classes, selected roads and exact clippe
     const found=new Set(data.roads.map(r=>r.id));
     assert.equal(found.has(ids[0]),false,'Minor unselected road is hidden at city zoom');
     for(const id of ids.slice(1))assert.ok(found.has(id),'Fallback, official, selected and crossing roads remain visible');
+    const evidenceRoad=data.roads.find(r=>r.id===ids[2]);
+    assert.equal(evidenceRoad.works.length,1);
+    assert.equal(evidenceRoad.works[0].work_id,workId);
+    assert.equal(evidenceRoad.incidents.length,1);
+    assert.equal(evidenceRoad.incidents[0].incident_id,incidentId);
+    assert.equal(evidenceRoad.segments.length,1,'Evidence joins must not multiply geometry');
     const reference=(await client.query(`SELECT SUM(ST_Length(ST_CollectionExtract(ST_Intersection(geom,
       ST_MakeEnvelope(77.800,12.800,77.810,12.810,4326)),2)::geography))/1000 AS km,
       count(distinct road_id) AS roads FROM road_segments WHERE is_active
@@ -101,6 +115,9 @@ test('fast city pages preserve fallback classes, selected roads and exact clippe
     assert.equal((await client.query('SHOW statement_timeout')).rows[0].statement_timeout,'0','Query budget must not leak into the pool');
   } finally {
     await client.query('ROLLBACK');
+    await client.query('DELETE FROM incidents WHERE id=$1',[incidentId]);
+    await client.query('DELETE FROM work_segments WHERE work_id=$1',[workId]);
+    await client.query('DELETE FROM works WHERE id=$1',[workId]);
     await client.query('DELETE FROM road_segments WHERE road_id=ANY($1::uuid[])',[ids]);
     await client.query('DELETE FROM roads WHERE id=ANY($1::uuid[])',[ids]);
     client.release();

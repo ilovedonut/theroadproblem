@@ -6,6 +6,7 @@ const base=process.env.MAP_BASE_URL||'https://theroadproblem.quest';
 const cases=[
   {name:'requested-area',bbox:[77.59766954096631,12.963176237505582,77.6073304590368,12.975533679276158],zoom:15.29,limit:600},
   {name:'city-view',bbox:[77.47590248086419,12.817922298552277,77.73835872490554,13.153546086110113],zoom:10.53,limit:2500},
+  {name:'fitted-city-viewport',bbox:[77.10973151424355,12.785095942028317,78.10452969152993,13.364246671374257],zoom:10.35,limit:2500},
 ];
 const evidence={base,checked_at:new Date().toISOString(),cases:[]};
 try {

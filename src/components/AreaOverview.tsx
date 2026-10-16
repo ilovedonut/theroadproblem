@@ -2,12 +2,12 @@
 import { useEffect,useState } from 'react';
 import type { MapBounds } from '@/lib/map-bounds';
 const money=(v:unknown)=>v==null?'Not available':new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(Number(v));
-export function AreaOverview({bounds}:{bounds:MapBounds|null}) {
+export function AreaOverview({bounds,enabled=true}:{bounds:MapBounds|null;enabled?:boolean}) {
   const [data,setData]=useState<any>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
   const key=bounds?.join(',');
-  useEffect(()=>{setData(null);setError('');if(!key)return;const c=new AbortController();const timer=setTimeout(()=>{fetch(`/api/v1/map/summary?bbox=${key}`,{signal:c.signal}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error);setData(d)}).catch(e=>{if(!c.signal.aborted)setError(e.message)})},350);return()=>{clearTimeout(timer);c.abort()}},[key,retry]);
+  useEffect(()=>{setData(null);setError('');if(!key||!enabled)return;const c=new AbortController();const timer=setTimeout(()=>{fetch(`/api/v1/map/summary?bbox=${key}`,{signal:c.signal}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error);setData(d)}).catch(e=>{if(!c.signal.aborted)setError(e.message)})},350);return()=>{clearTimeout(timer);c.abort()}},[key,retry,enabled]);
   if(error)return <div role="alert" className="p-5 text-sm">{error}<button className="block mt-3 underline text-information" onClick={()=>setRetry(n=>n+1)}>Retry area summary</button></div>;
-  if(!data)return <p role="status" className="p-5 text-sm text-muted">Updating this map area…</p>;
+  if(!data)return <p role="status" className="p-5 text-sm text-muted">{enabled?'Updating this map area…':'Area totals will update after roads load.'}</p>;
   const roads=Number(data.roads||0),segments=Number(data.active_physical_segments||data.roads||0),ways=Number(data.unique_source_ways||segments),issues=Number(data.open_issues||0);
   const motorKm=Number(data.motor_road_km??data.road_km??0);
   const coverageLabel=data.coverage_state==='outside_supported_area'?'Outside supported boundary (Bengaluru Urban)':data.coverage_state==='inside_area_no_road_match'?'Inside boundary · No indexed road in view':'Inside indexed coverage (Bengaluru Urban District)';

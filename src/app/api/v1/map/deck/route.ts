@@ -85,7 +85,9 @@ export async function GET(req: NextRequest) {
       ${majorClassesOnly ? `eligible_segment_ids AS MATERIALIZED (
         SELECT id FROM road_segments WHERE is_active AND road_class IN (${majorClasses})
         UNION SELECT rs.id FROM roads r JOIN road_segments rs ON rs.road_id=r.id
-          WHERE r.is_official_corridor OR (rs.road_class IS NULL AND r.road_class IN (${majorClasses}))
+          WHERE r.is_official_corridor
+        UNION SELECT rs.id FROM road_segments rs JOIN roads r ON r.id=rs.road_id
+          WHERE rs.is_active AND rs.road_class IS NULL AND r.road_class IN (${majorClasses})
         UNION SELECT road_segment_id FROM active_works_segs
         UNION SELECT road_segment_id FROM active_incidents_segs
         UNION SELECT id FROM road_segments WHERE road_id=$${selectedIdx}::uuid
@@ -105,8 +107,8 @@ export async function GET(req: NextRequest) {
           rs.geom,
           (aws.road_segment_id IS NOT NULL) AS has_work,
           (ais.road_segment_id IS NOT NULL) AS has_incident
-        FROM road_segments rs
-        ${majorClassesOnly ? 'JOIN eligible_segment_ids eligible ON eligible.id=rs.id' : ''}
+        ${majorClassesOnly ? `FROM eligible_segment_ids eligible
+        CROSS JOIN LATERAL (SELECT * FROM road_segments WHERE id=eligible.id OFFSET 0) rs` : 'FROM road_segments rs'}
         JOIN roads r ON r.id = rs.road_id
         LEFT JOIN active_works_segs aws ON aws.road_segment_id = rs.id
         LEFT JOIN active_incidents_segs ais ON ais.road_segment_id = rs.id
@@ -170,6 +172,48 @@ export async function GET(req: NextRequest) {
         ) ORDER BY vs.chainage_from ASC NULLS LAST, vs.id ASC) AS segments
         FROM visible_segments vs JOIN prioritized_roads pr ON pr.id=vs.road_id
         GROUP BY vs.road_id
+      ),
+      page_works AS (
+          SELECT rs_w.road_id, json_agg(DISTINCT jsonb_build_object(
+            'work_id', w.id,
+            'package_name', w.package_name,
+            'authority_name', w.authority_name,
+            'tender_id', w.tender_id,
+            'contract_id', w.contract_id,
+            'official_status', w.official_status,
+            'contract_value_inr', w.contract_value_inr,
+            'contractor_name', c.legal_name,
+            'cin', c.cin,
+            'gstin', c.gstin,
+            'start_date', w.start_date,
+            'target_completion_date', w.target_completion_date,
+            'actual_completion_date', w.actual_completion_date,
+            'defect_liability_end_date', w.defect_liability_end_date
+          )) AS works
+          FROM road_segments rs_w
+          JOIN work_segments ws ON ws.road_segment_id = rs_w.id
+          JOIN works w ON w.id = ws.work_id
+          LEFT JOIN work_contractors wc ON wc.work_id = w.id
+          LEFT JOIN contractors c ON c.id = wc.contractor_id
+          WHERE rs_w.is_active = TRUE AND rs_w.road_id IN (SELECT id FROM prioritized_roads)
+          GROUP BY rs_w.road_id
+      ),
+      page_incidents AS (
+          SELECT rs_i.road_id, json_agg(DISTINCT jsonb_build_object(
+            'incident_id', i.id,
+            'category', i.category,
+            'lifecycle_status', i.lifecycle_status,
+            'verification_state', i.verification_state,
+            'last_observed_at', i.last_observed_at,
+            'lat', ST_Y(i.centroid),
+            'lon', ST_X(i.centroid)
+          )) AS incidents
+          FROM road_segments rs_i
+          JOIN incidents i ON i.road_segment_id = rs_i.id
+          WHERE rs_i.road_id IN (SELECT id FROM prioritized_roads)
+            AND rs_i.is_active = TRUE
+            AND i.lifecycle_status = 'active'
+          GROUP BY rs_i.road_id
       )
       SELECT
         pr.id,
@@ -187,48 +231,12 @@ export async function GET(req: NextRequest) {
         pr.active_segments_count,
         pr.unique_ways_count,
         COALESCE(ps.segments, '[]'::json) AS segments,
-        COALESCE((
-          SELECT json_agg(DISTINCT jsonb_build_object(
-            'work_id', w.id,
-            'package_name', w.package_name,
-            'authority_name', w.authority_name,
-            'tender_id', w.tender_id,
-            'contract_id', w.contract_id,
-            'official_status', w.official_status,
-            'contract_value_inr', w.contract_value_inr,
-            'contractor_name', c.legal_name,
-            'cin', c.cin,
-            'gstin', c.gstin,
-            'start_date', w.start_date,
-            'target_completion_date', w.target_completion_date,
-            'actual_completion_date', w.actual_completion_date,
-            'defect_liability_end_date', w.defect_liability_end_date
-          ))
-          FROM road_segments rs_w
-          JOIN work_segments ws ON ws.road_segment_id = rs_w.id
-          JOIN works w ON w.id = ws.work_id
-          LEFT JOIN work_contractors wc ON wc.work_id = w.id
-          LEFT JOIN contractors c ON c.id = wc.contractor_id
-          WHERE rs_w.road_id = pr.id AND rs_w.is_active = TRUE
-        ), '[]'::json) AS works,
-        COALESCE((
-          SELECT json_agg(DISTINCT jsonb_build_object(
-            'incident_id', i.id,
-            'category', i.category,
-            'lifecycle_status', i.lifecycle_status,
-            'verification_state', i.verification_state,
-            'last_observed_at', i.last_observed_at,
-            'lat', ST_Y(i.centroid),
-            'lon', ST_X(i.centroid)
-          ))
-          FROM road_segments rs_i
-          JOIN incidents i ON i.road_segment_id = rs_i.id
-          WHERE rs_i.road_id = pr.id
-            AND rs_i.is_active = TRUE
-            AND i.lifecycle_status = 'active'
-        ), '[]'::json) AS incidents
+        COALESCE(pw.works, '[]'::json) AS works,
+        COALESCE(pi.incidents, '[]'::json) AS incidents
       FROM prioritized_roads pr
       LEFT JOIN page_segments ps ON ps.road_id=pr.id
+      LEFT JOIN page_works pw ON pw.road_id=pr.id
+      LEFT JOIN page_incidents pi ON pi.road_id=pr.id
       ORDER BY pr.id ASC;
     `;
 

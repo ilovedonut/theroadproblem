@@ -710,7 +710,7 @@ export default function GeospatialDeckPage() {
               )}
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto"><AreaOverview bounds={mapBounds}/></div>
+            <div className="flex-1 overflow-y-auto"><AreaOverview bounds={mapBounds} enabled={!loading}/></div>
           )}
 
         </div>

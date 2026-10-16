@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const result = await withTransaction(async client => {
       await client.query("SET TRANSACTION READ ONLY; SET LOCAL statement_timeout = '20000'; SET LOCAL lock_timeout = '2000'");
       return client.query(`
-      WITH area AS (
+      WITH area AS NOT MATERIALIZED (
         SELECT CASE WHEN $1::float8 < $3::float8
           THEN ST_MakeEnvelope($1,$2,$3,$4,4326)
           ELSE ST_Union(ST_MakeEnvelope($1,$2,180,$4,4326), ST_MakeEnvelope(-180,$2,$3,$4,4326)) END AS geom
@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
             ELSE ST_CollectionExtract(ST_Intersection(rs.geom,a.geom),2)
           END)::geography) AS visible_length
         FROM road_segments rs CROSS JOIN area a
-        WHERE rs.is_active AND ST_Intersects(rs.geom,a.geom)
+        WHERE rs.is_active AND rs.geom && a.geom
+          AND CASE WHEN $1::float8 < $3::float8 AND rs.geom @ a.geom
+            THEN TRUE ELSE ST_Intersects(rs.geom,a.geom) END
       ), segments AS MATERIALIZED (
         SELECT * FROM all_visible_segments
         WHERE usage_category IN ('public_motor', 'restricted_motor')
