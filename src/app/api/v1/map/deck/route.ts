@@ -66,9 +66,6 @@ export async function GET(req: NextRequest) {
     params.push(simplifyTolerance);
     const tolIdx = params.length;
 
-    params.push(majorClassesOnly);
-    const majorOnlyIdx = params.length;
-
     params.push(limit + 1);
     const limitIdx = params.length;
     params.push(cursor || null);
@@ -104,32 +101,14 @@ export async function GET(req: NextRequest) {
           COALESCE(rs.usage_category, 'public_motor') AS usage_category,
           COALESCE(rs.access_status, 'unknown') AS access_status,
           rs.road_class,
-          rs.geom,
-          (aws.road_segment_id IS NOT NULL) AS has_work,
-          (ais.road_segment_id IS NOT NULL) AS has_incident
-        ${majorClassesOnly ? `FROM eligible_segment_ids eligible
-        CROSS JOIN LATERAL (SELECT * FROM road_segments WHERE id=eligible.id OFFSET 0) rs` : 'FROM road_segments rs'}
-        JOIN roads r ON r.id = rs.road_id
-        LEFT JOIN active_works_segs aws ON aws.road_segment_id = rs.id
-        LEFT JOIN active_incidents_segs ais ON ais.road_segment_id = rs.id
+          rs.geom
+        FROM road_segments rs
+        ${majorClassesOnly ? 'JOIN eligible_segment_ids eligible ON eligible.id=rs.id' : ''}
         WHERE rs.is_active = TRUE
-          AND r.name NOT LIKE 'Test %'
           ${bounds && !majorClassesOnly ? `AND (rs.geom && ST_MakeEnvelope($1,$2,$3,$4,4326) OR ($${selectedIdx}::uuid IS NOT NULL AND rs.road_id=$${selectedIdx}::uuid))` : ''}
           AND ($${cursorIdx}::uuid IS NULL OR rs.road_id > $${cursorIdx}::uuid)
           AND (rs.usage_category IS NULL OR rs.usage_category IN ('public_motor', 'restricted_motor'))
-          AND (
-            ((
-              NOT $${majorOnlyIdx}::boolean
-              OR COALESCE(rs.road_class, r.road_class) IN (
-                'motorway', 'trunk', 'primary', 'secondary', 'tertiary',
-                'motorway_link', 'trunk_link', 'primary_link', 'secondary_link'
-              )
-              OR COALESCE(r.is_official_corridor, FALSE) = TRUE
-              OR aws.road_segment_id IS NOT NULL
-              OR ais.road_segment_id IS NOT NULL
-            ))
-            OR ($${selectedIdx}::uuid IS NOT NULL AND rs.road_id = $${selectedIdx}::uuid)
-          )
+
       ),
       visible_segments AS MATERIALIZED (
         SELECT * FROM candidate_segments
@@ -152,12 +131,11 @@ export async function GET(req: NextRequest) {
           COALESCE(r.is_official_corridor, FALSE) AS is_official_corridor,
           SUM(vs.within_boundary_length_m) AS total_length_m,
           COUNT(vs.id) AS active_segments_count,
-          COUNT(DISTINCT vs.osm_way_id) AS unique_ways_count,
-          BOOL_OR(vs.has_incident) AS has_incident,
-          BOOL_OR(vs.has_work) AS has_work
+          COUNT(DISTINCT vs.osm_way_id) AS unique_ways_count
         FROM roads r
         JOIN visible_segments vs ON vs.road_id = r.id
-        WHERE ($${cursorIdx}::uuid IS NULL OR r.id > $${cursorIdx}::uuid)
+        WHERE r.name NOT LIKE 'Test %'
+          AND ($${cursorIdx}::uuid IS NULL OR r.id > $${cursorIdx}::uuid)
         GROUP BY r.id
         ORDER BY r.id ASC
         LIMIT $${limitIdx}
@@ -173,7 +151,7 @@ export async function GET(req: NextRequest) {
         FROM visible_segments vs JOIN prioritized_roads pr ON pr.id=vs.road_id
         GROUP BY vs.road_id
       ),
-      page_works AS (
+      page_works AS MATERIALIZED (
           SELECT rs_w.road_id, json_agg(DISTINCT jsonb_build_object(
             'work_id', w.id,
             'package_name', w.package_name,
@@ -195,10 +173,10 @@ export async function GET(req: NextRequest) {
           JOIN works w ON w.id = ws.work_id
           LEFT JOIN work_contractors wc ON wc.work_id = w.id
           LEFT JOIN contractors c ON c.id = wc.contractor_id
-          WHERE rs_w.is_active = TRUE AND rs_w.road_id IN (SELECT id FROM prioritized_roads)
+          WHERE rs_w.is_active = TRUE
           GROUP BY rs_w.road_id
       ),
-      page_incidents AS (
+      page_incidents AS MATERIALIZED (
           SELECT rs_i.road_id, json_agg(DISTINCT jsonb_build_object(
             'incident_id', i.id,
             'category', i.category,
@@ -210,8 +188,7 @@ export async function GET(req: NextRequest) {
           )) AS incidents
           FROM road_segments rs_i
           JOIN incidents i ON i.road_segment_id = rs_i.id
-          WHERE rs_i.road_id IN (SELECT id FROM prioritized_roads)
-            AND rs_i.is_active = TRUE
+          WHERE rs_i.is_active = TRUE
             AND i.lifecycle_status = 'active'
           GROUP BY rs_i.road_id
       )
@@ -243,7 +220,7 @@ export async function GET(req: NextRequest) {
     const roadsRes = await withTransaction(async client => {
       // Abandoned viewport requests must not occupy an origin connection for
       // minutes. LOCAL settings cannot leak into another pooled request.
-      await client.query("SET TRANSACTION READ ONLY; SET LOCAL statement_timeout = '20000'; SET LOCAL lock_timeout = '2000'");
+      await client.query("SET TRANSACTION READ ONLY; SET LOCAL statement_timeout = '30000'; SET LOCAL lock_timeout = '2000'");
       return client.query(roadsQuery, params);
     });
     const returnedRoads = roadsRes.rows.slice(0, limit);
