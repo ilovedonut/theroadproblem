@@ -2,20 +2,25 @@
   "name": "bengaluru-roads",
   "description": "PostGIS Mapbox Vector Tiles for Bengaluru road network",
   "version": "1.0.0",
+  "active_version": "20261016",
+  "city": "bengaluru",
   "format": "mvt",
   "bounds": [
-    77.58544921875,
-    12.961735843534296,
-    77.607421875,
-    12.983147716796571
+    77.4759,
+    12.8179,
+    77.7384,
+    13.1535
   ],
   "center": [
-    77.596435546875,
-    12.972441780165433,
-    14
+    77.60714999999999,
+    12.9857,
+    12
   ],
-  "minzoom": 14,
+  "minzoom": 10,
   "maxzoom": 14,
+  "min_zoom": 10,
+  "max_zoom": 14,
+  "tile_template": "/tiles/roads/bengaluru/20261016/{z}/{x}/{y}.mvt",
   "attribution": "© OpenStreetMap contributors, BBMP, KRDCL, NHAI",
   "layers": [
     {
@@ -44,10 +49,10 @@
     }
   ],
   "tile_stats": {
-    "total_tiles": 5,
-    "written_tiles": 5,
+    "total_tiles": 269,
+    "written_tiles": 269,
     "skipped_empty_tiles": 0,
-    "total_bytes": 491310
+    "total_bytes": 15473800
   },
-  "last_generated_at": "2026-10-16T17:50:00.318Z"
+  "last_generated_at": "2026-10-16T17:57:09.241Z"
 }
