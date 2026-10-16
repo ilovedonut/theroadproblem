@@ -47,7 +47,7 @@ async function getR2Bucket(): Promise<any | null> {
  * - Zoom 12-13: Secondary, tertiary, and collectors.
  * - Zoom 14+: All active motor carriageways.
  */
-export function getZoomHierarchyFilter(z: number): string {
+function getZoomHierarchyFilter(z: number): string {
   if (z <= 11) {
     const majorClasses =
       "'motorway','trunk','primary','secondary','tertiary','motorway_link','trunk_link','primary_link','secondary_link'";
@@ -66,7 +66,7 @@ export function getZoomHierarchyFilter(z: number): string {
  * Generate a single MVT tile directly using PostGIS native functions:
  * ST_TileEnvelope and ST_AsMVT with ST_AsMVTGeom, bounded with a 5-second statement timeout.
  */
-export async function buildRoadTile(z: number, x: number, y: number): Promise<Buffer> {
+async function buildRoadTile(z: number, x: number, y: number): Promise<Buffer> {
   const zoomFilter = getZoomHierarchyFilter(z);
   const sql = `
     WITH bounds AS (
