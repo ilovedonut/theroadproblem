@@ -11,7 +11,7 @@ import { GeospatialMap, RoadFeature, MultiSourceSignal } from '@/components/Geos
 import { CitySelector, CITY_DEFAULT_SCHEMES } from '@/components/CitySelector';
 import { AreaOverview } from '@/components/AreaOverview';
 import type { MapBounds } from '@/lib/map-bounds';
-import { loadMapDeckPages } from '@/lib/map-deck-loader';
+import { loadRoadDetail } from '@/lib/road-detail-loader';
 import { getCityById, resolveCityId } from '@/lib/city-catalogue';
 
 export default function GeospatialDeckPage() {
@@ -36,8 +36,6 @@ export default function GeospatialDeckPage() {
   const [activeDossierTab, setActiveDossierTab] = useState<'overview' | 'contractor' | 'timeline'>('overview');
   const [copied, setCopied] = useState(false);
 
-  const deckAbortRef = useRef<AbortController | null>(null);
-  const deckReqIdRef = useRef(0);
   const selectedRoadIdRef = useRef<string | null>(null);
   selectedRoadIdRef.current = selectedRoad?.id || null;
 
@@ -130,7 +128,17 @@ export default function GeospatialDeckPage() {
     return () => controller.abort();
   }, [selectedCityId, selectedScheme]);
 
+  const telemetryAbortRef = useRef<AbortController | null>(null);
+  const telemetryReqIdRef = useRef(0);
+  const selectedRoadAbortRef = useRef<AbortController | null>(null);
+
   const handleSelectCity = useCallback((cityId: string | null) => {
+    // Invalidate active telemetry fetch immediately on city switch
+    if (telemetryAbortRef.current) {
+      telemetryAbortRef.current.abort();
+    }
+    setLoading(false);
+    setSignals([]);
     setSelectedCityId(cityId);
     setSelectedJurisdictionUnit(null);
     setSelectedRoad(null);
@@ -153,55 +161,82 @@ export default function GeospatialDeckPage() {
     setSelectedJurisdictionUnit(unitId);
   }, []);
 
-  const fetchDeckData = useCallback(async (bounds?: MapBounds | null, zoom?: number) => {
-    if (deckAbortRef.current) {
-      deckAbortRef.current.abort();
+  const fetchTelemetry = useCallback(async (bounds?: MapBounds | null, zoom?: number) => {
+    // 1. National overview & unindexed city guard:
+    // If zoom < 10 or selectedCityId is null, do NOT run road queries.
+    if (zoom === undefined || zoom < 10 || !selectedCityId) {
+      setLoading(false);
+      setSignals([]);
+      return;
+    }
+
+    const city = getCityById(selectedCityId);
+    if (city && city.capabilities.road_coverage !== 'indexed') {
+      setLoading(false);
+      setSignals([]);
+      return;
+    }
+
+    if (!bounds) {
+      setLoading(false);
+      return;
+    }
+
+    if (telemetryAbortRef.current) {
+      telemetryAbortRef.current.abort();
     }
     const controller = new AbortController();
-    deckAbortRef.current = controller;
-    const reqId = ++deckReqIdRef.current;
+    telemetryAbortRef.current = controller;
+    const reqId = ++telemetryReqIdRef.current;
 
     setLoading(true);
     setRoadLoadError(null);
 
     try {
-      const qs = new URLSearchParams();
-      qs.set('include_index_stats', 'false');
-      if (zoom !== undefined && zoom < 11.5) qs.set('limit', '2500');
-      if (bounds) qs.set('bbox', bounds.join(','));
-      if (zoom !== undefined && Number.isFinite(zoom)) qs.set('zoom', String(zoom));
-      if (selectedRoadIdRef.current) qs.set('selected_road_id', selectedRoadIdRef.current);
-      if (selectedCityId) qs.set('city', selectedCityId);
-      qs.set('_t', String(Date.now()));
-
-      await loadMapDeckPages<RoadFeature>({
-        params: qs,
+      const bboxStr = bounds.join(',');
+      const res = await fetch(`/api/v1/incidents?bbox=${encodeURIComponent(bboxStr)}&status=active`, {
         signal: controller.signal,
-        onPage: (data, nextRoads, complete) => {
-          if (reqId !== deckReqIdRef.current) return;
-          setRoads(nextRoads);
-          if (Array.isArray(data.signals)) setSignals(data.signals);
-          setSummary((previous: any) => ({
-            ...(data.summary || previous),
-            visible_roads_returned: nextRoads.length,
-            viewport_complete: complete,
-          }));
+      });
 
-          // Preserve selectedRoad inspection state when visible map data refreshes
-          setSelectedRoad((prev) => {
-            if (!prev) return null;
-            const updated = nextRoads.find((r) => r.id === prev.id);
-            return updated || prev;
-          });
-        },
+      if (!res.ok) {
+        throw new Error(`Incident fetch returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (reqId !== telemetryReqIdRef.current) return;
+
+      const incs = data.incidents || [];
+      const mappedSignals: MultiSourceSignal[] = incs.map((inc: any) => ({
+        id: `inc-${inc.id}`,
+        type: 'field_evidence',
+        source: `Observation (${(inc.verification_state || 'reported').replace(/_/g, ' ')})`,
+        title: `${(inc.category || 'Road Defect').replace(/_/g, ' ').toUpperCase()}`,
+        date: inc.last_observed_at ? inc.last_observed_at.substring(0, 10) : '',
+        road_name: inc.road_name || inc.road_ref || 'Monitored Corridor',
+        lat: Number(inc.lat),
+        lon: Number(inc.lon),
+        details: `Lifecycle: ${inc.lifecycle_status}. Verification: ${inc.verification_state}. Community reports: ${inc.reports_count || 1}.`,
+        verified: inc.verification_state === 'corroborated',
+        source_url: inc.road_segment_id ? `/roads/${inc.road_segment_id}` : '',
+        status: inc.lifecycle_status,
+        disclaimer: 'Community observation on indexed carriageway.',
+        is_demo: false,
+      }));
+
+      setSignals(mappedSignals);
+      setSummary({
+        open_issues: incs.length,
+        roads_indexed: true,
       });
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
-        console.error('Failed to load deck telemetry', err);
-        if (reqId === deckReqIdRef.current) setRoadLoadError('Some roads could not be loaded for this area.');
+        console.error('Failed to load telemetry', err);
+        if (reqId === telemetryReqIdRef.current) {
+          setRoadLoadError('Live telemetry could not be loaded for this area.');
+        }
       }
     } finally {
-      if (reqId === deckReqIdRef.current) {
+      if (reqId === telemetryReqIdRef.current) {
         setLoading(false);
       }
     }
@@ -212,18 +247,43 @@ export default function GeospatialDeckPage() {
       setIsDeckCollapsed(true);
     }
     return () => {
-      deckAbortRef.current?.abort();
+      telemetryAbortRef.current?.abort();
+      selectedRoadAbortRef.current?.abort();
     };
-  }, [fetchDeckData]);
+  }, []);
 
-  // Debounced viewport-bounded fetch on map pan/zoom with stale-request cancellation
+  // Settled-viewport handshake: debounced bounded telemetry fetch on map move
   useEffect(() => {
     if (!mapBounds) return;
     const timer = setTimeout(() => {
-      fetchDeckData(mapBounds, mapZoom);
+      fetchTelemetry(mapBounds, mapZoom);
     }, 250);
     return () => clearTimeout(timer);
-  }, [mapBounds, mapZoom, fetchDeckData]);
+  }, [mapBounds, mapZoom, fetchTelemetry]);
+
+  // Selected road loading: fetch full real details when stub is clicked
+  const handleSelectRoad = useCallback(async (road: RoadFeature) => {
+    setSelectedRoad(road);
+    setSelectedSignal(null);
+    setIsDeckCollapsed(false);
+
+    if (selectedRoadAbortRef.current) {
+      selectedRoadAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    selectedRoadAbortRef.current = controller;
+
+    try {
+      const fullDetail = await loadRoadDetail(road.id, controller.signal);
+      if (fullDetail) {
+        setSelectedRoad(fullDetail);
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.warn('Could not load road detail for', road.id, err);
+      }
+    }
+  }, []);
 
   // Keyboard shortcut: Esc returns to directory mode
   useEffect(() => {
@@ -395,13 +455,10 @@ export default function GeospatialDeckPage() {
         <GeospatialMap
           onViewportChange={handleViewportChange}
           roads={roads}
+          selectedRoad={selectedRoad}
           signals={signals}
           selectedRoadId={selectedRoad?.id || null}
-          onSelectRoad={(road) => {
-            setSelectedRoad(road);
-            setSelectedSignal(null);
-            setIsDeckCollapsed(false);
-          }}
+          onSelectRoad={handleSelectRoad}
           onSelectSignal={(signal) => {
             setSelectedSignal(signal);
             setSelectedRoad(null);
@@ -415,20 +472,21 @@ export default function GeospatialDeckPage() {
           onSelectCity={handleSelectCity}
           onSelectJurisdictionUnit={handleSelectJurisdictionUnit}
           roadVersion="20261016"
+          cityManifest={cityManifest}
         />
-        {(loading || roadLoadError || mapZoom < 11.5) && (
-          <div role="status" aria-live="polite" className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100%-2rem)] rounded-xl border border-line bg-surface px-4 py-2 text-sm text-ink shadow-md">
+        {(loading || roadLoadError || (selectedCityId && mapZoom < 10)) && (
+          <div role="status" aria-live="polite" className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100%-2rem)] rounded-xl border border-line bg-surface px-4 py-2 text-sm text-ink shadow-md font-mono">
             {roadLoadError ? (
               <>
                 {roadLoadError}{' '}
-                <button className="min-h-11 underline text-information" onClick={() => fetchDeckData(mapBounds, mapZoom)}>
+                <button className="min-h-11 underline text-information" onClick={() => fetchTelemetry(mapBounds, mapZoom)}>
                   Retry
                 </button>
               </>
             ) : loading ? (
-              `Loading roads in this area…${roads.length ? ` ${roads.length.toLocaleString()} loaded` : ''}`
+              'Loading telemetry in this area…'
             ) : (
-              'Major roads shown. Zoom in to see neighbourhood streets.'
+              'Zoom in (z ≥ 10) to inspect indexed road vector network.'
             )}
           </div>
         )}
@@ -880,7 +938,13 @@ export default function GeospatialDeckPage() {
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto">
-              <AreaOverview bounds={mapBounds} enabled={!loading} />
+              <AreaOverview
+                bounds={mapBounds}
+                cityId={selectedCityId}
+                scheme={selectedScheme}
+                unitId={selectedJurisdictionUnit}
+                enabled={true}
+              />
             </div>
           )}
 

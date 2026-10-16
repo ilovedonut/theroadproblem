@@ -24,7 +24,7 @@ export interface RoadFeature {
     length_m: number;
     geojson: {
       type: string;
-      coordinates: number[][];
+      coordinates: number[][] | any;
     };
   }>;
   works?: Array<{
@@ -52,6 +52,22 @@ export interface RoadFeature {
     lat: number;
     lon: number;
   }>;
+  timeline?: Array<{
+    id: string;
+    entity_type: string;
+    entity_id: string;
+    event_type: string;
+    effective_at: string;
+    reason?: string;
+    old_state?: any;
+    new_state?: any;
+  }>;
+  coexistence_alert?: {
+    alert: boolean;
+    message?: string;
+    official_completed_works?: any[];
+    active_incidents?: any[];
+  };
 }
 
 export interface MultiSourceSignal {
@@ -73,7 +89,8 @@ export interface MultiSourceSignal {
 
 export interface GeospatialMapProps {
   onViewportChange?: (bounds: MapBounds, zoom?: number) => void;
-  roads: RoadFeature[];
+  roads?: RoadFeature[];
+  selectedRoad?: RoadFeature | null;
   signals: MultiSourceSignal[];
   selectedRoadId: string | null;
   onSelectRoad: (road: RoadFeature) => void;
@@ -93,11 +110,13 @@ export interface GeospatialMapProps {
   onSelectCity?: (cityId: string) => void;
   onSelectJurisdictionUnit?: (unitId: string | null) => void;
   roadVersion?: string;
+  cityManifest?: any;
 }
 
 export function GeospatialMap({
   onViewportChange,
-  roads,
+  roads = [],
+  selectedRoad,
   signals,
   selectedRoadId,
   onSelectRoad,
@@ -110,6 +129,7 @@ export function GeospatialMap({
   onSelectCity,
   onSelectJurisdictionUnit,
   roadVersion = '20261016',
+  cityManifest,
 }: GeospatialMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -231,7 +251,7 @@ export function GeospatialMap({
 
     let viewportReady = false;
     const publishBounds = () => {
-      if (!viewportReady) return;
+      if (!viewportReady || map.isMoving()) return;
       const b = map.getBounds();
       const z = Number(map.getZoom().toFixed(2));
       viewportCallback.current?.(
@@ -383,13 +403,24 @@ export function GeospatialMap({
       lastSwoopedRoadIdRef.current = null;
       return;
     }
-    if (!map || !mapLoaded || !roads || roads.length === 0) return;
+    if (!map || !mapLoaded) return;
     if (lastSwoopedRoadIdRef.current === selectedRoadId) return;
 
-    const matchedRoad = roads.find((r) => r.id === selectedRoadId);
-    if (!matchedRoad || !matchedRoad.segments || matchedRoad.segments.length === 0) return;
+    const road =
+      selectedRoad && selectedRoad.id === selectedRoadId
+        ? selectedRoad
+        : (roads || []).find((r) => r.id === selectedRoadId);
 
-    const allCoords = matchedRoad.segments.flatMap((s) => s.geojson?.coordinates || []);
+    if (!road || !road.segments || road.segments.length === 0) return;
+
+    const allCoords = road.segments.flatMap((s) => {
+      const coords = s.geojson?.coordinates;
+      if (!Array.isArray(coords)) return [];
+      if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+        return (coords as number[][][]).flat();
+      }
+      return coords as number[][];
+    });
     if (allCoords.length === 0) return;
 
     lastSwoopedRoadIdRef.current = selectedRoadId;
@@ -398,13 +429,13 @@ export function GeospatialMap({
 
     map.flyTo({
       center: [centerCoord[0], centerCoord[1]],
-      zoom: 13,
+      zoom: 13.5,
       pitch: 48,
       bearing: -15,
       speed: 1.1,
       essential: true,
     });
-  }, [selectedRoadId, roads, mapLoaded]);
+  }, [selectedRoadId, selectedRoad, roads, mapLoaded]);
 
   // -------------------------------------------------------------
   // 1. National/Regional City Discovery Markers ($z \le 9$)
@@ -687,7 +718,7 @@ export function GeospatialMap({
                 ],
               },
             },
-            'roads-glow'
+            map.getLayer('roads-vector-glow') ? 'roads-vector-glow' : undefined
           );
 
           // Boundary outline layer
@@ -707,7 +738,7 @@ export function GeospatialMap({
                 'line-opacity': 0.85,
               },
             },
-            'roads-glow'
+            map.getLayer('roads-vector-glow') ? 'roads-vector-glow' : undefined
           );
 
           // Jurisdiction label layer
@@ -738,7 +769,7 @@ export function GeospatialMap({
                 'text-halo-width': 1.5,
               },
             },
-            'roads-glow'
+            map.getLayer('roads-vector-glow') ? 'roads-vector-glow' : undefined
           );
 
           // Hover interaction
@@ -837,7 +868,7 @@ export function GeospatialMap({
   }, [selectedCityId, selectedScheme, mapLoaded]);
 
   // -------------------------------------------------------------
-  // 3. Vector Tile Road Network Service Connection
+  // 3. Vector Tile Road Network Service Connection (SOLE General Loader)
   // -------------------------------------------------------------
   useEffect(() => {
     const map = mapRef.current;
@@ -849,11 +880,24 @@ export function GeospatialMap({
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const tileUrl = `${origin}/api/v1/roads/${citySlug}/${activeVer}/{z}/{x}/{y}.mvt`;
 
-    // Remove existing vector layers/source if city or version changed
-    if (map.getSource(sourceId)) {
-      if (map.getLayer('roads-vector-glow')) map.removeLayer('roads-vector-glow');
-      if (map.getLayer('roads-vector-line')) map.removeLayer('roads-vector-line');
-      map.removeSource(sourceId);
+    const removeVectorSourceAndLayers = () => {
+      if (map.getSource(sourceId)) {
+        if (map.getLayer('roads-vector-glow')) map.removeLayer('roads-vector-glow');
+        if (map.getLayer('roads-vector-line')) map.removeLayer('roads-vector-line');
+        map.removeSource(sourceId);
+      }
+    };
+
+    removeVectorSourceAndLayers();
+
+    // Only load vector tiles for indexed cities (check if city manifest or capability has road_coverage === 'indexed')
+    const city = selectedCityId ? getCityById(selectedCityId) : null;
+    const isIndexed = city
+      ? city.capabilities.road_coverage === 'indexed'
+      : Boolean(cityManifest?.road_release?.status === 'indexed');
+
+    if (!isIndexed) {
+      return;
     }
 
     // Add vector tile source
@@ -865,52 +909,48 @@ export function GeospatialMap({
     });
 
     // Vector road ambient glow
-    map.addLayer(
-      {
-        id: 'roads-vector-glow',
-        type: 'line',
-        source: sourceId,
-        'source-layer': 'roads',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#06b6d4',
-          'line-width': 8,
-          'line-opacity': 0.35,
-          'line-blur': 2,
-        },
+    map.addLayer({
+      id: 'roads-vector-glow',
+      type: 'line',
+      source: sourceId,
+      'source-layer': 'roads',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
       },
-      map.getLayer('roads-glow') ? 'roads-glow' : undefined
-    );
+      paint: {
+        'line-color': '#06b6d4',
+        'line-width': 8,
+        'line-opacity': 0.35,
+        'line-blur': 2,
+      },
+    });
 
     // Vector road carriageway line
-    map.addLayer(
-      {
-        id: 'roads-vector-line',
-        type: 'line',
-        source: sourceId,
-        'source-layer': 'roads',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#06b6d4',
-          'line-width': 2.8,
-          'line-opacity': 0.85,
-        },
+    map.addLayer({
+      id: 'roads-vector-line',
+      type: 'line',
+      source: sourceId,
+      'source-layer': 'roads',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
       },
-      map.getLayer('roads-line') ? 'roads-line' : undefined
-    );
+      paint: {
+        'line-color': '#06b6d4',
+        'line-width': 2.8,
+        'line-opacity': 0.85,
+      },
+    });
 
     // Vector road click & hover handlers
-    map.on('click', 'roads-vector-line', (e) => {
+    const onVectorClick = (e: any) => {
       if (!e.features || e.features.length === 0) return;
-      const props = e.features[0].properties;
+      const props = e.features[0].properties || {};
       const roadId = props.road_id || props.id;
-      const matched = roadsRef.current.find((r) => r.id === roadId);
+      if (!roadId) return;
+
+      const matched = (roadsRef.current || []).find((r) => r.id === roadId);
       if (matched) {
         onSelectRoadRef.current(matched);
       } else {
@@ -920,18 +960,18 @@ export function GeospatialMap({
           display_name: props.name,
           ref: props.ref || null,
           road_class: props.road_class || 'primary',
-          authority_name: props.authority_name || 'Indexed Road Network',
-          state: '',
-          district: '',
-          total_length_m: '0',
+          authority_name: props.authority_name || null,
+          state: props.state || '',
+          district: props.district || '',
+          total_length_m: String(props.total_length_m || '0'),
         });
       }
-    });
+    };
 
-    map.on('mouseenter', 'roads-vector-line', (e) => {
+    const onVectorMouseEnter = (e: any) => {
       map.getCanvas().style.cursor = 'pointer';
       if (!e.features || e.features.length === 0) return;
-      const props = e.features[0].properties;
+      const props = e.features[0].properties || {};
 
       if (!roadPopupRef.current) {
         roadPopupRef.current = new maplibregl.Popup({
@@ -951,159 +991,118 @@ export function GeospatialMap({
           </div>
         `)
         .addTo(map);
-    });
+    };
 
-    map.on('mousemove', 'roads-vector-line', (e) => {
+    const onVectorMouseMove = (e: any) => {
       if (roadPopupRef.current) {
         roadPopupRef.current.setLngLat(e.lngLat);
       }
-    });
+    };
 
-    map.on('mouseleave', 'roads-vector-line', () => {
+    const onVectorMouseLeave = () => {
       map.getCanvas().style.cursor = '';
       if (roadPopupRef.current) {
         roadPopupRef.current.remove();
       }
-    });
-  }, [selectedCityId, roadVersion, mapLoaded]);
+    };
+
+    map.on('click', 'roads-vector-line', onVectorClick);
+    map.on('mouseenter', 'roads-vector-line', onVectorMouseEnter);
+    map.on('mousemove', 'roads-vector-line', onVectorMouseMove);
+    map.on('mouseleave', 'roads-vector-line', onVectorMouseLeave);
+
+    return () => {
+      map.off('click', 'roads-vector-line', onVectorClick);
+      map.off('mouseenter', 'roads-vector-line', onVectorMouseEnter);
+      map.off('mousemove', 'roads-vector-line', onVectorMouseMove);
+      map.off('mouseleave', 'roads-vector-line', onVectorMouseLeave);
+      if (roadPopupRef.current) {
+        roadPopupRef.current.remove();
+      }
+      removeVectorSourceAndLayers();
+    };
+  }, [selectedCityId, roadVersion, mapLoaded, cityManifest]);
 
   // -------------------------------------------------------------
-  // 4. Update Dynamic Telemetry Road Overlays (Selection, Incidents, Works)
+  // 4. Dedicated Selected Road Geometry Layer (High-Visibility Highlight)
   // -------------------------------------------------------------
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoaded || !roads) return;
+    if (!map || !mapLoaded) return;
 
+    const sourceId = 'selected-road-source';
     const features: any[] = [];
 
-    roads.forEach((road) => {
-      const hasWorks = road.works && road.works.length > 0;
-      const hasIncidents = road.incidents && road.incidents.length > 0;
+    if (selectedRoad && Array.isArray(selectedRoad.segments) && selectedRoad.segments.length > 0) {
+      const hasIncidents = selectedRoad.incidents && selectedRoad.incidents.length > 0;
+      const highlightColor = hasIncidents ? '#f59e0b' : '#06b6d4';
 
-      let statusColor = '#06b6d4';
-      if (hasIncidents) {
-        statusColor = '#f59e0b';
-      } else if (hasWorks && road.works?.[0]?.official_status === 'officially_completed') {
-        statusColor = '#10b981';
-      }
+      selectedRoad.segments.forEach((seg) => {
+        if (seg.geojson && seg.geojson.coordinates) {
+          features.push({
+            type: 'Feature',
+            id: `selected-${selectedRoad.id}-${seg.segment_id}`,
+            properties: {
+              road_id: selectedRoad.id,
+              name: selectedRoad.display_name || selectedRoad.name,
+              ref: selectedRoad.ref || '',
+              authority: selectedRoad.authority_name || '',
+              highlight_color: highlightColor,
+              has_incidents: Boolean(hasIncidents),
+            },
+            geometry: seg.geojson,
+          });
+        }
+      });
+    }
 
-      let isVisible = true;
-      if (hasIncidents && !activeLayerFilters.excavations) isVisible = false;
-      if (hasWorks && !hasIncidents && !activeLayerFilters.officialWorks) isVisible = false;
-
-      if (isVisible && Array.isArray(road.segments)) {
-        road.segments.forEach((seg) => {
-          if (seg.geojson && seg.geojson.coordinates) {
-            features.push({
-              type: 'Feature',
-              id: `${road.id}-${seg.segment_id}`,
-              properties: {
-                road_id: road.id,
-                name: road.display_name || road.name,
-                ref: road.ref || '',
-                authority: road.authority_name || 'Authority unrecorded',
-                status_color: statusColor,
-                is_selected: road.id === selectedRoadId,
-              },
-              geometry: seg.geojson,
-            });
-          }
-        });
-      }
-    });
-
-    const geojsonData = {
+    const geojsonData: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features,
     };
 
-    if (map.getSource('roads-network')) {
-      (map.getSource('roads-network') as maplibregl.GeoJSONSource).setData(geojsonData as any);
+    if (map.getSource(sourceId)) {
+      (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(geojsonData);
     } else {
-      map.addSource('roads-network', {
+      map.addSource(sourceId, {
         type: 'geojson',
-        data: geojsonData as any,
+        data: geojsonData,
       });
 
+      // High-visibility selected road glow
       map.addLayer({
-        id: 'roads-glow',
+        id: 'selected-road-glow',
         type: 'line',
-        source: 'roads-network',
+        source: sourceId,
         layout: {
           'line-join': 'round',
           'line-cap': 'round',
         },
         paint: {
-          'line-color': ['get', 'status_color'],
-          'line-width': ['case', ['get', 'is_selected'], 14, 6],
-          'line-opacity': ['case', ['get', 'is_selected'], 0.7, 0.45],
-          'line-blur': 2.5,
+          'line-color': ['coalesce', ['get', 'highlight_color'], '#06b6d4'],
+          'line-width': 14,
+          'line-opacity': 0.75,
+          'line-blur': 3,
         },
       });
 
+      // High-visibility selected road line
       map.addLayer({
-        id: 'roads-line',
+        id: 'selected-road-line',
         type: 'line',
-        source: 'roads-network',
+        source: sourceId,
         layout: {
           'line-join': 'round',
           'line-cap': 'round',
         },
         paint: {
-          'line-color': ['get', 'status_color'],
-          'line-width': ['case', ['get', 'is_selected'], 5, 3],
-          'line-opacity': 0.95,
+          'line-color': ['coalesce', ['get', 'highlight_color'], '#06b6d4'],
+          'line-width': 4.5,
+          'line-opacity': 1.0,
         },
-      });
-
-      map.on('click', 'roads-line', (e) => {
-        if (!e.features || e.features.length === 0) return;
-        const roadId = e.features[0].properties.road_id;
-        const matchedRoad = roadsRef.current.find((r) => r.id === roadId);
-        if (matchedRoad) {
-          onSelectRoadRef.current(matchedRoad);
-        }
-      });
-
-      map.on('mouseenter', 'roads-line', (e) => {
-        map.getCanvas().style.cursor = 'pointer';
-        if (!e.features || e.features.length === 0) return;
-        const props = e.features[0].properties;
-
-        if (!roadPopupRef.current) {
-          roadPopupRef.current = new maplibregl.Popup({
-            closeButton: false,
-            closeOnClick: false,
-            offset: 10,
-            className: 'deck-telemetry-popup',
-          });
-        }
-
-        roadPopupRef.current
-          .setLngLat(e.lngLat)
-          .setHTML(`
-            <div class="px-2.5 py-1.5 rounded-lg bg-canvas/95 border border-line/80 shadow-2xl text-ink font-sans max-w-xs backdrop-blur-md pointer-events-none">
-              <p class="font-bold text-xs text-ink leading-tight">${props.name}</p>
-              <p class="text-[10px] font-mono text-information mt-0.5">${props.ref ? props.ref + ' • ' : ''}${props.authority}</p>
-            </div>
-          `)
-          .addTo(map);
-      });
-
-      map.on('mousemove', 'roads-line', (e) => {
-        if (roadPopupRef.current) {
-          roadPopupRef.current.setLngLat(e.lngLat);
-        }
-      });
-
-      map.on('mouseleave', 'roads-line', () => {
-        map.getCanvas().style.cursor = '';
-        if (roadPopupRef.current) {
-          roadPopupRef.current.remove();
-        }
       });
     }
-  }, [roads, mapLoaded, selectedRoadId, activeLayerFilters]);
+  }, [selectedRoad, mapLoaded]);
 
   // -------------------------------------------------------------
   // 5. Multi-Source Intelligence & Incidents via Native WebGL Layers
@@ -1164,7 +1163,37 @@ export function GeospatialMap({
     }
 
     if (activeLayerFilters.excavations) {
-      roads.forEach((road) => {
+      if (selectedRoad?.incidents && selectedRoad.incidents.length > 0) {
+        selectedRoad.incidents.forEach((inc) => {
+          if (inc.lat && inc.lon) {
+            features.push({
+              type: 'Feature',
+              id: `sel-inc-${inc.incident_id}`,
+              properties: {
+                id: inc.incident_id,
+                is_signal: false,
+                type: 'ground_excavation',
+                source: 'Ground Truth',
+                title: `${inc.category.replace(/_/g, ' ').toUpperCase()}`,
+                road_name: selectedRoad.display_name || selectedRoad.name,
+                date: inc.last_observed_at ? inc.last_observed_at.split('T')[0] : 'Recent',
+                color: '#f59e0b',
+                halo_color: '#b45309',
+                category_label: 'EXCAVATION',
+                lat: inc.lat,
+                lon: inc.lon,
+              },
+              geometry: {
+                type: 'Point',
+                coordinates: [inc.lon, inc.lat],
+              },
+            });
+          }
+        });
+      }
+
+      (roads || []).forEach((road) => {
+        if (road.id === selectedRoad?.id) return;
         if (road.incidents && road.incidents.length > 0) {
           road.incidents.forEach((inc) => {
             if (inc.lat && inc.lon) {
@@ -1331,7 +1360,7 @@ export function GeospatialMap({
         }
       });
     }
-  }, [signals, roads, mapLoaded, activeLayerFilters]);
+  }, [signals, roads, selectedRoad, mapLoaded, activeLayerFilters]);
 
   return (
     <div className="absolute inset-0 w-full h-full bg-canvas overflow-hidden select-none">
