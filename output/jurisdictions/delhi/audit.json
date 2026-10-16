@@ -1,0 +1,19 @@
+{
+  "city": "delhi",
+  "status": "active",
+  "schemes": {
+    "zones": {
+      "file": "zones.geojson",
+      "count": 12,
+      "sha256": "bdd0cb343b946f7c812c0748f0055b24e0429d1cc3808e26a7a41127d94c7760",
+      "reproduction_restrictions": true,
+      "notice": "MCD administrative zone geometry is derived under reproduction restrictions preventing unapproved commercial tile publication (MCD Master Plan / Delhi Gazette). Displayed for civic accountability reference."
+    },
+    "divisions": {
+      "file": "divisions.geojson",
+      "count": 6,
+      "sha256": "cc1eebffd448beca23aff0e4a116fa3481a224484d5b9f2ae7f250e043cb81b7",
+      "authority": "NDMC"
+    }
+  }
+}

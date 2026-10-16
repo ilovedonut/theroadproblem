@@ -1,0 +1,36 @@
+{
+  "sourceUrl": "https://gisgcc.chennaicorporation.gov.in/server/rest/services/GCCPublic/GCC_AdminBoundary/MapServer",
+  "retrievedAt": "2026-10-16T17:23:50.553Z",
+  "usedCache": false,
+  "license": "Government Open Data / Official GCC Public ArcGIS MapServer (Open for public civic use)",
+  "coverage": "Greater Chennai Corporation (GCC) Admin Boundaries: 3 Regions, 15 Zones, 200 Wards",
+  "layers": {
+    "regions": {
+      "layerId": 6,
+      "layerName": "Region Boundary",
+      "count": 3,
+      "sha256": "c82dff7e3a0fdc1d4a54080fb33ea57ce1f06f905d893318aaa992bc183dcf44",
+      "fileName": "regions.geojson",
+      "path": "output/jurisdictions/chennai/regions.geojson"
+    },
+    "zones": {
+      "layerId": 5,
+      "layerName": "Zone Boundary",
+      "count": 15,
+      "sha256": "8c23297c4d8e287705349397c9faf0ef0fe6eae59b1a7ad5d779114c01fd5791",
+      "fileName": "zones.geojson",
+      "path": "output/jurisdictions/chennai/zones.geojson"
+    },
+    "wards": {
+      "layerId": 4,
+      "layerName": "Ward Boundary",
+      "count": 200,
+      "sha256": "71390e36a027c5b1bde87912ca2f0cb90eb13e20049ee18419660c22f3b3a1a2",
+      "fileName": "wards.geojson",
+      "path": "output/jurisdictions/chennai/wards.geojson"
+    }
+  },
+  "totalFeatures": 218,
+  "crs": "EPSG:4326",
+  "status": "verified"
+}

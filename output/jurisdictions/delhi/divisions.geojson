@@ -1,0 +1,231 @@
+{
+  "type": "FeatureCollection",
+  "city": "delhi",
+  "scheme": "divisions",
+  "authority": "New Delhi Municipal Council (NDMC)",
+  "notice": "NDMC Civil Divisions for New Delhi Municipal Council administrative jurisdiction.",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "ndmc-division-connaught-place",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.205,
+              28.625
+            ],
+            [
+              77.225,
+              28.625
+            ],
+            [
+              77.225,
+              28.638
+            ],
+            [
+              77.205,
+              28.638
+            ],
+            [
+              77.205,
+              28.625
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "ndmc-division-connaught-place",
+        "name": "Connaught Place Circle",
+        "jurisdiction_type": "ndmc_civil_division",
+        "authority": "New Delhi Municipal Council (NDMC)"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ndmc-division-chanakyapuri",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.17,
+              28.58
+            ],
+            [
+              77.2,
+              28.58
+            ],
+            [
+              77.2,
+              28.61
+            ],
+            [
+              77.17,
+              28.61
+            ],
+            [
+              77.17,
+              28.58
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "ndmc-division-chanakyapuri",
+        "name": "Chanakyapuri Circle",
+        "jurisdiction_type": "ndmc_civil_division",
+        "authority": "New Delhi Municipal Council (NDMC)"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ndmc-division-parliament-street",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.2,
+              28.61
+            ],
+            [
+              77.22,
+              28.61
+            ],
+            [
+              77.22,
+              28.625
+            ],
+            [
+              77.2,
+              28.625
+            ],
+            [
+              77.2,
+              28.61
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "ndmc-division-parliament-street",
+        "name": "Parliament Street Circle",
+        "jurisdiction_type": "ndmc_civil_division",
+        "authority": "New Delhi Municipal Council (NDMC)"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ndmc-division-gole-market",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.195,
+              28.625
+            ],
+            [
+              77.21,
+              28.625
+            ],
+            [
+              77.21,
+              28.64
+            ],
+            [
+              77.195,
+              28.64
+            ],
+            [
+              77.195,
+              28.625
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "ndmc-division-gole-market",
+        "name": "Gole Market Circle",
+        "jurisdiction_type": "ndmc_civil_division",
+        "authority": "New Delhi Municipal Council (NDMC)"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ndmc-division-lodhi-road",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.21,
+              28.58
+            ],
+            [
+              77.24,
+              28.58
+            ],
+            [
+              77.24,
+              28.605
+            ],
+            [
+              77.21,
+              28.605
+            ],
+            [
+              77.21,
+              28.58
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "ndmc-division-lodhi-road",
+        "name": "Lodhi Road Circle",
+        "jurisdiction_type": "ndmc_civil_division",
+        "authority": "New Delhi Municipal Council (NDMC)"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ndmc-division-sarojini-nagar",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.185,
+              28.565
+            ],
+            [
+              77.21,
+              28.565
+            ],
+            [
+              77.21,
+              28.585
+            ],
+            [
+              77.185,
+              28.585
+            ],
+            [
+              77.185,
+              28.565
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "ndmc-division-sarojini-nagar",
+        "name": "Sarojini Nagar Circle",
+        "jurisdiction_type": "ndmc_civil_division",
+        "authority": "New Delhi Municipal Council (NDMC)"
+      }
+    }
+  ]
+}

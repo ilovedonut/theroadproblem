@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0.0",
+  "city": "bengaluru",
+  "region_id": "bengaluru",
+  "district": "Bengaluru Urban",
+  "roads_indexed": true,
+  "coverage_declared": "Bengaluru Urban Administrative District (OSM Relation 2020589)",
+  "reconciliation": {
+    "canonical_district_roads": 201415,
+    "canonical_district_segments": 217687,
+    "canonical_district_length_km": 30157.62,
+    "status": "reconciled",
+    "last_verified": "2026-10-16T17:13:33.173Z"
+  },
+  "district_summary": {
+    "corridors_or_roads": 201415,
+    "active_physical_segments": 217687,
+    "total_length_km": 30157.62,
+    "total_spend_tracked_cr": 257.23,
+    "active_works_count": 38,
+    "public_issues_count": 5
+  },
+  "schemes": {
+    "corporations": {
+      "scheme_id": "corporations",
+      "name": "Greater Bengaluru Area (5 City Corporations)",
+      "status": "pending_delimitation",
+      "units_count": 5,
+      "parent_summary": {
+        "corridors_or_roads": 105437,
+        "active_physical_segments": 119122,
+        "total_length_km": 14760.22,
+        "total_spend_tracked_cr": 182,
+        "active_works_count": 5,
+        "public_issues_count": 0
+      },
+      "raw_unit_spend_sum_cr": 352,
+      "raw_unit_works_sum": 9,
+      "raw_unit_segments_sum": 127132,
+      "raw_unit_length_km_sum": 15890.02,
+      "multi_ward_works_count": 4,
+      "spend_multiplication_prevented_cr": 170,
+      "units": {
+        "gba-blr-central": {
+          "unit_id": "gba-blr-central",
+          "name": "Bengaluru Central City Corporation",
+          "corporation": "Central",
+          "corridors_or_roads": 9513,
+          "active_physical_segments": 11531,
+          "total_length_km": 1247.71,
+          "total_spend_tracked_cr": 12,
+          "active_works_count": 1,
+          "public_issues_count": 0
+        },
+        "gba-blr-east": {
+          "unit_id": "gba-blr-east",
+          "name": "Bengaluru East City Corporation",
+          "corporation": "East",
+          "corridors_or_roads": 28390,
+          "active_physical_segments": 31901,
+          "total_length_km": 3860.84,
+          "total_spend_tracked_cr": 170,
+          "active_works_count": 4,
+          "public_issues_count": 0
+        },
+        "gba-blr-north": {
+          "unit_id": "gba-blr-north",
+          "name": "Bengaluru North City Corporation",
+          "corporation": "North",
+          "corridors_or_roads": 23039,
+          "active_physical_segments": 25545,
+          "total_length_km": 3321.89,
+          "total_spend_tracked_cr": 0,
+          "active_works_count": 0,
+          "public_issues_count": 0
+        },
+        "gba-blr-south": {
+          "unit_id": "gba-blr-south",
+          "name": "Bengaluru South City Corporation",
+          "corporation": "South",
+          "corridors_or_roads": 21036,
+          "active_physical_segments": 24723,
+          "total_length_km": 3135.67,
+          "total_spend_tracked_cr": 170,
+          "active_works_count": 4,
+          "public_issues_count": 0
+        },
+        "gba-blr-west": {
+          "unit_id": "gba-blr-west",
+          "name": "Bengaluru West City Corporation",
+          "corporation": "West",
+          "corridors_or_roads": 30431,
+          "active_physical_segments": 33432,
+          "total_length_km": 4323.91,
+          "total_spend_tracked_cr": 0,
+          "active_works_count": 0,
+          "public_issues_count": 0
+        }
+      }
+    }
+  },
+  "anti_double_counting_guarantees": {
+    "works_deduplicated": true,
+    "spend_not_multiplied": true,
+    "canonical_road_span_union": true,
+    "multi_ward_works_counted_once": true,
+    "notice": "Multi-ward works and tenders are counted once per parent summary; spend is NOT multiplied across ward or corporation boundaries.",
+    "audit": {
+      "raw_sum_spend_cr": 352,
+      "parent_deduplicated_spend_cr": 182,
+      "inflation_prevented_cr": 170,
+      "raw_sum_length_km": 15890.02,
+      "canonical_span_union_length_km": 14760.22
+    }
+  },
+  "computed_at": "2026-10-16T17:13:33.183Z"
+}

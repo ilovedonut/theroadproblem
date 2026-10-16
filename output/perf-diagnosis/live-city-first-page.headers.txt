@@ -1,0 +1,17 @@
+HTTP/1.1 500 Internal Server Error
+Date: Fri, 16 Oct 2026 17:42:34 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate
+Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-xss-protection: 1; mode=block
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=z%2F0lesqjzeVkI2OY%2BmWPH%2F8jwD491vSXUyTfsUGpzyP%2BxMsL6mnQEZOJX34yTr1wGf%2FHxmfuVV2MQFEq%2BQ1ySfsHIiebLI59O7xYlRI3rrovZkHffq12CNHkQ5DbZZJ2Jq1qeZioJ6Q7PhI6EXKJJZJR2w%3D%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: a4b8db86ecd87ec6-DEL
+alt-svc: h3=":443"; ma=86400
+

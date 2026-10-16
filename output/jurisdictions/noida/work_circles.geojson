@@ -1,0 +1,409 @@
+{
+  "type": "FeatureCollection",
+  "city": "noida",
+  "scheme": "work_circles",
+  "authority": "New Okhla Industrial Development Authority (NOIDA)",
+  "has_municipal_wards": false,
+  "features": [
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-1",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.3,
+              28.57
+            ],
+            [
+              77.33,
+              28.57
+            ],
+            [
+              77.33,
+              28.61
+            ],
+            [
+              77.3,
+              28.61
+            ],
+            [
+              77.3,
+              28.57
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-1",
+        "name": "Work Circle 1",
+        "circle_number": 1,
+        "description": "Work Circle 1 (Sectors 1-11, 14-16)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-2",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.33,
+              28.59
+            ],
+            [
+              77.36,
+              28.59
+            ],
+            [
+              77.36,
+              28.62
+            ],
+            [
+              77.33,
+              28.62
+            ],
+            [
+              77.33,
+              28.59
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-2",
+        "name": "Work Circle 2",
+        "circle_number": 2,
+        "description": "Work Circle 2 (Sectors 12, 22, 55, 56)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-3",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.32,
+              28.56
+            ],
+            [
+              77.35,
+              28.56
+            ],
+            [
+              77.35,
+              28.58
+            ],
+            [
+              77.32,
+              28.58
+            ],
+            [
+              77.32,
+              28.56
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-3",
+        "name": "Work Circle 3",
+        "circle_number": 3,
+        "description": "Work Circle 3 (Sectors 17, 18, 19, 20, 26-29)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-4",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.33,
+              28.56
+            ],
+            [
+              77.36,
+              28.56
+            ],
+            [
+              77.36,
+              28.58
+            ],
+            [
+              77.33,
+              28.58
+            ],
+            [
+              77.33,
+              28.56
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-4",
+        "name": "Work Circle 4",
+        "circle_number": 4,
+        "description": "Work Circle 4 (Sectors 21, 25, 30, 31, 36, 37)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-5",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.36,
+              28.6
+            ],
+            [
+              77.39,
+              28.6
+            ],
+            [
+              77.39,
+              28.64
+            ],
+            [
+              77.36,
+              28.64
+            ],
+            [
+              77.36,
+              28.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-5",
+        "name": "Work Circle 5",
+        "circle_number": 5,
+        "description": "Work Circle 5 (Sectors 57-61, 62, 63)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-6",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.36,
+              28.56
+            ],
+            [
+              77.4,
+              28.56
+            ],
+            [
+              77.4,
+              28.59
+            ],
+            [
+              77.36,
+              28.59
+            ],
+            [
+              77.36,
+              28.56
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-6",
+        "name": "Work Circle 6",
+        "circle_number": 6,
+        "description": "Work Circle 6 (Sectors 50, 51, 74-79)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-7",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.35,
+              28.53
+            ],
+            [
+              77.38,
+              28.53
+            ],
+            [
+              77.38,
+              28.56
+            ],
+            [
+              77.35,
+              28.56
+            ],
+            [
+              77.35,
+              28.53
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-7",
+        "name": "Work Circle 7",
+        "circle_number": 7,
+        "description": "Work Circle 7 (Sectors 45, 46, 47, 48, 93, 105)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-8",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.35,
+              28.5
+            ],
+            [
+              77.4,
+              28.5
+            ],
+            [
+              77.4,
+              28.54
+            ],
+            [
+              77.35,
+              28.54
+            ],
+            [
+              77.35,
+              28.5
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-8",
+        "name": "Work Circle 8",
+        "circle_number": 8,
+        "description": "Work Circle 8 (Sectors 128-135, Expressway)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-9",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.39,
+              28.48
+            ],
+            [
+              77.43,
+              28.48
+            ],
+            [
+              77.43,
+              28.52
+            ],
+            [
+              77.39,
+              28.52
+            ],
+            [
+              77.39,
+              28.48
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-9",
+        "name": "Work Circle 9",
+        "circle_number": 9,
+        "description": "Work Circle 9 (Sectors 137-144)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-work-circle-10",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.43,
+              28.43
+            ],
+            [
+              77.49,
+              28.43
+            ],
+            [
+              77.49,
+              28.48
+            ],
+            [
+              77.43,
+              28.48
+            ],
+            [
+              77.43,
+              28.43
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-work-circle-10",
+        "name": "Work Circle 10",
+        "circle_number": 10,
+        "description": "Work Circle 10 (Sectors 150-168)",
+        "jurisdiction_type": "authority_work_circle",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,502 @@
+{
+  "type": "FeatureCollection",
+  "city": "delhi",
+  "scheme": "zones",
+  "authority": "Municipal Corporation of Delhi (MCD)",
+  "reproduction_restrictions": true,
+  "notice": "MCD administrative zone geometry is derived under reproduction restrictions preventing unapproved commercial tile publication (MCD Master Plan / Delhi Gazette). Displayed for civic accountability reference.",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "mcd-zone-city-sp",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.19,
+              28.64
+            ],
+            [
+              77.24,
+              28.64
+            ],
+            [
+              77.24,
+              28.67
+            ],
+            [
+              77.19,
+              28.67
+            ],
+            [
+              77.19,
+              28.64
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-city-sp",
+        "name": "City-SP Zone",
+        "zone": "City-SP",
+        "description": "City-Sadar Paharganj",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-karol-bagh",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.16,
+              28.63
+            ],
+            [
+              77.2,
+              28.63
+            ],
+            [
+              77.2,
+              28.67
+            ],
+            [
+              77.16,
+              28.67
+            ],
+            [
+              77.16,
+              28.63
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-karol-bagh",
+        "name": "Karol Bagh Zone",
+        "zone": "Karol Bagh",
+        "description": "Karol Bagh Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-civil-lines",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.18,
+              28.67
+            ],
+            [
+              77.24,
+              28.67
+            ],
+            [
+              77.24,
+              28.74
+            ],
+            [
+              77.18,
+              28.74
+            ],
+            [
+              77.18,
+              28.67
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-civil-lines",
+        "name": "Civil Lines Zone",
+        "zone": "Civil Lines",
+        "description": "Civil Lines Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-keshav-puram",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.13,
+              28.67
+            ],
+            [
+              77.18,
+              28.67
+            ],
+            [
+              77.18,
+              28.73
+            ],
+            [
+              77.13,
+              28.73
+            ],
+            [
+              77.13,
+              28.67
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-keshav-puram",
+        "name": "Keshav Puram Zone",
+        "zone": "Keshav Puram",
+        "description": "Keshav Puram Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-rohini",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.06,
+              28.7
+            ],
+            [
+              77.14,
+              28.7
+            ],
+            [
+              77.14,
+              28.76
+            ],
+            [
+              77.06,
+              28.76
+            ],
+            [
+              77.06,
+              28.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-rohini",
+        "name": "Rohini Zone",
+        "zone": "Rohini",
+        "description": "Rohini Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-narela",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.08,
+              28.76
+            ],
+            [
+              77.18,
+              28.76
+            ],
+            [
+              77.18,
+              28.86
+            ],
+            [
+              77.08,
+              28.86
+            ],
+            [
+              77.08,
+              28.76
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-narela",
+        "name": "Narela Zone",
+        "zone": "Narela",
+        "description": "Narela Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-central",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.21,
+              28.55
+            ],
+            [
+              77.28,
+              28.55
+            ],
+            [
+              77.28,
+              28.63
+            ],
+            [
+              77.21,
+              28.63
+            ],
+            [
+              77.21,
+              28.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-central",
+        "name": "Central Zone",
+        "zone": "Central",
+        "description": "Central Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-south",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.15,
+              28.48
+            ],
+            [
+              77.23,
+              28.48
+            ],
+            [
+              77.23,
+              28.56
+            ],
+            [
+              77.15,
+              28.56
+            ],
+            [
+              77.15,
+              28.48
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-south",
+        "name": "South Zone",
+        "zone": "South",
+        "description": "South Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-west",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.07,
+              28.62
+            ],
+            [
+              77.14,
+              28.62
+            ],
+            [
+              77.14,
+              28.68
+            ],
+            [
+              77.07,
+              28.68
+            ],
+            [
+              77.07,
+              28.62
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-west",
+        "name": "West Zone",
+        "zone": "West",
+        "description": "West Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-najafgarh",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.92,
+              28.53
+            ],
+            [
+              77.07,
+              28.53
+            ],
+            [
+              77.07,
+              28.65
+            ],
+            [
+              76.92,
+              28.65
+            ],
+            [
+              76.92,
+              28.53
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-najafgarh",
+        "name": "Najafgarh Zone",
+        "zone": "Najafgarh",
+        "description": "Najafgarh Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-shahdara-north",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.25,
+              28.67
+            ],
+            [
+              77.31,
+              28.67
+            ],
+            [
+              77.31,
+              28.74
+            ],
+            [
+              77.25,
+              28.74
+            ],
+            [
+              77.25,
+              28.67
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-shahdara-north",
+        "name": "Shahdara North Zone",
+        "zone": "Shahdara North",
+        "description": "Shahdara North Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcd-zone-shahdara-south",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.25,
+              28.6
+            ],
+            [
+              77.32,
+              28.6
+            ],
+            [
+              77.32,
+              28.67
+            ],
+            [
+              77.25,
+              28.67
+            ],
+            [
+              77.25,
+              28.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mcd-zone-shahdara-south",
+        "name": "Shahdara South Zone",
+        "zone": "Shahdara South",
+        "description": "Shahdara South Zone",
+        "jurisdiction_type": "mcd_administrative_zone",
+        "authority": "Municipal Corporation of Delhi (MCD)",
+        "reproduction_restrictions": true,
+        "reproduction_restriction_notice": "MCD administrative zone geometry is subject to reproduction restrictions preventing unapproved tile publication."
+      }
+    }
+  ]
+}

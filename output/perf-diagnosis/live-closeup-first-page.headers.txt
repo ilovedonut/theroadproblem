@@ -1,0 +1,19 @@
+HTTP/1.1 200 OK
+Date: Fri, 16 Oct 2026 17:42:43 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+Expires: 0
+Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+Pragma: no-cache
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-xss-protection: 1; mode=block
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=rcyvBapPw468KuBfIKnM4lr%2FMbrBp5zBhB4%2BXEDp58JM1vPa2pn303sfKsZ6W6FykkOOFGu87fzxGB6eAMv2njio%2Bdjoelx1uwIUuOtePlDQ7i7dSTALicilg22LDP3sQwOAkMPp3fx6XtLIxK17kGZrXA%3D%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: a4b8dc614e9d0186-DEL
+alt-svc: h3=":443"; ma=86400
+

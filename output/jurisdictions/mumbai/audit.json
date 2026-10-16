@@ -1,0 +1,18 @@
+{
+  "city": "mumbai",
+  "status": "active",
+  "schemes": {
+    "wards": {
+      "file": "wards.geojson",
+      "count": 24,
+      "sha256": "fefc787026e409b48f59dd60741f8c90421db70b25c0fc6c5334b2f85bbb8a2c",
+      "prabhags_separate": true
+    },
+    "prabhags": {
+      "file": "prabhags.geojson",
+      "count": 1,
+      "sha256": "98df476795708698e2787188a3ffc3fbb16afecc564a3ffc33c2a9aa4e8009a6",
+      "note": "Electoral prabhags distinct from 24 Administrative Wards"
+    }
+  }
+}

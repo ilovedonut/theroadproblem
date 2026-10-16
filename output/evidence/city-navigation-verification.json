@@ -1,0 +1,179 @@
+{
+  "suite": "city-navigation-flow",
+  "timestamp": "2026-10-16T17:49:17.612Z",
+  "total_gates": 8,
+  "passed_gates": 8,
+  "failed_gates": 0,
+  "gates": {
+    "gate_1_catalogue_completeness": {
+      "status": "PASS",
+      "cities_count": 36,
+      "metros_verified": {
+        "NCR": [
+          "delhi",
+          "gurugram",
+          "noida",
+          "greater-noida",
+          "ghaziabad",
+          "faridabad"
+        ],
+        "MMR": [
+          "mumbai",
+          "navi-mumbai",
+          "thane"
+        ],
+        "Tricity": [
+          "chandigarh"
+        ]
+      },
+      "capability_distribution": {
+        "indexed_roads": [
+          "bengaluru"
+        ],
+        "pending_roads": 35,
+        "verified_jurisdiction": [
+          "chennai"
+        ]
+      }
+    },
+    "gate_2_national_overview_zero_road_archives": {
+      "status": "PASS",
+      "payload_size_kb": 17.72,
+      "road_archives_loaded": 0,
+      "road_geometries_transferred": 0,
+      "cache_control": "public, max-age=3600, stale-while-revalidate=300",
+      "guarantee": "National overview transfers 0 road archives and 0 geometry linestrings at India discovery scale."
+    },
+    "gate_3_manifest_and_deep_links": {
+      "status": "PASS",
+      "resolved_manifests": {
+        "bengaluru": {
+          "region_id": "bengaluru",
+          "road_status": "indexed",
+          "membership_status": "verified",
+          "schemes_count": 2
+        },
+        "chennai": {
+          "region_id": "chennai",
+          "road_status": "pending",
+          "membership_status": "pending",
+          "schemes_count": 1
+        },
+        "mumbai": {
+          "region_id": "mumbai",
+          "road_status": "pending",
+          "membership_status": "pending",
+          "schemes_count": 1
+        },
+        "delhi": {
+          "region_id": "delhi",
+          "road_status": "pending",
+          "membership_status": "pending",
+          "schemes_count": 3
+        },
+        "noida": {
+          "region_id": "noida",
+          "road_status": "pending",
+          "membership_status": "pending",
+          "schemes_count": 1
+        }
+      },
+      "aliases_verified": [
+        {
+          "alias": "bangalore",
+          "canonical": "bengaluru"
+        },
+        {
+          "alias": "bombay",
+          "canonical": "mumbai"
+        },
+        {
+          "alias": "madras",
+          "canonical": "chennai"
+        },
+        {
+          "alias": "gurgaon",
+          "canonical": "gurugram"
+        }
+      ]
+    },
+    "gate_4_chennai_gcc_adapter": {
+      "status": "PASS",
+      "counts": {
+        "regions": 3,
+        "zones": 15,
+        "wards": 200,
+        "total_features": 218
+      },
+      "audit": {
+        "source_url": "https://gisgcc.chennaicorporation.gov.in/server/rest/services/GCCPublic/GCC_AdminBoundary/MapServer",
+        "retrieved_at": "2026-10-16T17:23:50.553Z",
+        "license": "Government Open Data / Official GCC Public ArcGIS MapServer (Open for public civic use)"
+      }
+    },
+    "gate_5_multi_authority_schemes": {
+      "status": "PASS",
+      "mumbai": {
+        "bmc_wards": 24,
+        "prabhags_separate": true,
+        "notice": "BMC 24 Administrative Wards. Electoral prabhags (councillor wards) are separate sub-ward units and do not replace administrative ward jurisdiction."
+      },
+      "delhi": {
+        "mcd_zones": 12,
+        "ndmc_divisions": 6,
+        "reproduction_restrictions": true,
+        "notice": "MCD administrative zone geometry is derived under reproduction restrictions preventing unapproved commercial tile publication (MCD Master Plan / Delhi Gazette). Displayed for civic accountability reference."
+      },
+      "noida": {
+        "authority_sectors": 10,
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA is an industrial development authority under the UP Industrial Area Development Act, 1976. It does NOT have elected municipal corporation wards. Schemes that invent municipal wards for NOIDA are rejected."
+      }
+    },
+    "gate_6_honest_availability_states": {
+      "status": "PASS",
+      "unindexed_cities_tested": [
+        "chennai",
+        "mumbai",
+        "delhi",
+        "noida"
+      ],
+      "indexed_city": {
+        "id": "bengaluru",
+        "roads_indexed": true,
+        "total_length_km": 30157.62,
+        "corridors_or_roads": 201415
+      },
+      "unindexed_contract": {
+        "roads_indexed": false,
+        "total_length_km": null,
+        "notice": "Road geometry index pending official acquisition"
+      },
+      "guarantee": "Never conflates unindexed roads with zero roads."
+    },
+    "gate_7_non_duplication_in_summaries": {
+      "status": "PASS",
+      "anti_double_counting": {
+        "raw_unit_spend_sum_cr": 352,
+        "parent_deduplicated_spend_cr": 182,
+        "spend_multiplication_prevented_cr": 170,
+        "raw_sum_unit_length_km": 15890.02,
+        "parent_canonical_span_union_length_km": 14760.22,
+        "multi_ward_works_counted_once": true
+      },
+      "guarantee": "Multi-ward works and tenders are counted once per parent summary; spend is NOT multiplied across boundaries."
+    },
+    "gate_8_failure_recovery": {
+      "status": "PASS",
+      "checks": [
+        "Invalid city summary -> 404",
+        "Invalid city manifest -> 404",
+        "Invalid unit ID in scheme -> 404",
+        "Missing jurisdiction scheme parameter -> 404",
+        "Delimitation pending jurisdiction -> 404 with pending notice",
+        "OPTIONS preflights -> 204 No Content with CORS"
+      ]
+    }
+  },
+  "verdict": "ALL_GATES_PASSED"
+}

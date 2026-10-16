@@ -1,22 +1,28 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   AlertTriangle, Layers, Building2, 
-  RefreshCw, MapPin, 
-  ExternalLink, ChevronRight, ChevronLeft,
-  Share2, ArrowLeft
+  MapPin, ExternalLink, ChevronRight, ChevronLeft,
+  Share2, ArrowLeft, Info
 } from 'lucide-react';
 import { GeospatialMap, RoadFeature, MultiSourceSignal } from '@/components/GeospatialMap';
-
+import { CitySelector, CITY_DEFAULT_SCHEMES } from '@/components/CitySelector';
 import { AreaOverview } from '@/components/AreaOverview';
 import type { MapBounds } from '@/lib/map-bounds';
 import { loadMapDeckPages } from '@/lib/map-deck-loader';
+import { getCityById, resolveCityId } from '@/lib/city-catalogue';
 
 export default function GeospatialDeckPage() {
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const [mapZoom, setMapZoom] = useState<number>(10.5);
+
+  // City and Jurisdiction Hierarchy State
+  const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
+  const [selectedScheme, setSelectedScheme] = useState<string | null>(null);
+  const [selectedJurisdictionUnit, setSelectedJurisdictionUnit] = useState<string | null>(null);
+  const [cityManifest, setCityManifest] = useState<any>(null);
 
   const [roads, setRoads] = useState<RoadFeature[]>([]);
   const [signals, setSignals] = useState<MultiSourceSignal[]>([]);
@@ -29,7 +35,6 @@ export default function GeospatialDeckPage() {
   const [isDeckCollapsed, setIsDeckCollapsed] = useState(false);
   const [activeDossierTab, setActiveDossierTab] = useState<'overview' | 'contractor' | 'timeline'>('overview');
   const [copied, setCopied] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const deckAbortRef = useRef<AbortController | null>(null);
   const deckReqIdRef = useRef(0);
@@ -40,8 +45,113 @@ export default function GeospatialDeckPage() {
     officialWorks: true,
     excavations: true,
     newsSocial: true,
-    verifiedIntact: true
+    verifiedIntact: true,
   });
+
+  // Read initial city, scheme, unit from URL parameters on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const cityParam = searchParams.get('city');
+    const schemeParam = searchParams.get('scheme');
+    const unitParam = searchParams.get('unit');
+
+    if (cityParam) {
+      const canonicalId = resolveCityId(cityParam) || cityParam.toLowerCase().trim();
+      const city = getCityById(canonicalId);
+      if (city) {
+        setSelectedCityId(city.id);
+        const defaultScheme = schemeParam || CITY_DEFAULT_SCHEMES[city.id]?.[0]?.id || 'zones';
+        setSelectedScheme(defaultScheme);
+        if (unitParam) {
+          setSelectedJurisdictionUnit(unitParam);
+        }
+      }
+    }
+  }, []);
+
+  // Synchronize URL parameters with replaceState when city/scheme/unit changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+
+    if (selectedCityId) {
+      url.searchParams.set('city', selectedCityId);
+    } else {
+      url.searchParams.delete('city');
+    }
+
+    if (selectedScheme) {
+      url.searchParams.set('scheme', selectedScheme);
+    } else {
+      url.searchParams.delete('scheme');
+    }
+
+    if (selectedJurisdictionUnit) {
+      url.searchParams.set('unit', selectedJurisdictionUnit);
+    } else {
+      url.searchParams.delete('unit');
+    }
+
+    const nextRelativeUrl = url.pathname + url.search;
+    window.history.replaceState({}, '', nextRelativeUrl);
+  }, [selectedCityId, selectedScheme, selectedJurisdictionUnit]);
+
+  // Fetch City Manifest when selectedCityId changes
+  useEffect(() => {
+    if (!selectedCityId) {
+      setCityManifest(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    fetch(`/api/v1/regions/${encodeURIComponent(selectedCityId)}/manifest`, {
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((data) => {
+        if (data) {
+          setCityManifest(data);
+          // If no active scheme selected, set first available scheme
+          if (!selectedScheme && Array.isArray(data.jurisdiction_schemes) && data.jurisdiction_schemes.length > 0) {
+            setSelectedScheme(data.jurisdiction_schemes[0].scheme_id || data.jurisdiction_schemes[0].id);
+          }
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.warn('Failed to fetch city manifest:', err);
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedCityId, selectedScheme]);
+
+  const handleSelectCity = useCallback((cityId: string | null) => {
+    setSelectedCityId(cityId);
+    setSelectedJurisdictionUnit(null);
+    setSelectedRoad(null);
+    setSelectedSignal(null);
+    if (cityId) {
+      const defaultScheme = CITY_DEFAULT_SCHEMES[cityId]?.[0]?.id || 'zones';
+      setSelectedScheme(defaultScheme);
+    } else {
+      setSelectedScheme(null);
+      setCityManifest(null);
+    }
+  }, []);
+
+  const handleSelectScheme = useCallback((schemeId: string) => {
+    setSelectedScheme(schemeId);
+    setSelectedJurisdictionUnit(null);
+  }, []);
+
+  const handleSelectJurisdictionUnit = useCallback((unitId: string | null) => {
+    setSelectedJurisdictionUnit(unitId);
+  }, []);
 
   const fetchDeckData = useCallback(async (bounds?: MapBounds | null, zoom?: number) => {
     if (deckAbortRef.current) {
@@ -61,22 +171,28 @@ export default function GeospatialDeckPage() {
       if (bounds) qs.set('bbox', bounds.join(','));
       if (zoom !== undefined && Number.isFinite(zoom)) qs.set('zoom', String(zoom));
       if (selectedRoadIdRef.current) qs.set('selected_road_id', selectedRoadIdRef.current);
+      if (selectedCityId) qs.set('city', selectedCityId);
       qs.set('_t', String(Date.now()));
 
       await loadMapDeckPages<RoadFeature>({
-        params: qs, signal: controller.signal,
+        params: qs,
+        signal: controller.signal,
         onPage: (data, nextRoads, complete) => {
-        if (reqId !== deckReqIdRef.current) return;
-        setRoads(nextRoads);
-        if (Array.isArray(data.signals)) setSignals(data.signals);
-        setSummary((previous: any) => ({ ...(data.summary || previous), visible_roads_returned: nextRoads.length, viewport_complete: complete }));
+          if (reqId !== deckReqIdRef.current) return;
+          setRoads(nextRoads);
+          if (Array.isArray(data.signals)) setSignals(data.signals);
+          setSummary((previous: any) => ({
+            ...(data.summary || previous),
+            visible_roads_returned: nextRoads.length,
+            viewport_complete: complete,
+          }));
 
-        // Preserve selectedRoad inspection state when visible map data refreshes
-        setSelectedRoad((prev) => {
-          if (!prev) return null;
-          const updated = nextRoads.find((r) => r.id === prev.id);
-          return updated || prev;
-        });
+          // Preserve selectedRoad inspection state when visible map data refreshes
+          setSelectedRoad((prev) => {
+            if (!prev) return null;
+            const updated = nextRoads.find((r) => r.id === prev.id);
+            return updated || prev;
+          });
         },
       });
     } catch (err: any) {
@@ -89,7 +205,7 @@ export default function GeospatialDeckPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [selectedCityId]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
@@ -131,9 +247,9 @@ export default function GeospatialDeckPage() {
   }, []);
 
   const handleToggleFilter = (key: 'officialWorks' | 'excavations' | 'newsSocial' | 'verifiedIntact') => {
-    setActiveLayerFilters(prev => ({
+    setActiveLayerFilters((prev) => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: !prev[key],
     }));
   };
 
@@ -144,6 +260,10 @@ export default function GeospatialDeckPage() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  const currentCity = useMemo(() => {
+    return selectedCityId ? getCityById(selectedCityId) : null;
+  }, [selectedCityId]);
 
   const primaryWork = selectedRoad?.works && selectedRoad.works.length > 0 ? selectedRoad.works[0] : null;
   const hasExcavation = selectedRoad?.incidents && selectedRoad.incidents.length > 0;
@@ -177,7 +297,7 @@ export default function GeospatialDeckPage() {
           sourceBadge: `[OFFICIAL PORTAL • ${(w.authority_name || 'Procurement').toUpperCase()}]`,
           badgeStyle: 'cyan',
           title: `Work Sanctioned: ${w.contractor_name}`,
-          description: `Sanctioned under ${w.tender_id || w.contract_id || 'Tender'} for ₹${(Number(w.contract_value_inr || 0) / 10000000).toFixed(2)} Cr. ${w.package_name}`
+          description: `Sanctioned under ${w.tender_id || w.contract_id || 'Tender'} for ₹${(Number(w.contract_value_inr || 0) / 10000000).toFixed(2)} Cr. ${w.package_name}`,
         });
 
         if (w.defect_liability_end_date) {
@@ -191,7 +311,7 @@ export default function GeospatialDeckPage() {
             sourceBadge: '[STATUTORY WARRANTY]',
             badgeStyle: 'emerald',
             title: 'Defect Liability Period Enforced',
-            description: `Mandatory contractor maintenance liability legally enforced through ${w.defect_liability_end_date}.`
+            description: `Mandatory contractor maintenance liability legally enforced through ${w.defect_liability_end_date}.`,
           });
         }
       }
@@ -227,7 +347,7 @@ export default function GeospatialDeckPage() {
         badgeStyle: isNews ? 'purple' : isSocial ? 'orange' : 'cyan',
         title: sig.title,
         description: sig.details,
-        url: sig.source_url
+        url: sig.source_url,
       });
     }
 
@@ -243,7 +363,7 @@ export default function GeospatialDeckPage() {
           sourceBadge: `[FIELD OBSERVATION • ${inc.verification_state.toUpperCase()}]`,
           badgeStyle: inc.verification_state === 'corroborated' ? 'emerald' : 'amber',
           title: `Excavation / Defect Reported: ${inc.category.replace(/_/g, ' ')}`,
-          description: `Lifecycle status: ${inc.lifecycle_status}. Corroboration state: ${inc.verification_state}.`
+          description: `Lifecycle status: ${inc.lifecycle_status}. Corroboration state: ${inc.verification_state}.`,
         });
       }
     }
@@ -272,47 +392,78 @@ export default function GeospatialDeckPage() {
     <div className="relative w-full h-full overflow-hidden bg-canvas text-ink select-none">
       {/* Background 3D Globe Canvas (Full Viewport) */}
       <div className="absolute inset-0 w-full h-full">
-          <GeospatialMap
-            onViewportChange={handleViewportChange}
-            roads={roads}
-            signals={signals}
-            selectedRoadId={selectedRoad?.id || null}
-            onSelectRoad={(road) => {
-              setSelectedRoad(road);
-              setSelectedSignal(null);
-              setIsDeckCollapsed(false);
-            }}
-            onSelectSignal={(signal) => {
-              setSelectedSignal(signal);
-              setSelectedRoad(null);
-              setIsDeckCollapsed(false);
-            }}
-            activeLayerFilters={activeLayerFilters}
-            onToggleFilter={handleToggleFilter}
-          />
+        <GeospatialMap
+          onViewportChange={handleViewportChange}
+          roads={roads}
+          signals={signals}
+          selectedRoadId={selectedRoad?.id || null}
+          onSelectRoad={(road) => {
+            setSelectedRoad(road);
+            setSelectedSignal(null);
+            setIsDeckCollapsed(false);
+          }}
+          onSelectSignal={(signal) => {
+            setSelectedSignal(signal);
+            setSelectedRoad(null);
+            setIsDeckCollapsed(false);
+          }}
+          activeLayerFilters={activeLayerFilters}
+          onToggleFilter={handleToggleFilter}
+          selectedCityId={selectedCityId}
+          selectedScheme={selectedScheme}
+          selectedJurisdictionUnit={selectedJurisdictionUnit}
+          onSelectCity={handleSelectCity}
+          onSelectJurisdictionUnit={handleSelectJurisdictionUnit}
+          roadVersion="20261016"
+        />
         {(loading || roadLoadError || mapZoom < 11.5) && (
           <div role="status" aria-live="polite" className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100%-2rem)] rounded-xl border border-line bg-surface px-4 py-2 text-sm text-ink shadow-md">
-            {roadLoadError ? <>{roadLoadError} <button className="min-h-11 underline text-information" onClick={() => fetchDeckData(mapBounds, mapZoom)}>Retry</button></>
-              : loading ? `Loading roads in this area…${roads.length ? ` ${roads.length.toLocaleString()} loaded` : ''}`
-              : 'Major roads shown. Zoom in to see neighbourhood streets.'}
+            {roadLoadError ? (
+              <>
+                {roadLoadError}{' '}
+                <button className="min-h-11 underline text-information" onClick={() => fetchDeckData(mapBounds, mapZoom)}>
+                  Retry
+                </button>
+              </>
+            ) : loading ? (
+              `Loading roads in this area…${roads.length ? ` ${roads.length.toLocaleString()} loaded` : ''}`
+            ) : (
+              'Major roads shown. Zoom in to see neighbourhood streets.'
+            )}
           </div>
         )}
       </div>
 
-      {/* Collapsed HUD Trigger Pill */}
-      {isDeckCollapsed && (
-        <button
-          onClick={() => setIsDeckCollapsed(false)}
-          className="absolute top-3 left-3 z-30 flex items-center gap-2 px-3 py-2 rounded-xl bg-canvas/90 backdrop-blur-xl border border-line text-ink hover:text-ink shadow-2xl text-xs font-mono transition-all hover:border-cyan-500/50"
-          title="Expand Corridor Deck"
-        >
-          <Layers className="w-4 h-4 text-information" />
-          <span className="font-semibold text-ink truncate max-w-[180px]">
-            {selectedRoad ? selectedRoad.name : 'Area overview'}
-          </span>
-          <ChevronRight className="w-4 h-4 text-muted" />
-        </button>
-      )}
+      {/* Top Floating Discovery Bar Container */}
+      <div className="absolute top-3 left-3 right-3 z-40 flex items-center gap-2 pointer-events-none">
+        {/* Collapsed HUD Trigger Pill */}
+        {isDeckCollapsed && (
+          <button
+            onClick={() => setIsDeckCollapsed(false)}
+            className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-xl bg-canvas/90 backdrop-blur-xl border border-line text-ink hover:text-ink shadow-2xl text-xs font-mono transition-all hover:border-cyan-500/50 flex-shrink-0"
+            title="Expand Corridor Deck"
+          >
+            <Layers className="w-4 h-4 text-information" />
+            <span className="font-semibold text-ink truncate max-w-[140px]">
+              {selectedRoad ? selectedRoad.name : currentCity ? currentCity.name : 'Area overview'}
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted" />
+          </button>
+        )}
+
+        {/* City Discovery Bar & Breadcrumb Navigator */}
+        <div className={`pointer-events-auto transition-all duration-300 ${!isDeckCollapsed ? 'md:ml-[425px]' : ''}`}>
+          <CitySelector
+            selectedCityId={selectedCityId}
+            selectedScheme={selectedScheme}
+            selectedJurisdictionUnit={selectedJurisdictionUnit}
+            onSelectCity={handleSelectCity}
+            onSelectScheme={handleSelectScheme}
+            onSelectJurisdictionUnit={handleSelectJurisdictionUnit}
+            availableSchemes={cityManifest?.jurisdiction_schemes}
+          />
+        </div>
+      </div>
 
       {/* Floating HUD Inspector Deck (Left Dock) */}
       <div
@@ -386,7 +537,25 @@ export default function GeospatialDeckPage() {
               </button>
             </div>
           ) : (
-            <div className="p-4 border-b border-line flex items-center justify-between"><h2 className="font-semibold text-lg">Area overview</h2><button aria-label="Collapse area overview" onClick={()=>setIsDeckCollapsed(true)} className="p-2 hover:bg-soft rounded-lg"><ChevronLeft className="w-4 h-4"/></button></div>
+            <div className="p-4 border-b border-line flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-lg">
+                  {currentCity ? `${currentCity.name} Overview` : 'Area overview'}
+                </h2>
+                {currentCity && (
+                  <p className="text-[11px] text-muted font-mono mt-0.5">
+                    {selectedJurisdictionUnit ? `Filter: ${selectedJurisdictionUnit}` : currentCity.structure_summary}
+                  </p>
+                )}
+              </div>
+              <button
+                aria-label="Collapse area overview"
+                onClick={() => setIsDeckCollapsed(true)}
+                className="p-2 hover:bg-soft rounded-lg"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
           )}
 
           {/* Deck Body: Directory vs. Road Dossier vs. Signal Dossier */}
@@ -710,7 +879,9 @@ export default function GeospatialDeckPage() {
               )}
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto"><AreaOverview bounds={mapBounds} enabled={!loading}/></div>
+            <div className="flex-1 overflow-y-auto">
+              <AreaOverview bounds={mapBounds} enabled={!loading} />
+            </div>
           )}
 
         </div>

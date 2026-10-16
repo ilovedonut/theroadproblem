@@ -1,0 +1,411 @@
+{
+  "type": "FeatureCollection",
+  "city": "noida",
+  "scheme": "sectors",
+  "authority": "New Okhla Industrial Development Authority (NOIDA)",
+  "governance_model": "UP Industrial Area Development Act, 1976",
+  "has_municipal_wards": false,
+  "rejection_notice": "NOIDA is an industrial development authority under the UP Industrial Area Development Act, 1976. It does NOT have elected municipal corporation wards. Schemes that invent municipal wards for NOIDA are rejected.",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "noida-sector-1",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.3,
+              28.58
+            ],
+            [
+              77.32,
+              28.58
+            ],
+            [
+              77.32,
+              28.6
+            ],
+            [
+              77.3,
+              28.6
+            ],
+            [
+              77.3,
+              28.58
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-1",
+        "name": "Sector 1",
+        "sector": "Sector 1",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-15",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.31,
+              28.57
+            ],
+            [
+              77.33,
+              28.57
+            ],
+            [
+              77.33,
+              28.59
+            ],
+            [
+              77.31,
+              28.59
+            ],
+            [
+              77.31,
+              28.57
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-15",
+        "name": "Sector 15",
+        "sector": "Sector 15",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-18",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.32,
+              28.56
+            ],
+            [
+              77.34,
+              28.56
+            ],
+            [
+              77.34,
+              28.58
+            ],
+            [
+              77.32,
+              28.58
+            ],
+            [
+              77.32,
+              28.56
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-18",
+        "name": "Sector 18",
+        "sector": "Sector 18",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-25",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.33,
+              28.58
+            ],
+            [
+              77.35,
+              28.58
+            ],
+            [
+              77.35,
+              28.6
+            ],
+            [
+              77.33,
+              28.6
+            ],
+            [
+              77.33,
+              28.58
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-25",
+        "name": "Sector 25",
+        "sector": "Sector 25",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-50",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.36,
+              28.56
+            ],
+            [
+              77.38,
+              28.56
+            ],
+            [
+              77.38,
+              28.58
+            ],
+            [
+              77.36,
+              28.58
+            ],
+            [
+              77.36,
+              28.56
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-50",
+        "name": "Sector 50",
+        "sector": "Sector 50",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-62",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.36,
+              28.61
+            ],
+            [
+              77.38,
+              28.61
+            ],
+            [
+              77.38,
+              28.64
+            ],
+            [
+              77.36,
+              28.64
+            ],
+            [
+              77.36,
+              28.61
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-62",
+        "name": "Sector 62",
+        "sector": "Sector 62",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-75",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.38,
+              28.57
+            ],
+            [
+              77.4,
+              28.57
+            ],
+            [
+              77.4,
+              28.59
+            ],
+            [
+              77.38,
+              28.59
+            ],
+            [
+              77.38,
+              28.57
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-75",
+        "name": "Sector 75",
+        "sector": "Sector 75",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-128",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.35,
+              28.51
+            ],
+            [
+              77.38,
+              28.51
+            ],
+            [
+              77.38,
+              28.54
+            ],
+            [
+              77.35,
+              28.54
+            ],
+            [
+              77.35,
+              28.51
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-128",
+        "name": "Sector 128",
+        "sector": "Sector 128",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-137",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.39,
+              28.5
+            ],
+            [
+              77.41,
+              28.5
+            ],
+            [
+              77.41,
+              28.52
+            ],
+            [
+              77.39,
+              28.52
+            ],
+            [
+              77.39,
+              28.5
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-137",
+        "name": "Sector 137",
+        "sector": "Sector 137",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "noida-sector-150",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.44,
+              28.44
+            ],
+            [
+              77.48,
+              28.44
+            ],
+            [
+              77.48,
+              28.47
+            ],
+            [
+              77.44,
+              28.47
+            ],
+            [
+              77.44,
+              28.44
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "noida-sector-150",
+        "name": "Sector 150",
+        "sector": "Sector 150",
+        "jurisdiction_type": "authority_sector",
+        "authority": "NOIDA Authority",
+        "has_municipal_wards": false,
+        "rejection_notice": "NOIDA uses authority sectors, not municipal wards."
+      }
+    }
+  ]
+}

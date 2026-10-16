@@ -1,0 +1,107 @@
+{
+  "timestamp": "2026-10-16T17:24:15.972Z",
+  "status": "PASS",
+  "out_dir": "C:\\Users\\shiva\\Desktop\\the road problem\\output\\tiles\\bengaluru",
+  "manifest_present": true,
+  "manifest": {
+    "name": "bengaluru-roads",
+    "description": "PostGIS Mapbox Vector Tiles for Bengaluru road network",
+    "version": "1.0.0",
+    "format": "mvt",
+    "bounds": [
+      77.58544921875,
+      12.961735843534296,
+      77.607421875,
+      12.983147716796571
+    ],
+    "center": [
+      77.596435546875,
+      12.972441780165433,
+      14
+    ],
+    "minzoom": 14,
+    "maxzoom": 14,
+    "attribution": "© OpenStreetMap contributors, BBMP, KRDCL, NHAI",
+    "layers": [
+      {
+        "id": "roads",
+        "description": "Active road carriageways with official attributes",
+        "fields": {
+          "road_id": "String (UUID)",
+          "name": "String",
+          "ref": "String",
+          "road_class": "String",
+          "authority_name": "String"
+        }
+      }
+    ],
+    "vector_layers": [
+      {
+        "id": "roads",
+        "description": "Active road carriageways with official attributes",
+        "fields": {
+          "road_id": "String (UUID)",
+          "name": "String",
+          "ref": "String",
+          "road_class": "String",
+          "authority_name": "String"
+        }
+      }
+    ],
+    "tile_stats": {
+      "total_tiles": 4,
+      "written_tiles": 4,
+      "skipped_empty_tiles": 0,
+      "total_bytes": 393048
+    },
+    "last_generated_at": "2026-10-16T16:48:02.680Z"
+  },
+  "total_tiles_on_disk": 1,
+  "sample_tile": {
+    "z": 14,
+    "x": 11723,
+    "y": 7596,
+    "file_path": "C:\\Users\\shiva\\Desktop\\the road problem\\output\\tiles\\bengaluru\\14\\11723\\7596.mvt",
+    "file_size_bytes": 98262,
+    "layer_name": "roads",
+    "feature_count": 1506,
+    "distinct_road_ids_in_tile": 1230,
+    "db_active_roads_count": 1230,
+    "missing_roads_count": 0,
+    "completeness_percentage": 100,
+    "feature_properties": [
+      "road_id",
+      "name",
+      "road_class",
+      "ref",
+      "authority_name"
+    ],
+    "unauthorized_properties": []
+  },
+  "assertions": [
+    {
+      "name": "Tile file exists and is non-empty",
+      "passed": true
+    },
+    {
+      "name": "Vector tile contains roads layer",
+      "passed": true
+    },
+    {
+      "name": "Features contain road_id, name, and road_class",
+      "passed": true
+    },
+    {
+      "name": "No works or incidents baked in",
+      "passed": true
+    },
+    {
+      "name": "Feature completeness >= 99%",
+      "passed": true
+    },
+    {
+      "name": "Manifest index exists in output directory",
+      "passed": true
+    }
+  ]
+}

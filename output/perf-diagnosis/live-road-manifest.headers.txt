@@ -1,0 +1,20 @@
+HTTP/1.1 404 Not Found
+Date: Fri, 16 Oct 2026 17:41:59 GMT
+Content-Type: text/html; charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+referrer-policy: strict-origin-when-cross-origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-nextjs-cache: MISS
+x-nextjs-prerender: 1
+x-nextjs-stale-time: 300
+x-xss-protection: 1; mode=block
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=OQFuRRutJt2lGReXBAqZMzsNb3wUe7ZJubp885aaYRs6wYLOxDrLM0EV05w76N9NLRsZ7%2FJfdFGxoWssxaAg1GE%2B0OhRIIYo9F74yx%2F%2FshiGXrMMeNsPcBkiL%2BNNpCI94tZ37Xnwqz2%2F3kgWm2HfVTAgfw%3D%3D"}]}
+Server: cloudflare
+CF-RAY: a4b8db850dd7b7d1-DEL
+alt-svc: h3=":443"; ma=86400
+

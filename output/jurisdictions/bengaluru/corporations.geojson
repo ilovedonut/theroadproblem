@@ -1,0 +1,216 @@
+{
+  "type": "FeatureCollection",
+  "city": "bengaluru",
+  "scheme": "corporations",
+  "status": "pending",
+  "delimitation_status": "pending",
+  "legal_basis": "Greater Bengaluru Governance Bill, 2024",
+  "notice": "Delimitation pending under Greater Bengaluru Governance Bill 2024. Exact boundary geometry awaiting official gazette notification.",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "gba-blr-central",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.56,
+              12.95
+            ],
+            [
+              77.62,
+              12.95
+            ],
+            [
+              77.62,
+              13.01
+            ],
+            [
+              77.56,
+              13.01
+            ],
+            [
+              77.56,
+              12.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "gba-blr-central",
+        "name": "Bengaluru Central City Corporation",
+        "corporation": "Central",
+        "jurisdiction_type": "city_corporation",
+        "authority": "Greater Bengaluru Authority (GBA)",
+        "status": "pending",
+        "delimitation_status": "pending",
+        "notice": "Boundary delimitation pending gazette notification."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "gba-blr-north",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.52,
+              13.01
+            ],
+            [
+              77.63,
+              13.01
+            ],
+            [
+              77.63,
+              13.12
+            ],
+            [
+              77.52,
+              13.12
+            ],
+            [
+              77.52,
+              13.01
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "gba-blr-north",
+        "name": "Bengaluru North City Corporation",
+        "corporation": "North",
+        "jurisdiction_type": "city_corporation",
+        "authority": "Greater Bengaluru Authority (GBA)",
+        "status": "pending",
+        "delimitation_status": "pending",
+        "notice": "Boundary delimitation pending gazette notification."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "gba-blr-south",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.53,
+              12.86
+            ],
+            [
+              77.63,
+              12.86
+            ],
+            [
+              77.63,
+              12.95
+            ],
+            [
+              77.53,
+              12.95
+            ],
+            [
+              77.53,
+              12.86
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "gba-blr-south",
+        "name": "Bengaluru South City Corporation",
+        "corporation": "South",
+        "jurisdiction_type": "city_corporation",
+        "authority": "Greater Bengaluru Authority (GBA)",
+        "status": "pending",
+        "delimitation_status": "pending",
+        "notice": "Boundary delimitation pending gazette notification."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "gba-blr-east",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.63,
+              12.91
+            ],
+            [
+              77.74,
+              12.91
+            ],
+            [
+              77.74,
+              13.05
+            ],
+            [
+              77.63,
+              13.05
+            ],
+            [
+              77.63,
+              12.91
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "gba-blr-east",
+        "name": "Bengaluru East City Corporation",
+        "corporation": "East",
+        "jurisdiction_type": "city_corporation",
+        "authority": "Greater Bengaluru Authority (GBA)",
+        "status": "pending",
+        "delimitation_status": "pending",
+        "notice": "Boundary delimitation pending gazette notification."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "gba-blr-west",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.46,
+              12.91
+            ],
+            [
+              77.56,
+              12.91
+            ],
+            [
+              77.56,
+              13.04
+            ],
+            [
+              77.46,
+              13.04
+            ],
+            [
+              77.46,
+              12.91
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "gba-blr-west",
+        "name": "Bengaluru West City Corporation",
+        "corporation": "West",
+        "jurisdiction_type": "city_corporation",
+        "authority": "Greater Bengaluru Authority (GBA)",
+        "status": "pending",
+        "delimitation_status": "pending",
+        "notice": "Boundary delimitation pending gazette notification."
+      }
+    }
+  ]
+}

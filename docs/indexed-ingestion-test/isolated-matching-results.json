@@ -1,0 +1,219 @@
+{
+  "checked_at": "2026-10-15T15:11:40.193Z",
+  "database": "theroadproblem_ingestion_test",
+  "sample_segments": 180,
+  "sample_roads": 128,
+  "rolled_back": true,
+  "link_rerun": {
+    "before": "1",
+    "after": "1"
+  },
+  "checks": [
+    {
+      "name": "Actual named road geometry is discoverable",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "Bengaluru Urban",
+        "road_name_hint": "1 A Main Road",
+        "coordinates": {
+          "lon": 77.62495715,
+          "lat": 12.9173
+        }
+      },
+      "result": {
+        "road_id": "c7a23980-a0c7-499b-85d2-da687905d9d3",
+        "road_name": "1 A Main Road",
+        "matched_segment_ids": [
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8"
+        ],
+        "candidate_segment_ids": [
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43",
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "8c32eec7-c81c-4c5d-9f99-db24fc69caeb",
+          "2a8512b3-decd-4c71-8470-b80ef5fcbbe1",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "73200993-d0f0-49f5-8b4a-def154c29dec",
+          "54d195be-aa2e-48bf-bb70-7f6a17b3b254",
+          "6b00221a-5113-44f0-90e6-a12de19aa001"
+        ],
+        "confidence": "high_exact_ref_chainage",
+        "score": 95,
+        "is_ambiguous": false,
+        "review_status": "approved"
+      },
+      "passed": true
+    },
+    {
+      "name": "Conflicting source district requires review",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "New Delhi",
+        "road_name_hint": "1 A Main Road",
+        "coordinates": {
+          "lon": 77.62495715,
+          "lat": 12.9173
+        }
+      },
+      "result": {
+        "road_id": "c7a23980-a0c7-499b-85d2-da687905d9d3",
+        "road_name": "1 A Main Road",
+        "matched_segment_ids": [
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8"
+        ],
+        "candidate_segment_ids": [
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43",
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "8c32eec7-c81c-4c5d-9f99-db24fc69caeb",
+          "2a8512b3-decd-4c71-8470-b80ef5fcbbe1",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "73200993-d0f0-49f5-8b4a-def154c29dec",
+          "54d195be-aa2e-48bf-bb70-7f6a17b3b254",
+          "6b00221a-5113-44f0-90e6-a12de19aa001"
+        ],
+        "confidence": "high_exact_ref_chainage",
+        "score": 95,
+        "is_ambiguous": false,
+        "review_status": "approved"
+      },
+      "passed": false,
+      "failure": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'approved'\n- 'needs_review'\n"
+    },
+    {
+      "name": "Conflicting road name and identifier require review",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "Bengaluru Urban",
+        "road_name_hint": "NONEXISTENT ROAD CONTROL",
+        "coordinates": {
+          "lon": 77.62495715,
+          "lat": 12.9173
+        },
+        "road_ref": "NONEXISTENT-REF"
+      },
+      "result": {
+        "road_id": "e15eec18-2232-46b6-91dd-b0ab801ab09a",
+        "road_name": "Hosur Road (Surface Service Carriageway)",
+        "matched_segment_ids": [
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43"
+        ],
+        "candidate_segment_ids": [
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43",
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "8c32eec7-c81c-4c5d-9f99-db24fc69caeb",
+          "2a8512b3-decd-4c71-8470-b80ef5fcbbe1",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "73200993-d0f0-49f5-8b4a-def154c29dec",
+          "54d195be-aa2e-48bf-bb70-7f6a17b3b254",
+          "6b00221a-5113-44f0-90e6-a12de19aa001"
+        ],
+        "confidence": "high_exact_ref_chainage",
+        "score": 95,
+        "is_ambiguous": false,
+        "review_status": "approved"
+      },
+      "passed": false,
+      "failure": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'approved'\n- 'needs_review'\n"
+    },
+    {
+      "name": "Coordinates without identifying evidence require review",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "coordinates": {
+          "lon": 77.62495715,
+          "lat": 12.9173
+        }
+      },
+      "result": {
+        "road_id": "e15eec18-2232-46b6-91dd-b0ab801ab09a",
+        "road_name": "Hosur Road (Surface Service Carriageway)",
+        "matched_segment_ids": [
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43"
+        ],
+        "candidate_segment_ids": [
+          "e9bc8d97-3c7b-4fb3-b4c9-4483fe536b43",
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "8c32eec7-c81c-4c5d-9f99-db24fc69caeb",
+          "2a8512b3-decd-4c71-8470-b80ef5fcbbe1",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "73200993-d0f0-49f5-8b4a-def154c29dec",
+          "54d195be-aa2e-48bf-bb70-7f6a17b3b254",
+          "6b00221a-5113-44f0-90e6-a12de19aa001"
+        ],
+        "confidence": "high_exact_ref_chainage",
+        "score": 95,
+        "is_ambiguous": false,
+        "review_status": "approved"
+      },
+      "passed": false,
+      "failure": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'approved'\n- 'needs_review'\n"
+    },
+    {
+      "name": "An off-road point remains unlinked",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "Bengaluru Urban",
+        "road_name_hint": "NONEXISTENT ROAD CONTROL",
+        "coordinates": {
+          "lon": 77.209,
+          "lat": 28.6139
+        }
+      },
+      "result": {
+        "road_id": null,
+        "road_name": null,
+        "matched_segment_ids": [],
+        "candidate_segment_ids": [],
+        "confidence": "low_ambiguous",
+        "score": 0,
+        "is_ambiguous": true,
+        "ambiguity_reason": "No candidate roads discovered matching ref=\"undefined\", name=\"NONEXISTENT ROAD CONTROL\", district=\"Bengaluru Urban\"",
+        "review_status": "needs_review"
+      },
+      "passed": true
+    },
+    {
+      "name": "OSM geometry does not invent authoritative chainage",
+      "input": {
+        "tender_id": "ISOLATED-INDEX-TEST",
+        "package_name": "Isolated matcher check",
+        "district": "Bengaluru Urban",
+        "road_name_hint": "1 A Main Road",
+        "coordinates": null,
+        "chainage_start_km": 0,
+        "chainage_end_km": 2
+      },
+      "result": {
+        "road_id": "c7a23980-a0c7-499b-85d2-da687905d9d3",
+        "road_name": "1 A Main Road",
+        "matched_segment_ids": [],
+        "candidate_segment_ids": [
+          "375cf835-49a0-4d67-97fe-e9a7b8762ad8",
+          "738539a0-2371-4283-a434-974ec3abec87",
+          "8c97de08-b560-465c-87fd-10496961fe73",
+          "e9e2a907-f63a-4597-aa89-2f07ab2d2a18"
+        ],
+        "confidence": "low_ambiguous",
+        "score": 45,
+        "is_ambiguous": true,
+        "ambiguity_reason": "Chainage out of bounds or missing official chainage: contract specifies 0-2km, but candidate segments lack overlapping authoritative chainage",
+        "review_status": "needs_review"
+      },
+      "passed": true
+    }
+  ],
+  "passed": 3,
+  "failed": 3
+}

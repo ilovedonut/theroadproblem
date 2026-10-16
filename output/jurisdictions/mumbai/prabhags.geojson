@@ -1,0 +1,47 @@
+{
+  "type": "FeatureCollection",
+  "city": "mumbai",
+  "scheme": "prabhags",
+  "authority": "Brihanmumbai Municipal Corporation (BMC)",
+  "notice": "BMC electoral prabhags (councillor wards) are separate electoral boundaries under the State Election Commission and do not substitute for BMC 24 Administrative Wards.",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "mumbai-prabhags-overview",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.78,
+              18.9
+            ],
+            [
+              72.98,
+              18.9
+            ],
+            [
+              72.98,
+              19.28
+            ],
+            [
+              72.78,
+              19.28
+            ],
+            [
+              72.78,
+              18.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "BMC Electoral Prabhags Scheme",
+        "description": "Electoral prabhags are distinct from the 24 Administrative Wards (A through T). Administrative reporting and engineering works are managed at Administrative Ward level.",
+        "total_prabhags": 227,
+        "type": "electoral_prabhags",
+        "authority": "State Election Commission / BMC"
+      }
+    }
+  ]
+}

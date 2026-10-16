@@ -1,0 +1,58 @@
+© OpenStreetMap contributors | theroadproblem.quest • Bengaluru Urban District Index
+Tenders
+Excavations
+Intel
+Warranty
+3D Globe
+Official Work
+Ground Dig
+Under Warranty
+Area overview
+
+Pan or zoom the map to explore the records in this view.
+
+Coverage boundary:
+Bengaluru Urban (Admin District)
+View status:
+Inside indexed coverage (Bengaluru Urban District)
+Last OSM import:
+15/10/2026
+Budgets & spending
+Recorded actual spending
+Not available
+Full budgets of linked projects
+Not available
+Estimated budget within this view
+Not available
+
+0 of 0 projects have a recorded budget. The area estimate allocates each budget by its mapped road length in view; it does not measure payments.
+
+Roads & repairs
+Indexed roads / corridors
+429
+Active physical segments
+512
+Unique OSM source ways
+512
+Motor-road length in view
+40.7 km
+Linked projects
+0
+Contractors
+0
+Open issues
+0
+Roads with open issues
+0
+Issues per 100 roads
+0.0
+Average repair time
+Not available
+
+Length measures active motor-road carriageways inside the coverage boundary (dual carriageways counted per physical way; non-motor routes excluded). Repair average uses 0 resolved issues with recorded dates, excluding reopened cases. 0 open issues have no matched road.
+
+Responsible authorities · 0
+
+No confirmed authority recorded for this view.
+
+Coverage reflects eligible roads present in the stated OpenStreetMap extract within the Bengaluru Urban district boundary, not every real-world road. Calculated 21:52:39.

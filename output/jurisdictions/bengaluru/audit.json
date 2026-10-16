@@ -1,0 +1,13 @@
+{
+  "city": "bengaluru",
+  "status": "delimitation_pending",
+  "schemes": {
+    "corporations": {
+      "file": "corporations.geojson",
+      "count": 5,
+      "sha256": "6555b5abfcdf5655f133dce17364af60e40768e4ade0a040a6433e41c46f813a",
+      "status": "pending",
+      "notice": "Delimitation pending under Greater Bengaluru Governance Bill 2024. Exact boundary geometry awaiting official gazette notification."
+    }
+  }
+}

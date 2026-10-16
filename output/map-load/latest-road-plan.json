@@ -1,0 +1,852 @@
+[
+  {
+    "QUERY PLAN": [
+      {
+        "Plan": {
+          "Node Type": "Merge Join",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Join Type": "Left",
+          "Startup Cost": 464868.72,
+          "Total Cost": 561704.31,
+          "Plan Rows": 182976,
+          "Plan Width": 449,
+          "Inner Unique": true,
+          "Merge Cond": "(pr.id = vs.road_id)",
+          "Plans": [
+            {
+              "Node Type": "Aggregate",
+              "Strategy": "Hashed",
+              "Partial Mode": "Simple",
+              "Parent Relationship": "InitPlan",
+              "Subplan Name": "CTE eligible_segment_ids",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Startup Cost": 1199.22,
+              "Total Cost": 1376.27,
+              "Plan Rows": 17705,
+              "Plan Width": 16,
+              "Group Key": [
+                "road_segments.id"
+              ],
+              "Planned Partitions": 0,
+              "Plans": [
+                {
+                  "Node Type": "Append",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 0.42,
+                  "Total Cost": 1154.96,
+                  "Plan Rows": 17705,
+                  "Plan Width": 16,
+                  "Subplans Removed": 0,
+                  "Plans": [
+                    {
+                      "Node Type": "Index Only Scan",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Scan Direction": "Forward",
+                      "Index Name": "idx_road_segments_active_class",
+                      "Relation Name": "road_segments",
+                      "Alias": "road_segments",
+                      "Startup Cost": 0.42,
+                      "Total Cost": 1021.48,
+                      "Plan Rows": 17501,
+                      "Plan Width": 16,
+                      "Index Cond": "(road_class = ANY ('{motorway,trunk,primary,secondary,tertiary,motorway_link,trunk_link,primary_link,secondary_link}'::text[]))"
+                    },
+                    {
+                      "Node Type": "Nested Loop",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Join Type": "Inner",
+                      "Startup Cost": 0.71,
+                      "Total Cost": 4.54,
+                      "Plan Rows": 1,
+                      "Plan Width": 16,
+                      "Inner Unique": false,
+                      "Plans": [
+                        {
+                          "Node Type": "Index Scan",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Scan Direction": "Forward",
+                          "Index Name": "idx_roads_official",
+                          "Relation Name": "roads",
+                          "Alias": "r",
+                          "Startup Cost": 0.29,
+                          "Total Cost": 1.89,
+                          "Plan Rows": 1,
+                          "Plan Width": 16,
+                          "Index Cond": "(is_official_corridor = true)"
+                        },
+                        {
+                          "Node Type": "Index Scan",
+                          "Parent Relationship": "Inner",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Scan Direction": "Forward",
+                          "Index Name": "idx_road_segments_road_id",
+                          "Relation Name": "road_segments",
+                          "Alias": "rs",
+                          "Startup Cost": 0.42,
+                          "Total Cost": 2.64,
+                          "Plan Rows": 1,
+                          "Plan Width": 32,
+                          "Index Cond": "(road_id = r.id)"
+                        }
+                      ]
+                    },
+                    {
+                      "Node Type": "Nested Loop",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Join Type": "Inner",
+                      "Startup Cost": 0.86,
+                      "Total Cost": 21.4,
+                      "Plan Rows": 1,
+                      "Plan Width": 16,
+                      "Inner Unique": true,
+                      "Plans": [
+                        {
+                          "Node Type": "Index Only Scan",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Scan Direction": "Forward",
+                          "Index Name": "idx_road_segments_active_class",
+                          "Relation Name": "road_segments",
+                          "Alias": "rs_1",
+                          "Startup Cost": 0.42,
+                          "Total Cost": 2.74,
+                          "Plan Rows": 7,
+                          "Plan Width": 32,
+                          "Index Cond": "(road_class IS NULL)"
+                        },
+                        {
+                          "Node Type": "Index Scan",
+                          "Parent Relationship": "Inner",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Scan Direction": "Forward",
+                          "Index Name": "roads_pkey",
+                          "Relation Name": "roads",
+                          "Alias": "r_1",
+                          "Startup Cost": 0.44,
+                          "Total Cost": 2.67,
+                          "Plan Rows": 1,
+                          "Plan Width": 16,
+                          "Index Cond": "(id = rs_1.road_id)",
+                          "Filter": "(road_class = ANY ('{motorway,trunk,primary,secondary,tertiary,motorway_link,trunk_link,primary_link,secondary_link}'::text[]))"
+                        }
+                      ]
+                    },
+                    {
+                      "Node Type": "Aggregate",
+                      "Strategy": "Hashed",
+                      "Partial Mode": "Simple",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Startup Cost": 14.62,
+                      "Total Cost": 16.62,
+                      "Plan Rows": 200,
+                      "Plan Width": 16,
+                      "Group Key": [
+                        "work_segments.road_segment_id"
+                      ],
+                      "Planned Partitions": 0,
+                      "Plans": [
+                        {
+                          "Node Type": "Seq Scan",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Relation Name": "work_segments",
+                          "Alias": "work_segments",
+                          "Startup Cost": 0,
+                          "Total Cost": 13.7,
+                          "Plan Rows": 370,
+                          "Plan Width": 16
+                        }
+                      ]
+                    },
+                    {
+                      "Node Type": "Unique",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Startup Cost": 2.38,
+                      "Total Cost": 2.38,
+                      "Plan Rows": 1,
+                      "Plan Width": 16,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Startup Cost": 2.38,
+                          "Total Cost": 2.38,
+                          "Plan Rows": 1,
+                          "Plan Width": 16,
+                          "Sort Key": [
+                            "incidents.road_segment_id"
+                          ],
+                          "Plans": [
+                            {
+                              "Node Type": "Index Scan",
+                              "Parent Relationship": "Outer",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Scan Direction": "Forward",
+                              "Index Name": "idx_incidents_lifecycle",
+                              "Relation Name": "incidents",
+                              "Alias": "incidents",
+                              "Startup Cost": 0.15,
+                              "Total Cost": 2.37,
+                              "Plan Rows": 1,
+                              "Plan Width": 16,
+                              "Index Cond": "(lifecycle_status = 'active'::text)",
+                              "Filter": "(road_segment_id IS NOT NULL)"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Node Type": "Result",
+                      "Parent Relationship": "Member",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Startup Cost": 0,
+                      "Total Cost": 0,
+                      "Plan Rows": 0,
+                      "Plan Width": 0,
+                      "One-Time Filter": "false"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Node Type": "Nested Loop",
+              "Parent Relationship": "InitPlan",
+              "Subplan Name": "CTE candidate_segments",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Join Type": "Inner",
+              "Startup Cost": 0.42,
+              "Total Cost": 22367.3,
+              "Plan Rows": 17409,
+              "Plan Width": 269,
+              "Inner Unique": true,
+              "Plans": [
+                {
+                  "Node Type": "CTE Scan",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "CTE Name": "eligible_segment_ids",
+                  "Alias": "eligible",
+                  "Startup Cost": 0,
+                  "Total Cost": 354.1,
+                  "Plan Rows": 17705,
+                  "Plan Width": 16
+                },
+                {
+                  "Node Type": "Index Scan",
+                  "Parent Relationship": "Inner",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Scan Direction": "Forward",
+                  "Index Name": "road_segments_pkey",
+                  "Relation Name": "road_segments",
+                  "Alias": "rs_2",
+                  "Startup Cost": 0.42,
+                  "Total Cost": 1.24,
+                  "Plan Rows": 1,
+                  "Plan Width": 201,
+                  "Index Cond": "(id = eligible.id)",
+                  "Filter": "(is_active AND ((usage_category IS NULL) OR (usage_category = ANY ('{public_motor,restricted_motor}'::text[]))))"
+                }
+              ]
+            },
+            {
+              "Node Type": "CTE Scan",
+              "Parent Relationship": "InitPlan",
+              "Subplan Name": "CTE visible_segments",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "CTE Name": "candidate_segments",
+              "Alias": "candidate_segments",
+              "Startup Cost": 0,
+              "Total Cost": 435616.7,
+              "Plan Rows": 15817,
+              "Plan Width": 296,
+              "Filter": "((geom && '0103000020E61000000100000005000000104154D705475340C6776618F8912940104154D70547534066752A8A7EBA2A4040A54D9DB086534066752A8A7EBA2A4040A54D9DB0865340C6776618F8912940104154D705475340C6776618F8912940'::geometry) AND st_intersects(geom, '0103000020E61000000100000005000000104154D705475340C6776618F8912940104154D70547534066752A8A7EBA2A4040A54D9DB086534066752A8A7EBA2A4040A54D9DB0865340C6776618F8912940104154D705475340C6776618F8912940'::geometry))"
+            },
+            {
+              "Node Type": "Limit",
+              "Parent Relationship": "InitPlan",
+              "Subplan Name": "CTE prioritized_roads",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Startup Cost": 1479.82,
+              "Total Cost": 3501.4,
+              "Plan Rows": 2501,
+              "Plan Width": 230,
+              "Plans": [
+                {
+                  "Node Type": "Aggregate",
+                  "Strategy": "Sorted",
+                  "Partial Mode": "Simple",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 1479.82,
+                  "Total Cost": 14264.85,
+                  "Plan Rows": 15817,
+                  "Plan Width": 230,
+                  "Group Key": [
+                    "r_2.id"
+                  ],
+                  "Plans": [
+                    {
+                      "Node Type": "Incremental Sort",
+                      "Parent Relationship": "Outer",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Startup Cost": 1479.82,
+                      "Total Cost": 13908.97,
+                      "Plan Rows": 15817,
+                      "Plan Width": 195,
+                      "Sort Key": [
+                        "r_2.id",
+                        "vs_1.osm_way_id"
+                      ],
+                      "Presorted Key": [
+                        "r_2.id"
+                      ],
+                      "Plans": [
+                        {
+                          "Node Type": "Merge Join",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Join Type": "Inner",
+                          "Startup Cost": 1478.73,
+                          "Total Cost": 13366.64,
+                          "Plan Rows": 15817,
+                          "Plan Width": 195,
+                          "Inner Unique": false,
+                          "Merge Cond": "(r_2.id = vs_1.road_id)",
+                          "Plans": [
+                            {
+                              "Node Type": "Index Scan",
+                              "Parent Relationship": "Outer",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Scan Direction": "Forward",
+                              "Index Name": "roads_pkey",
+                              "Relation Name": "roads",
+                              "Alias": "r_2",
+                              "Startup Cost": 0.42,
+                              "Total Cost": 11264.86,
+                              "Plan Rows": 201547,
+                              "Plan Width": 139,
+                              "Filter": "(name !~~ 'Test %'::text)"
+                            },
+                            {
+                              "Node Type": "Sort",
+                              "Parent Relationship": "Inner",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Startup Cost": 1419.51,
+                              "Total Cost": 1459.05,
+                              "Plan Rows": 15817,
+                              "Plan Width": 72,
+                              "Sort Key": [
+                                "vs_1.road_id"
+                              ],
+                              "Plans": [
+                                {
+                                  "Node Type": "CTE Scan",
+                                  "Parent Relationship": "Outer",
+                                  "Parallel Aware": false,
+                                  "Async Capable": false,
+                                  "CTE Name": "visible_segments",
+                                  "Alias": "vs_1",
+                                  "Startup Cost": 0,
+                                  "Total Cost": 316.34,
+                                  "Plan Rows": 15817,
+                                  "Plan Width": 72
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Node Type": "Aggregate",
+              "Strategy": "Sorted",
+              "Partial Mode": "Simple",
+              "Parent Relationship": "InitPlan",
+              "Subplan Name": "CTE page_works",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Startup Cost": 1039.4,
+              "Total Cost": 1057.67,
+              "Plan Rows": 812,
+              "Plan Width": 48,
+              "Group Key": [
+                "rs_w.road_id"
+              ],
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 1039.4,
+                  "Total Cost": 1041.43,
+                  "Plan Rows": 812,
+                  "Plan Width": 336,
+                  "Sort Key": [
+                    "rs_w.road_id",
+                    "(jsonb_build_object('work_id', w.id, 'package_name', w.package_name, 'authority_name', w.authority_name, 'tender_id', w.tender_id, 'contract_id', w.contract_id, 'official_status', w.official_status, 'contract_value_inr', w.contract_value_inr, 'contractor_name', c.legal_name, 'cin', c.cin, 'gstin', c.gstin, 'start_date', w.start_date, 'target_completion_date', w.target_completion_date, 'actual_completion_date', w.actual_completion_date, 'defect_liability_end_date', w.defect_liability_end_date))"
+                  ],
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Parent Relationship": "Outer",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Join Type": "Left",
+                      "Startup Cost": 59.41,
+                      "Total Cost": 1000.16,
+                      "Plan Rows": 812,
+                      "Plan Width": 336,
+                      "Inner Unique": true,
+                      "Hash Cond": "(wc.contractor_id = c.id)",
+                      "Plans": [
+                        {
+                          "Node Type": "Hash Join",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Join Type": "Inner",
+                          "Startup Cost": 40.86,
+                          "Total Cost": 979.46,
+                          "Plan Rows": 812,
+                          "Plan Width": 256,
+                          "Inner Unique": false,
+                          "Hash Cond": "(ws.work_id = w.id)",
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Parent Relationship": "Outer",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Join Type": "Inner",
+                              "Startup Cost": 0.42,
+                              "Total Cost": 929.08,
+                              "Plan Rows": 364,
+                              "Plan Width": 32,
+                              "Inner Unique": true,
+                              "Plans": [
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Parent Relationship": "Outer",
+                                  "Parallel Aware": false,
+                                  "Async Capable": false,
+                                  "Relation Name": "work_segments",
+                                  "Alias": "ws",
+                                  "Startup Cost": 0,
+                                  "Total Cost": 13.7,
+                                  "Plan Rows": 370,
+                                  "Plan Width": 32
+                                },
+                                {
+                                  "Node Type": "Index Scan",
+                                  "Parent Relationship": "Inner",
+                                  "Parallel Aware": false,
+                                  "Async Capable": false,
+                                  "Scan Direction": "Forward",
+                                  "Index Name": "road_segments_pkey",
+                                  "Relation Name": "road_segments",
+                                  "Alias": "rs_w",
+                                  "Startup Cost": 0.42,
+                                  "Total Cost": 2.47,
+                                  "Plan Rows": 1,
+                                  "Plan Width": 32,
+                                  "Index Cond": "(id = ws.road_segment_id)",
+                                  "Filter": "is_active"
+                                }
+                              ]
+                            },
+                            {
+                              "Node Type": "Hash",
+                              "Parent Relationship": "Inner",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Startup Cost": 33.19,
+                              "Total Cost": 33.19,
+                              "Plan Rows": 580,
+                              "Plan Width": 240,
+                              "Plans": [
+                                {
+                                  "Node Type": "Hash Join",
+                                  "Parent Relationship": "Outer",
+                                  "Parallel Aware": false,
+                                  "Async Capable": false,
+                                  "Join Type": "Right",
+                                  "Startup Cost": 15.85,
+                                  "Total Cost": 33.19,
+                                  "Plan Rows": 580,
+                                  "Plan Width": 240,
+                                  "Inner Unique": true,
+                                  "Hash Cond": "(wc.work_id = w.id)",
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Parent Relationship": "Outer",
+                                      "Parallel Aware": false,
+                                      "Async Capable": false,
+                                      "Relation Name": "work_contractors",
+                                      "Alias": "wc",
+                                      "Startup Cost": 0,
+                                      "Total Cost": 15.8,
+                                      "Plan Rows": 580,
+                                      "Plan Width": 32
+                                    },
+                                    {
+                                      "Node Type": "Hash",
+                                      "Parent Relationship": "Inner",
+                                      "Parallel Aware": false,
+                                      "Async Capable": false,
+                                      "Startup Cost": 12.6,
+                                      "Total Cost": 12.6,
+                                      "Plan Rows": 260,
+                                      "Plan Width": 224,
+                                      "Plans": [
+                                        {
+                                          "Node Type": "Seq Scan",
+                                          "Parent Relationship": "Outer",
+                                          "Parallel Aware": false,
+                                          "Async Capable": false,
+                                          "Relation Name": "works",
+                                          "Alias": "w",
+                                          "Startup Cost": 0,
+                                          "Total Cost": 12.6,
+                                          "Plan Rows": 260,
+                                          "Plan Width": 224
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Parent Relationship": "Inner",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Startup Cost": 13.8,
+                          "Total Cost": 13.8,
+                          "Plan Rows": 380,
+                          "Plan Width": 112,
+                          "Plans": [
+                            {
+                              "Node Type": "Seq Scan",
+                              "Parent Relationship": "Outer",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Relation Name": "contractors",
+                              "Alias": "c",
+                              "Startup Cost": 0,
+                              "Total Cost": 13.8,
+                              "Plan Rows": 380,
+                              "Plan Width": 112
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Node Type": "Aggregate",
+              "Strategy": "Sorted",
+              "Partial Mode": "Simple",
+              "Parent Relationship": "InitPlan",
+              "Subplan Name": "CTE page_incidents",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Startup Cost": 5.01,
+              "Total Cost": 5.04,
+              "Plan Rows": 1,
+              "Plan Width": 48,
+              "Group Key": [
+                "rs_i.road_id"
+              ],
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 5.01,
+                  "Total Cost": 5.02,
+                  "Plan Rows": 1,
+                  "Plan Width": 168,
+                  "Sort Key": [
+                    "rs_i.road_id",
+                    "(jsonb_build_object('incident_id', i.id, 'category', i.category, 'lifecycle_status', i.lifecycle_status, 'verification_state', i.verification_state, 'last_observed_at', i.last_observed_at, 'lat', st_y(i.centroid), 'lon', st_x(i.centroid)))"
+                  ],
+                  "Plans": [
+                    {
+                      "Node Type": "Nested Loop",
+                      "Parent Relationship": "Outer",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Join Type": "Inner",
+                      "Startup Cost": 0.57,
+                      "Total Cost": 5,
+                      "Plan Rows": 1,
+                      "Plan Width": 168,
+                      "Inner Unique": true,
+                      "Plans": [
+                        {
+                          "Node Type": "Index Scan",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Scan Direction": "Forward",
+                          "Index Name": "idx_incidents_lifecycle",
+                          "Relation Name": "incidents",
+                          "Alias": "i",
+                          "Startup Cost": 0.15,
+                          "Total Cost": 2.37,
+                          "Plan Rows": 1,
+                          "Plan Width": 168,
+                          "Index Cond": "(lifecycle_status = 'active'::text)"
+                        },
+                        {
+                          "Node Type": "Index Scan",
+                          "Parent Relationship": "Inner",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Scan Direction": "Forward",
+                          "Index Name": "road_segments_pkey",
+                          "Relation Name": "road_segments",
+                          "Alias": "rs_i",
+                          "Startup Cost": 0.42,
+                          "Total Cost": 2.64,
+                          "Plan Rows": 1,
+                          "Plan Width": 32,
+                          "Index Cond": "(id = i.road_segment_id)",
+                          "Filter": "is_active"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Node Type": "Merge Join",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Join Type": "Left",
+              "Startup Cost": 0,
+              "Total Cost": 231.29,
+              "Plan Rows": 10154,
+              "Plan Width": 417,
+              "Inner Unique": false,
+              "Merge Cond": "(pr.id = pw.road_id)",
+              "Plans": [
+                {
+                  "Node Type": "Merge Join",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Join Type": "Left",
+                  "Startup Cost": 0,
+                  "Total Cost": 56.49,
+                  "Plan Rows": 2501,
+                  "Plan Width": 385,
+                  "Inner Unique": false,
+                  "Merge Cond": "(pr.id = pi.road_id)",
+                  "Plans": [
+                    {
+                      "Node Type": "CTE Scan",
+                      "Parent Relationship": "Outer",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "CTE Name": "prioritized_roads",
+                      "Alias": "pr",
+                      "Startup Cost": 0,
+                      "Total Cost": 50.02,
+                      "Plan Rows": 2501,
+                      "Plan Width": 353
+                    },
+                    {
+                      "Node Type": "Materialize",
+                      "Parent Relationship": "Inner",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Startup Cost": 0,
+                      "Total Cost": 0.02,
+                      "Plan Rows": 1,
+                      "Plan Width": 48,
+                      "Plans": [
+                        {
+                          "Node Type": "CTE Scan",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "CTE Name": "page_incidents",
+                          "Alias": "pi",
+                          "Startup Cost": 0,
+                          "Total Cost": 0.02,
+                          "Plan Rows": 1,
+                          "Plan Width": 48
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Materialize",
+                  "Parent Relationship": "Inner",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 0,
+                  "Total Cost": 18.27,
+                  "Plan Rows": 812,
+                  "Plan Width": 48,
+                  "Plans": [
+                    {
+                      "Node Type": "CTE Scan",
+                      "Parent Relationship": "Outer",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "CTE Name": "page_works",
+                      "Alias": "pw",
+                      "Startup Cost": 0,
+                      "Total Cost": 16.24,
+                      "Plan Rows": 812,
+                      "Plan Width": 48
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Node Type": "Aggregate",
+              "Strategy": "Sorted",
+              "Partial Mode": "Simple",
+              "Parent Relationship": "Inner",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Startup Cost": 944.33,
+              "Total Cost": 95648.44,
+              "Plan Rows": 3604,
+              "Plan Width": 48,
+              "Group Key": [
+                "vs.road_id"
+              ],
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Startup Cost": 944.33,
+                  "Total Cost": 953.34,
+                  "Plan Rows": 3604,
+                  "Plan Width": 200,
+                  "Sort Key": [
+                    "vs.road_id",
+                    "vs.chainage_from",
+                    "vs.id"
+                  ],
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Parent Relationship": "Outer",
+                      "Parallel Aware": false,
+                      "Async Capable": false,
+                      "Join Type": "Inner",
+                      "Startup Cost": 514.05,
+                      "Total Cost": 731.41,
+                      "Plan Rows": 3604,
+                      "Plan Width": 200,
+                      "Inner Unique": false,
+                      "Hash Cond": "(pr_1.id = vs.road_id)",
+                      "Plans": [
+                        {
+                          "Node Type": "CTE Scan",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "CTE Name": "prioritized_roads",
+                          "Alias": "pr_1",
+                          "Startup Cost": 0,
+                          "Total Cost": 50.02,
+                          "Plan Rows": 2501,
+                          "Plan Width": 16
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Parent Relationship": "Inner",
+                          "Parallel Aware": false,
+                          "Async Capable": false,
+                          "Startup Cost": 316.34,
+                          "Total Cost": 316.34,
+                          "Plan Rows": 15817,
+                          "Plan Width": 200,
+                          "Plans": [
+                            {
+                              "Node Type": "CTE Scan",
+                              "Parent Relationship": "Outer",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "CTE Name": "visible_segments",
+                              "Alias": "vs",
+                              "Startup Cost": 0,
+                              "Total Cost": 316.34,
+                              "Plan Rows": 15817,
+                              "Plan Width": 200
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

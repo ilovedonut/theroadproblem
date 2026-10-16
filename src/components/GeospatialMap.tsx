@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl, { Map as MapLibreMap } from 'maplibre-gl';
 import { Compass, Globe2, Map as MapIcon } from 'lucide-react';
+import { normaliseMapBounds, parseMapBounds, type MapBounds } from '@/lib/map-bounds';
+import { getAllCities, getCityById, CityEntry } from '@/lib/city-catalogue';
 
 export interface RoadFeature {
   id: string;
@@ -69,9 +71,7 @@ export interface MultiSourceSignal {
   is_demo?: boolean;
 }
 
-import { normaliseMapBounds, parseMapBounds, type MapBounds } from '@/lib/map-bounds';
-
-interface GeospatialMapProps {
+export interface GeospatialMapProps {
   onViewportChange?: (bounds: MapBounds, zoom?: number) => void;
   roads: RoadFeature[];
   signals: MultiSourceSignal[];
@@ -85,6 +85,14 @@ interface GeospatialMapProps {
     verifiedIntact: boolean;
   };
   onToggleFilter: (key: 'officialWorks' | 'excavations' | 'newsSocial' | 'verifiedIntact') => void;
+
+  // City Discovery & Jurisdiction Hierarchy props
+  selectedCityId?: string | null;
+  selectedScheme?: string | null;
+  selectedJurisdictionUnit?: string | null;
+  onSelectCity?: (cityId: string) => void;
+  onSelectJurisdictionUnit?: (unitId: string | null) => void;
+  roadVersion?: string;
 }
 
 export function GeospatialMap({
@@ -96,11 +104,20 @@ export function GeospatialMap({
   onSelectSignal,
   activeLayerFilters,
   onToggleFilter,
+  selectedCityId,
+  selectedScheme,
+  selectedJurisdictionUnit,
+  onSelectCity,
+  onSelectJurisdictionUnit,
+  roadVersion = '20261016',
 }: GeospatialMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const signalPopupRef = useRef<maplibregl.Popup | null>(null);
   const roadPopupRef = useRef<maplibregl.Popup | null>(null);
+  const cityPopupRef = useRef<maplibregl.Popup | null>(null);
+  const jurisdictionPopupRef = useRef<maplibregl.Popup | null>(null);
+
   const signalsRef = useRef<MultiSourceSignal[]>(signals);
   signalsRef.current = signals;
   const roadsRef = useRef<RoadFeature[]>(roads);
@@ -109,7 +126,15 @@ export function GeospatialMap({
   onSelectRoadRef.current = onSelectRoad;
   const onSelectSignalRef = useRef(onSelectSignal);
   onSelectSignalRef.current = onSelectSignal;
+  const onSelectCityRef = useRef(onSelectCity);
+  onSelectCityRef.current = onSelectCity;
+  const onSelectJurisdictionUnitRef = useRef(onSelectJurisdictionUnit);
+  onSelectJurisdictionUnitRef.current = onSelectJurisdictionUnit;
+
   const lastSwoopedRoadIdRef = useRef<string | null>(null);
+  const lastFittedCityIdRef = useRef<string | null>(null);
+  const hoveredJurisdictionIdRef = useRef<string | number | null>(null);
+  const jurisdictionsDataRef = useRef<any>(null);
 
   const viewportCallback = useRef(onViewportChange);
   viewportCallback.current = onViewportChange;
@@ -124,25 +149,24 @@ export function GeospatialMap({
     const darkGlobeStyle: any = {
       version: 8,
       projection: {
-        type: 'globe'
+        type: 'globe',
       },
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
       sources: {
         'osm-tiles': {
           type: 'raster',
-          tiles: [
-            'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-          ],
+          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
           tileSize: 256,
-          attribution: '&copy; OpenStreetMap contributors'
-        }
+          attribution: '&copy; OpenStreetMap contributors',
+        },
       },
       layers: [
         {
           id: 'cosmic-space-background',
           type: 'background',
           paint: {
-            'background-color': '#eee9df'
-          }
+            'background-color': '#eee9df',
+          },
         },
         {
           id: 'osm-globe-surface',
@@ -153,23 +177,28 @@ export function GeospatialMap({
           paint: {
             'raster-brightness-max': 1,
             'raster-contrast': 0,
-            'raster-saturation': 0
-          }
-        }
-      ]
+            'raster-saturation': 0,
+          },
+        },
+      ],
     };
+
+    const initialCenter: [number, number] = selectedCityId
+      ? (getCityById(selectedCityId)?.center || [77.5946, 12.9716])
+      : [78.9629, 20.5937];
+    const initialZoom = selectedCityId ? 11 : 4.5;
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: darkGlobeStyle,
-      center: [77.625, 12.92], // Bengaluru Urban pilot center
-      zoom: 10.5,
-      pitch: 42,
-      bearing: -15,
+      center: initialCenter,
+      zoom: initialZoom,
+      pitch: selectedCityId ? 42 : 30,
+      bearing: selectedCityId ? -15 : 0,
       maxPitch: 75,
       minZoom: 1.5,
       maxZoom: 18,
-      attributionControl: false
+      attributionControl: false,
     });
 
     map.addControl(
@@ -180,7 +209,7 @@ export function GeospatialMap({
     map.addControl(
       new maplibregl.AttributionControl({
         compact: true,
-        customAttribution: 'theroadproblem.quest • Bengaluru Urban District Index'
+        customAttribution: 'theroadproblem.quest • India Road Observability',
       }),
       'bottom-left'
     );
@@ -188,15 +217,20 @@ export function GeospatialMap({
     const applyMapTheme = () => {
       if (!map.getLayer('cosmic-space-background')) return;
       const dark = document.documentElement.classList.contains('dark');
-      map.setPaintProperty('cosmic-space-background', 'background-color', dark ? '#211f1b' : '#eee9df');
+      map.setPaintProperty(
+        'cosmic-space-background',
+        'background-color',
+        dark ? '#211f1b' : '#eee9df'
+      );
     };
     const themeObserver = new MutationObserver(applyMapTheme);
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
 
     let viewportReady = false;
     const publishBounds = () => {
-      // Initialization and ResizeObserver emit moveend before the requested
-      // location is fitted. Do not launch abandoned city-wide queries then.
       if (!viewportReady) return;
       const b = map.getBounds();
       const z = Number(map.getZoom().toFixed(2));
@@ -205,18 +239,39 @@ export function GeospatialMap({
         z
       );
     };
+
     map.on('moveend', publishBounds);
     map.on('load', () => {
       applyMapTheme();
       try {
         (map as any).setProjection({ type: 'globe' });
       } catch (err) {
-        console.warn('Globe projection initialization fallback:', err);
+        console.warn('Globe projection fallback:', err);
       }
       setMapLoaded(true);
       map.resize();
+
       const requested = parseMapBounds(new URLSearchParams(window.location.search).get('bbox'));
-      if (requested) map.fitBounds([[requested[0], requested[1]], [requested[2], requested[3]]], { padding: 50, duration: 0 });
+      if (requested) {
+        map.fitBounds(
+          [
+            [requested[0], requested[1]],
+            [requested[2], requested[3]],
+          ],
+          { padding: 50, duration: 0 }
+        );
+      } else if (selectedCityId) {
+        const city = getCityById(selectedCityId);
+        if (city) {
+          map.fitBounds(
+            [
+              [city.bounds[0], city.bounds[1]],
+              [city.bounds[2], city.bounds[3]],
+            ],
+            { padding: 60, duration: 0 }
+          );
+        }
+      }
       viewportReady = true;
       publishBounds();
     });
@@ -236,10 +291,12 @@ export function GeospatialMap({
       resizeObserver.disconnect();
       if (signalPopupRef.current) signalPopupRef.current.remove();
       if (roadPopupRef.current) roadPopupRef.current.remove();
+      if (cityPopupRef.current) cityPopupRef.current.remove();
+      if (jurisdictionPopupRef.current) jurisdictionPopupRef.current.remove();
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, []); // Run once on mount
 
   // Projection Toggle (Globe 3D vs Flat 2D)
   const toggleProjection = useCallback(() => {
@@ -251,7 +308,7 @@ export function GeospatialMap({
 
     try {
       (map as any).setProjection({
-        type: nextIsGlobe ? 'globe' : 'mercator'
+        type: nextIsGlobe ? 'globe' : 'mercator',
       });
       if (!nextIsGlobe) {
         map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
@@ -263,23 +320,63 @@ export function GeospatialMap({
     }
   }, [isGlobe]);
 
-  // Orbit Reset (Zoom back to global / national view)
+  // Orbit Reset (Zoom back to national view)
   const flyToGlobalOrbit = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
 
+    onSelectCityRef.current?.('');
     map.flyTo({
       center: [78.9629, 20.5937],
-      zoom: 3.8,
-      pitch: 35,
+      zoom: 4.2,
+      pitch: 30,
       bearing: 0,
       speed: 0.9,
       curve: 1.3,
-      essential: true
+      essential: true,
     });
   }, []);
 
-  // Smooth camera swoop only when selectedRoadId changes (does NOT re-swoop when viewport refreshes roads)
+  // Camera animation when selectedCityId changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    if (!selectedCityId) {
+      if (lastFittedCityIdRef.current) {
+        lastFittedCityIdRef.current = null;
+        map.flyTo({
+          center: [78.9629, 20.5937],
+          zoom: 4.2,
+          pitch: 30,
+          bearing: 0,
+          speed: 0.9,
+          essential: true,
+        });
+      }
+      return;
+    }
+
+    if (lastFittedCityIdRef.current === selectedCityId) return;
+
+    const city = getCityById(selectedCityId);
+    if (!city) return;
+
+    lastFittedCityIdRef.current = selectedCityId;
+    map.fitBounds(
+      [
+        [city.bounds[0], city.bounds[1]],
+        [city.bounds[2], city.bounds[3]],
+      ],
+      {
+        padding: { top: 70, bottom: 50, left: 320, right: 60 },
+        duration: 1200,
+        maxZoom: 13.5,
+      }
+    );
+  }, [selectedCityId, mapLoaded]);
+
+  // Smooth camera swoop only when selectedRoadId changes
   useEffect(() => {
     const map = mapRef.current;
     if (!selectedRoadId) {
@@ -305,11 +402,574 @@ export function GeospatialMap({
       pitch: 48,
       bearing: -15,
       speed: 1.1,
-      essential: true
+      essential: true,
     });
   }, [selectedRoadId, roads, mapLoaded]);
 
-  // Update Vector Road Networks on the Map
+  // -------------------------------------------------------------
+  // 1. National/Regional City Discovery Markers ($z \le 9$)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const allCities = getAllCities();
+    const cityFeatures = allCities.map((city) => {
+      const isIndexed = city.capabilities.road_coverage === 'indexed';
+      const isBoundariesReady = city.capabilities.jurisdiction === 'verified';
+
+      let markerColor = '#f59e0b'; // amber (default pending)
+      let badgeLabel = 'MARKER ONLY';
+
+      if (isIndexed) {
+        markerColor = '#10b981'; // emerald
+        badgeLabel = 'ROADS INDEXED';
+      } else if (isBoundariesReady) {
+        markerColor = '#06b6d4'; // cyan
+        badgeLabel = 'BOUNDARIES READY';
+      }
+
+      return {
+        type: 'Feature' as const,
+        id: city.id,
+        properties: {
+          id: city.id,
+          name: city.name,
+          local_name: city.local_name,
+          state: city.state,
+          metro_group: city.metro_group || '',
+          structure_summary: city.structure_summary,
+          marker_color: markerColor,
+          badge_label: badgeLabel,
+          notice: city.notice,
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: city.center,
+        },
+      };
+    });
+
+    const geojsonData = {
+      type: 'FeatureCollection' as const,
+      features: cityFeatures,
+    };
+
+    const sourceId = 'city-discovery-source';
+
+    if (map.getSource(sourceId)) {
+      (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(geojsonData as any);
+    } else {
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: geojsonData as any,
+      });
+
+      // Halo pulse layer ($z \le 9$)
+      map.addLayer({
+        id: 'city-markers-halo',
+        type: 'circle',
+        source: sourceId,
+        maxzoom: 10,
+        paint: {
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            2, 6,
+            5, 12,
+            9, 18,
+          ],
+          'circle-color': ['get', 'marker_color'],
+          'circle-opacity': 0.35,
+          'circle-blur': 0.45,
+        },
+      });
+
+      // Core point marker ($z \le 9$)
+      map.addLayer({
+        id: 'city-markers-circle',
+        type: 'circle',
+        source: sourceId,
+        maxzoom: 10,
+        paint: {
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            2, 3.5,
+            5, 6,
+            9, 8,
+          ],
+          'circle-color': ['get', 'marker_color'],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#020617',
+          'circle-opacity': 0.95,
+        },
+      });
+
+      // City Name Label ($z \le 9$)
+      map.addLayer({
+        id: 'city-markers-label',
+        type: 'symbol',
+        source: sourceId,
+        maxzoom: 10,
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            3, 10,
+            6, 11,
+            9, 13,
+          ],
+          'text-offset': [0, 1.25],
+          'text-anchor': 'top',
+          'text-allow-overlap': false,
+        },
+        paint: {
+          'text-color': '#f8fafc',
+          'text-halo-color': '#020617',
+          'text-halo-width': 2,
+        },
+      });
+
+      // Hover Tooltip on City Marker
+      map.on('mouseenter', 'city-markers-circle', (e) => {
+        map.getCanvas().style.cursor = 'pointer';
+        if (!e.features || e.features.length === 0) return;
+        const props = e.features[0].properties;
+        const coordinates = (e.features[0].geometry as any).coordinates.slice();
+
+        if (!cityPopupRef.current) {
+          cityPopupRef.current = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            offset: 12,
+            className: 'deck-telemetry-popup',
+          });
+        }
+
+        cityPopupRef.current
+          .setLngLat(coordinates)
+          .setHTML(`
+            <div class="px-3 py-2 rounded-xl bg-canvas/95 border border-line/80 shadow-2xl text-ink font-sans max-w-[260px] backdrop-blur-xl pointer-events-none">
+              <div class="flex items-center justify-between gap-1 pb-1 border-b border-line text-[10px] font-mono">
+                <span class="font-bold uppercase" style="color: ${props.marker_color}">${props.badge_label}</span>
+                <span class="text-muted">${props.state}</span>
+              </div>
+              <h3 class="font-bold text-xs text-ink mt-1 flex items-center gap-1.5">
+                <span>${props.name}</span>
+                <span class="text-muted font-normal font-mono text-[11px]">${props.local_name}</span>
+              </h3>
+              <p class="text-[11px] text-muted font-mono mt-0.5 line-clamp-1">${props.structure_summary}</p>
+              <div class="mt-1.5 pt-1 border-t border-line/60 flex items-center justify-between text-[10px] font-mono text-information">
+                <span>Click to explore city</span>
+                <span>Zoom In →</span>
+              </div>
+            </div>
+          `)
+          .addTo(map);
+      });
+
+      map.on('mouseleave', 'city-markers-circle', () => {
+        map.getCanvas().style.cursor = '';
+        if (cityPopupRef.current) {
+          cityPopupRef.current.remove();
+        }
+      });
+
+      // Click City Marker -> Trigger onSelectCity and fit camera
+      map.on('click', 'city-markers-circle', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        if (cityPopupRef.current) cityPopupRef.current.remove();
+        const cityId = e.features[0].properties.id;
+        if (cityId) {
+          onSelectCityRef.current?.(cityId);
+          const city = getCityById(cityId);
+          if (city) {
+            map.fitBounds(
+              [
+                [city.bounds[0], city.bounds[1]],
+                [city.bounds[2], city.bounds[3]],
+              ],
+              {
+                padding: { top: 70, bottom: 50, left: 320, right: 60 },
+                duration: 1200,
+                maxZoom: 13.5,
+              }
+            );
+          }
+        }
+      });
+    }
+  }, [mapLoaded]);
+
+  // -------------------------------------------------------------
+  // 2. Jurisdiction Boundaries Layer
+  // -------------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const sourceId = 'jurisdictions-boundary';
+
+    if (!selectedCityId) {
+      if (map.getSource(sourceId)) {
+        (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData({
+          type: 'FeatureCollection',
+          features: [],
+        });
+      }
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    async function loadJurisdictionBoundaries() {
+      try {
+        const scheme = selectedScheme || 'zones';
+        const url = `/api/v1/regions/${encodeURIComponent(selectedCityId!)}/jurisdictions?scheme=${encodeURIComponent(scheme)}`;
+        const res = await fetch(url, { signal: abortController.signal });
+
+        if (!res.ok) {
+          // Boundary pending or 404
+          if (map?.getSource(sourceId)) {
+            (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData({
+              type: 'FeatureCollection',
+              features: [],
+            });
+          }
+          return;
+        }
+
+        const geoJson = await res.json();
+        jurisdictionsDataRef.current = geoJson;
+
+        // Ensure every feature has a unique numeric or string id for feature-state
+        if (Array.isArray(geoJson.features)) {
+          geoJson.features.forEach((feat: any, idx: number) => {
+            if (feat.id === undefined || feat.id === null) {
+              feat.id = feat.properties?.id ?? feat.properties?.ward_number ?? feat.properties?.zone_number ?? idx + 1;
+            }
+          });
+        }
+
+        if (!map) return;
+
+        if (map.getSource(sourceId)) {
+          (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(geoJson);
+        } else {
+          map.addSource(sourceId, {
+            type: 'geojson',
+            data: geoJson,
+          });
+
+          // Semi-transparent fill layer
+          map.addLayer(
+            {
+              id: 'jurisdictions-fill',
+              type: 'fill',
+              source: sourceId,
+              paint: {
+                'fill-color': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  '#0891b2',
+                  '#0284c7',
+                ],
+                'fill-opacity': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  0.35,
+                  0.12,
+                ],
+              },
+            },
+            'roads-glow'
+          );
+
+          // Boundary outline layer
+          map.addLayer(
+            {
+              id: 'jurisdictions-outline',
+              type: 'line',
+              source: sourceId,
+              paint: {
+                'line-color': '#22d3ee',
+                'line-width': [
+                  'case',
+                  ['boolean', ['feature-state', 'hover'], false],
+                  2.5,
+                  1.2,
+                ],
+                'line-opacity': 0.85,
+              },
+            },
+            'roads-glow'
+          );
+
+          // Jurisdiction label layer
+          map.addLayer(
+            {
+              id: 'jurisdictions-label',
+              type: 'symbol',
+              source: sourceId,
+              layout: {
+                'text-field': [
+                  'coalesce',
+                  ['get', 'name'],
+                  ['get', 'ward_name'],
+                  ['get', 'zone_name'],
+                  ['get', 'region_name'],
+                  ['get', 'division_name'],
+                  ['get', 'sector_name'],
+                  ['get', 'ward_number'],
+                  ['get', 'zone'],
+                  '',
+                ],
+                'text-size': 11,
+                'text-allow-overlap': false,
+              },
+              paint: {
+                'text-color': '#f8fafc',
+                'text-halo-color': '#020617',
+                'text-halo-width': 1.5,
+              },
+            },
+            'roads-glow'
+          );
+
+          // Hover interaction
+          map.on('mousemove', 'jurisdictions-fill', (e) => {
+            if (!e.features || e.features.length === 0) return;
+            map.getCanvas().style.cursor = 'pointer';
+            const feature = e.features[0];
+            const featureId = feature.id;
+
+            if (hoveredJurisdictionIdRef.current !== null && hoveredJurisdictionIdRef.current !== featureId) {
+              map.setFeatureState(
+                { source: sourceId, id: hoveredJurisdictionIdRef.current },
+                { hover: false }
+              );
+            }
+
+            hoveredJurisdictionIdRef.current = featureId ?? null;
+            if (featureId !== undefined) {
+              map.setFeatureState({ source: sourceId, id: featureId }, { hover: true });
+            }
+
+            const props = feature.properties || {};
+            const unitName =
+              props.name ||
+              props.ward_name ||
+              props.zone_name ||
+              props.region_name ||
+              props.division_name ||
+              (props.ward_number ? `Ward ${props.ward_number}` : '') ||
+              (props.zone_number ? `Zone ${props.zone_number}` : 'Jurisdiction Unit');
+
+            if (!jurisdictionPopupRef.current) {
+              jurisdictionPopupRef.current = new maplibregl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+                offset: 10,
+                className: 'deck-telemetry-popup',
+              });
+            }
+
+            jurisdictionPopupRef.current
+              .setLngLat(e.lngLat)
+              .setHTML(`
+                <div class="px-2.5 py-1.5 rounded-lg bg-canvas/95 border border-cyan-500/40 shadow-xl text-ink font-sans max-w-xs backdrop-blur-md pointer-events-none">
+                  <div class="text-[10px] font-mono text-information uppercase font-bold">Jurisdiction Unit</div>
+                  <p class="font-bold text-xs text-ink leading-tight mt-0.5">${unitName}</p>
+                  <p class="text-[10px] text-muted font-mono mt-0.5">Click to filter road reports</p>
+                </div>
+              `)
+              .addTo(map);
+          });
+
+          map.on('mouseleave', 'jurisdictions-fill', () => {
+            map.getCanvas().style.cursor = '';
+            if (hoveredJurisdictionIdRef.current !== null) {
+              map.setFeatureState(
+                { source: sourceId, id: hoveredJurisdictionIdRef.current },
+                { hover: false }
+              );
+              hoveredJurisdictionIdRef.current = null;
+            }
+            if (jurisdictionPopupRef.current) {
+              jurisdictionPopupRef.current.remove();
+            }
+          });
+
+          // Click on a unit -> Trigger onSelectJurisdictionUnit
+          map.on('click', 'jurisdictions-fill', (e) => {
+            if (!e.features || e.features.length === 0) return;
+            const props = e.features[0].properties || {};
+            const unitIdentifier =
+              props.name ||
+              props.ward_name ||
+              props.zone_name ||
+              props.region_name ||
+              props.division_name ||
+              (props.ward_number ? `Ward ${props.ward_number}` : String(e.features[0].id));
+
+            if (unitIdentifier) {
+              onSelectJurisdictionUnitRef.current?.(unitIdentifier);
+            }
+          });
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.warn('Could not load jurisdiction boundaries:', err);
+        }
+      }
+    }
+
+    loadJurisdictionBoundaries();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [selectedCityId, selectedScheme, mapLoaded]);
+
+  // -------------------------------------------------------------
+  // 3. Vector Tile Road Network Service Connection
+  // -------------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const sourceId = 'roads-vector-tiles';
+    const citySlug = selectedCityId || 'bengaluru';
+    const activeVer = roadVersion || '20261016';
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const tileUrl = `${origin}/api/v1/roads/${citySlug}/${activeVer}/{z}/{x}/{y}.mvt`;
+
+    // Remove existing vector layers/source if city or version changed
+    if (map.getSource(sourceId)) {
+      if (map.getLayer('roads-vector-glow')) map.removeLayer('roads-vector-glow');
+      if (map.getLayer('roads-vector-line')) map.removeLayer('roads-vector-line');
+      map.removeSource(sourceId);
+    }
+
+    // Add vector tile source
+    map.addSource(sourceId, {
+      type: 'vector',
+      tiles: [tileUrl],
+      minzoom: 10,
+      maxzoom: 16,
+    });
+
+    // Vector road ambient glow
+    map.addLayer(
+      {
+        id: 'roads-vector-glow',
+        type: 'line',
+        source: sourceId,
+        'source-layer': 'roads',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#06b6d4',
+          'line-width': 8,
+          'line-opacity': 0.35,
+          'line-blur': 2,
+        },
+      },
+      map.getLayer('roads-glow') ? 'roads-glow' : undefined
+    );
+
+    // Vector road carriageway line
+    map.addLayer(
+      {
+        id: 'roads-vector-line',
+        type: 'line',
+        source: sourceId,
+        'source-layer': 'roads',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#06b6d4',
+          'line-width': 2.8,
+          'line-opacity': 0.85,
+        },
+      },
+      map.getLayer('roads-line') ? 'roads-line' : undefined
+    );
+
+    // Vector road click & hover handlers
+    map.on('click', 'roads-vector-line', (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const props = e.features[0].properties;
+      const roadId = props.road_id || props.id;
+      const matched = roadsRef.current.find((r) => r.id === roadId);
+      if (matched) {
+        onSelectRoadRef.current(matched);
+      } else {
+        onSelectRoadRef.current({
+          id: String(roadId),
+          name: props.name || 'Road ' + roadId,
+          display_name: props.name,
+          ref: props.ref || null,
+          road_class: props.road_class || 'primary',
+          authority_name: props.authority_name || 'Indexed Road Network',
+          state: '',
+          district: '',
+          total_length_m: '0',
+        });
+      }
+    });
+
+    map.on('mouseenter', 'roads-vector-line', (e) => {
+      map.getCanvas().style.cursor = 'pointer';
+      if (!e.features || e.features.length === 0) return;
+      const props = e.features[0].properties;
+
+      if (!roadPopupRef.current) {
+        roadPopupRef.current = new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          offset: 10,
+          className: 'deck-telemetry-popup',
+        });
+      }
+
+      roadPopupRef.current
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <div class="px-2.5 py-1.5 rounded-lg bg-canvas/95 border border-line/80 shadow-2xl text-ink font-sans max-w-xs backdrop-blur-md pointer-events-none">
+            <p class="font-bold text-xs text-ink leading-tight">${props.name || 'Indexed Road'}</p>
+            <p class="text-[10px] font-mono text-information mt-0.5">${props.ref ? props.ref + ' • ' : ''}${props.authority_name || 'Edge Vector Cache'}</p>
+          </div>
+        `)
+        .addTo(map);
+    });
+
+    map.on('mousemove', 'roads-vector-line', (e) => {
+      if (roadPopupRef.current) {
+        roadPopupRef.current.setLngLat(e.lngLat);
+      }
+    });
+
+    map.on('mouseleave', 'roads-vector-line', () => {
+      map.getCanvas().style.cursor = '';
+      if (roadPopupRef.current) {
+        roadPopupRef.current.remove();
+      }
+    });
+  }, [selectedCityId, roadVersion, mapLoaded]);
+
+  // -------------------------------------------------------------
+  // 4. Update Dynamic Telemetry Road Overlays (Selection, Incidents, Works)
+  // -------------------------------------------------------------
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded || !roads) return;
@@ -343,9 +1003,9 @@ export function GeospatialMap({
                 ref: road.ref || '',
                 authority: road.authority_name || 'Authority unrecorded',
                 status_color: statusColor,
-                is_selected: road.id === selectedRoadId
+                is_selected: road.id === selectedRoadId,
               },
-              geometry: seg.geojson
+              geometry: seg.geojson,
             });
           }
         });
@@ -354,7 +1014,7 @@ export function GeospatialMap({
 
     const geojsonData = {
       type: 'FeatureCollection',
-      features
+      features,
     };
 
     if (map.getSource('roads-network')) {
@@ -362,7 +1022,7 @@ export function GeospatialMap({
     } else {
       map.addSource('roads-network', {
         type: 'geojson',
-        data: geojsonData as any
+        data: geojsonData as any,
       });
 
       map.addLayer({
@@ -371,14 +1031,14 @@ export function GeospatialMap({
         source: 'roads-network',
         layout: {
           'line-join': 'round',
-          'line-cap': 'round'
+          'line-cap': 'round',
         },
         paint: {
           'line-color': ['get', 'status_color'],
-          'line-width': ['case', ['get', 'is_selected'], 12, 6],
-          'line-opacity': 0.45,
-          'line-blur': 2.5
-        }
+          'line-width': ['case', ['get', 'is_selected'], 14, 6],
+          'line-opacity': ['case', ['get', 'is_selected'], 0.7, 0.45],
+          'line-blur': 2.5,
+        },
       });
 
       map.addLayer({
@@ -387,13 +1047,13 @@ export function GeospatialMap({
         source: 'roads-network',
         layout: {
           'line-join': 'round',
-          'line-cap': 'round'
+          'line-cap': 'round',
         },
         paint: {
           'line-color': ['get', 'status_color'],
-          'line-width': ['case', ['get', 'is_selected'], 4.5, 3],
-          'line-opacity': 0.95
-        }
+          'line-width': ['case', ['get', 'is_selected'], 5, 3],
+          'line-opacity': 0.95,
+        },
       });
 
       map.on('click', 'roads-line', (e) => {
@@ -415,7 +1075,7 @@ export function GeospatialMap({
             closeButton: false,
             closeOnClick: false,
             offset: 10,
-            className: 'deck-telemetry-popup'
+            className: 'deck-telemetry-popup',
           });
         }
 
@@ -445,7 +1105,9 @@ export function GeospatialMap({
     }
   }, [roads, mapLoaded, selectedRoadId, activeLayerFilters]);
 
-  // Update Multi-Source Intelligence & Incidents via Native WebGL Layers
+  // -------------------------------------------------------------
+  // 5. Multi-Source Intelligence & Incidents via Native WebGL Layers
+  // -------------------------------------------------------------
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
@@ -491,12 +1153,12 @@ export function GeospatialMap({
             halo_color: haloColor,
             category_label: categoryLabel,
             lat: sig.lat,
-            lon: sig.lon
+            lon: sig.lon,
           },
           geometry: {
             type: 'Point',
-            coordinates: [sig.lon, sig.lat]
-          }
+            coordinates: [sig.lon, sig.lat],
+          },
         });
       });
     }
@@ -521,12 +1183,12 @@ export function GeospatialMap({
                   halo_color: '#b45309',
                   category_label: 'EXCAVATION',
                   lat: inc.lat,
-                  lon: inc.lon
+                  lon: inc.lon,
                 },
                 geometry: {
                   type: 'Point',
-                  coordinates: [inc.lon, inc.lat]
-                }
+                  coordinates: [inc.lon, inc.lat],
+                },
               });
             }
           });
@@ -536,7 +1198,7 @@ export function GeospatialMap({
 
     const geojsonData = {
       type: 'FeatureCollection',
-      features
+      features,
     };
 
     if (map.getSource('signals-intel')) {
@@ -544,7 +1206,7 @@ export function GeospatialMap({
     } else {
       map.addSource('signals-intel', {
         type: 'geojson',
-        data: geojsonData as any
+        data: geojsonData as any,
       });
 
       map.addLayer({
@@ -553,15 +1215,17 @@ export function GeospatialMap({
         source: 'signals-intel',
         paint: {
           'circle-radius': [
-            'interpolate', ['linear'], ['zoom'],
+            'interpolate',
+            ['linear'],
+            ['zoom'],
             2, 5,
             8, 11,
-            14, 18
+            14, 18,
           ],
           'circle-color': ['get', 'color'],
           'circle-opacity': 0.35,
-          'circle-blur': 0.4
-        }
+          'circle-blur': 0.4,
+        },
       });
 
       map.addLayer({
@@ -570,16 +1234,18 @@ export function GeospatialMap({
         source: 'signals-intel',
         paint: {
           'circle-radius': [
-            'interpolate', ['linear'], ['zoom'],
+            'interpolate',
+            ['linear'],
+            ['zoom'],
             2, 3.5,
             8, 6.5,
-            14, 10
+            14, 10,
           ],
           'circle-color': ['get', 'color'],
           'circle-stroke-width': 2,
           'circle-stroke-color': '#020617',
-          'circle-opacity': 1
-        }
+          'circle-opacity': 1,
+        },
       });
 
       map.addLayer({
@@ -588,14 +1254,16 @@ export function GeospatialMap({
         source: 'signals-intel',
         paint: {
           'circle-radius': [
-            'interpolate', ['linear'], ['zoom'],
+            'interpolate',
+            ['linear'],
+            ['zoom'],
             2, 1,
             8, 2,
-            14, 3.5
+            14, 3.5,
           ],
           'circle-color': '#ffffff',
-          'circle-opacity': 0.95
-        }
+          'circle-opacity': 0.95,
+        },
       });
 
       map.on('mouseenter', 'signals-bubble', (e) => {
@@ -613,7 +1281,7 @@ export function GeospatialMap({
             closeButton: false,
             closeOnClick: false,
             offset: 14,
-            className: 'deck-telemetry-popup'
+            className: 'deck-telemetry-popup',
           });
         }
 
@@ -658,7 +1326,7 @@ export function GeospatialMap({
             pitch: 48,
             bearing: -15,
             speed: 1.1,
-            essential: true
+            essential: true,
           });
         }
       });
@@ -670,7 +1338,7 @@ export function GeospatialMap({
       {/* 3D MapLibre Globe Canvas */}
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
 
-      {/* Floating Top-Right Telemetry Controls */}
+      {/* Floating Top-Right Controls */}
       <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 flex-wrap justify-end">
         {/* Layer Filters */}
         <div className="flex items-center gap-1 p-1 rounded-lg bg-canvas/85 backdrop-blur-md border border-line/80 shadow-xl text-[11px] font-mono">
@@ -747,7 +1415,7 @@ export function GeospatialMap({
         </button>
       </div>
 
-      {/* Subtle Legend Indicator Bottom Right (Above controls) */}
+      {/* Subtle Legend Indicator Bottom Right */}
       <div className="absolute bottom-10 right-3 z-20 hidden lg:flex items-center gap-3 px-3 py-1 rounded-full bg-canvas/80 backdrop-blur-md border border-line/80 text-[10px] font-mono text-muted shadow-xl pointer-events-none">
         <span className="flex items-center gap-1">
           <span className="w-2 h-1 bg-cyan-400 rounded-full"></span>

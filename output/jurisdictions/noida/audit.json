@@ -1,0 +1,19 @@
+{
+  "city": "noida",
+  "status": "active",
+  "schemes": {
+    "sectors": {
+      "file": "sectors.geojson",
+      "count": 10,
+      "sha256": "b866bc5c84824eee7a0145be327e943965799bd792c353ef7cc0a024ef0aa683",
+      "has_municipal_wards": false,
+      "rejection_notice": "NOIDA is an industrial development authority under the UP Industrial Area Development Act, 1976. It does NOT have elected municipal corporation wards. Schemes that invent municipal wards for NOIDA are rejected."
+    },
+    "work_circles": {
+      "file": "work_circles.geojson",
+      "count": 10,
+      "sha256": "50918fd7bdf25218001fe3b45047b832a681b4138e028d7703c262fdb6b984dd",
+      "has_municipal_wards": false
+    }
+  }
+}

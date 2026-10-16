@@ -1,0 +1,994 @@
+{
+  "type": "FeatureCollection",
+  "city": "mumbai",
+  "scheme": "wards",
+  "authority": "Brihanmumbai Municipal Corporation (BMC)",
+  "prabhags_separate": true,
+  "notice": "BMC 24 Administrative Wards. Electoral prabhags (councillor wards) are separate sub-ward units and do not replace administrative ward jurisdiction.",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-a",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.81,
+              18.9
+            ],
+            [
+              72.84,
+              18.9
+            ],
+            [
+              72.84,
+              18.94
+            ],
+            [
+              72.81,
+              18.94
+            ],
+            [
+              72.81,
+              18.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-a",
+        "name": "Ward A",
+        "ward": "A",
+        "locality_coverage": "Colaba, Fort, Nariman Point, Churchgate",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-b",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.83,
+              18.94
+            ],
+            [
+              72.85,
+              18.94
+            ],
+            [
+              72.85,
+              18.96
+            ],
+            [
+              72.83,
+              18.96
+            ],
+            [
+              72.83,
+              18.94
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-b",
+        "name": "Ward B",
+        "ward": "B",
+        "locality_coverage": "Sandhurst Road, Dongri, Bhendi Bazaar",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-c",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.81,
+              18.94
+            ],
+            [
+              72.83,
+              18.94
+            ],
+            [
+              72.83,
+              18.96
+            ],
+            [
+              72.81,
+              18.96
+            ],
+            [
+              72.81,
+              18.94
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-c",
+        "name": "Ward C",
+        "ward": "C",
+        "locality_coverage": "Marine Lines, Girgaon, Bhuleshwar",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-d",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.79,
+              18.95
+            ],
+            [
+              72.82,
+              18.95
+            ],
+            [
+              72.82,
+              18.98
+            ],
+            [
+              72.79,
+              18.98
+            ],
+            [
+              72.79,
+              18.95
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-d",
+        "name": "Ward D",
+        "ward": "D",
+        "locality_coverage": "Malabar Hill, Grant Road, Tardeo, Walkeshwar",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-e",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.82,
+              18.96
+            ],
+            [
+              72.85,
+              18.96
+            ],
+            [
+              72.85,
+              18.99
+            ],
+            [
+              72.82,
+              18.99
+            ],
+            [
+              72.82,
+              18.96
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-e",
+        "name": "Ward E",
+        "ward": "E",
+        "locality_coverage": "Byculla, Mazgaon, Mumbai Central",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-f-n",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.85,
+              19.01
+            ],
+            [
+              72.88,
+              19.01
+            ],
+            [
+              72.88,
+              19.05
+            ],
+            [
+              72.85,
+              19.05
+            ],
+            [
+              72.85,
+              19.01
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-f-n",
+        "name": "Ward F/N",
+        "ward": "F/N",
+        "locality_coverage": "Matunga, Sion, Wadala",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-f-s",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.83,
+              18.98
+            ],
+            [
+              72.86,
+              18.98
+            ],
+            [
+              72.86,
+              19.01
+            ],
+            [
+              72.83,
+              19.01
+            ],
+            [
+              72.83,
+              18.98
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-f-s",
+        "name": "Ward F/S",
+        "ward": "F/S",
+        "locality_coverage": "Parel, Sewri, Naigaon",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-g-n",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.83,
+              19.02
+            ],
+            [
+              72.86,
+              19.02
+            ],
+            [
+              72.86,
+              19.05
+            ],
+            [
+              72.83,
+              19.05
+            ],
+            [
+              72.83,
+              19.02
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-g-n",
+        "name": "Ward G/N",
+        "ward": "G/N",
+        "locality_coverage": "Dadar, Dharavi, Mahim",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-g-s",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.81,
+              18.98
+            ],
+            [
+              72.84,
+              18.98
+            ],
+            [
+              72.84,
+              19.02
+            ],
+            [
+              72.81,
+              19.02
+            ],
+            [
+              72.81,
+              18.98
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-g-s",
+        "name": "Ward G/S",
+        "ward": "G/S",
+        "locality_coverage": "Worli, Lower Parel, Prabhadevi",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-h-e",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.84,
+              19.05
+            ],
+            [
+              72.87,
+              19.05
+            ],
+            [
+              72.87,
+              19.09
+            ],
+            [
+              72.84,
+              19.09
+            ],
+            [
+              72.84,
+              19.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-h-e",
+        "name": "Ward H/E",
+        "ward": "H/E",
+        "locality_coverage": "Bandra East, Khar East, Santacruz East",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-h-w",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.82,
+              19.05
+            ],
+            [
+              72.84,
+              19.05
+            ],
+            [
+              72.84,
+              19.09
+            ],
+            [
+              72.82,
+              19.09
+            ],
+            [
+              72.82,
+              19.05
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-h-w",
+        "name": "Ward H/W",
+        "ward": "H/W",
+        "locality_coverage": "Bandra West, Khar West, Santacruz West",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-k-e",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.85,
+              19.1
+            ],
+            [
+              72.89,
+              19.1
+            ],
+            [
+              72.89,
+              19.14
+            ],
+            [
+              72.85,
+              19.14
+            ],
+            [
+              72.85,
+              19.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-k-e",
+        "name": "Ward K/E",
+        "ward": "K/E",
+        "locality_coverage": "Andheri East, Vile Parle East, Jogeshwari East",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-k-w",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.81,
+              19.1
+            ],
+            [
+              72.84,
+              19.1
+            ],
+            [
+              72.84,
+              19.14
+            ],
+            [
+              72.81,
+              19.14
+            ],
+            [
+              72.81,
+              19.1
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-k-w",
+        "name": "Ward K/W",
+        "ward": "K/W",
+        "locality_coverage": "Andheri West, Vile Parle West, Versova, Juhu",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-p-n",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.8,
+              19.17
+            ],
+            [
+              72.85,
+              19.17
+            ],
+            [
+              72.85,
+              19.2
+            ],
+            [
+              72.8,
+              19.2
+            ],
+            [
+              72.8,
+              19.17
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-p-n",
+        "name": "Ward P/N",
+        "ward": "P/N",
+        "locality_coverage": "Malad, Marve, Manori",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-p-s",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.82,
+              19.14
+            ],
+            [
+              72.87,
+              19.14
+            ],
+            [
+              72.87,
+              19.17
+            ],
+            [
+              72.82,
+              19.17
+            ],
+            [
+              72.82,
+              19.14
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-p-s",
+        "name": "Ward P/S",
+        "ward": "P/S",
+        "locality_coverage": "Goregaon",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-r-c",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.83,
+              19.22
+            ],
+            [
+              72.88,
+              19.22
+            ],
+            [
+              72.88,
+              19.25
+            ],
+            [
+              72.83,
+              19.25
+            ],
+            [
+              72.83,
+              19.22
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-r-c",
+        "name": "Ward R/C",
+        "ward": "R/C",
+        "locality_coverage": "Borivali",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-r-n",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.84,
+              19.25
+            ],
+            [
+              72.88,
+              19.25
+            ],
+            [
+              72.88,
+              19.28
+            ],
+            [
+              72.84,
+              19.28
+            ],
+            [
+              72.84,
+              19.25
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-r-n",
+        "name": "Ward R/N",
+        "ward": "R/N",
+        "locality_coverage": "Dahisar",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-r-s",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.82,
+              19.19
+            ],
+            [
+              72.87,
+              19.19
+            ],
+            [
+              72.87,
+              19.22
+            ],
+            [
+              72.82,
+              19.22
+            ],
+            [
+              72.82,
+              19.19
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-r-s",
+        "name": "Ward R/S",
+        "ward": "R/S",
+        "locality_coverage": "Kandivali",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-l",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.87,
+              19.06
+            ],
+            [
+              72.9,
+              19.06
+            ],
+            [
+              72.9,
+              19.11
+            ],
+            [
+              72.87,
+              19.11
+            ],
+            [
+              72.87,
+              19.06
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-l",
+        "name": "Ward L",
+        "ward": "L",
+        "locality_coverage": "Kurla, Sakinaka, Chandivali",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-m-e",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.9,
+              19.03
+            ],
+            [
+              72.94,
+              19.03
+            ],
+            [
+              72.94,
+              19.07
+            ],
+            [
+              72.9,
+              19.07
+            ],
+            [
+              72.9,
+              19.03
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-m-e",
+        "name": "Ward M/E",
+        "ward": "M/E",
+        "locality_coverage": "Govandi, Mankhurd, Shivaji Nagar",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-m-w",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.88,
+              19
+            ],
+            [
+              72.91,
+              19
+            ],
+            [
+              72.91,
+              19.05
+            ],
+            [
+              72.88,
+              19.05
+            ],
+            [
+              72.88,
+              19
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-m-w",
+        "name": "Ward M/W",
+        "ward": "M/W",
+        "locality_coverage": "Chembur, Tilak Nagar, Mahul",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-n",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.89,
+              19.08
+            ],
+            [
+              72.93,
+              19.08
+            ],
+            [
+              72.93,
+              19.12
+            ],
+            [
+              72.89,
+              19.12
+            ],
+            [
+              72.89,
+              19.08
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-n",
+        "name": "Ward N",
+        "ward": "N",
+        "locality_coverage": "Ghatkopar, Vikhroli (part)",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-s",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.91,
+              19.12
+            ],
+            [
+              72.95,
+              19.12
+            ],
+            [
+              72.95,
+              19.16
+            ],
+            [
+              72.91,
+              19.16
+            ],
+            [
+              72.91,
+              19.12
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-s",
+        "name": "Ward S",
+        "ward": "S",
+        "locality_coverage": "Bhandup, Powai, Kanjurmarg",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mumbai-ward-t",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.93,
+              19.16
+            ],
+            [
+              72.97,
+              19.16
+            ],
+            [
+              72.97,
+              19.2
+            ],
+            [
+              72.93,
+              19.2
+            ],
+            [
+              72.93,
+              19.16
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "mumbai-ward-t",
+        "name": "Ward T",
+        "ward": "T",
+        "locality_coverage": "Mulund, Nahur",
+        "jurisdiction_type": "administrative_ward",
+        "authority": "Brihanmumbai Municipal Corporation (BMC)",
+        "prabhags_separate": true,
+        "prabhag_note": "Electoral prabhags (councillor wards) are distinct from 24 BMC administrative wards."
+      }
+    }
+  ]
+}
