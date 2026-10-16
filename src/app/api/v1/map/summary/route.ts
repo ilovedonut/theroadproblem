@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server.js';
-import { query } from '../../../../../db/client.ts';
+import { withTransaction } from '../../../../../db/client.ts';
 import { parseMapBounds } from '../../../../../lib/map-bounds.ts';
 
 export async function GET(req: NextRequest) {
@@ -7,15 +7,22 @@ export async function GET(req: NextRequest) {
   const bounds = parseMapBounds(searchParams.get("bbox"));
   if (!bounds) return NextResponse.json({ error: "Choose a valid map area." }, { status: 400 });
   try {
-    const result = await query(`
+    const result = await withTransaction(async client => {
+      await client.query("SET TRANSACTION READ ONLY; SET LOCAL statement_timeout = '20000'; SET LOCAL lock_timeout = '2000'");
+      return client.query(`
       WITH area AS (
         SELECT CASE WHEN $1::float8 < $3::float8
           THEN ST_MakeEnvelope($1,$2,$3,$4,4326)
           ELSE ST_Union(ST_MakeEnvelope($1,$2,180,$4,4326), ST_MakeEnvelope(-180,$2,$3,$4,4326)) END AS geom
       ), all_visible_segments AS MATERIALIZED (
-        SELECT rs.id, rs.road_id, rs.osm_way_id, rs.geom,
+        SELECT rs.id, rs.road_id, rs.osm_way_id,
           COALESCE(rs.usage_category, 'public_motor') AS usage_category,
-          ST_Length(ST_CollectionExtract(ST_Intersection(rs.geom,a.geom),2)::geography) AS visible_length
+          -- The area is a rectangle unless it crosses the antimeridian. Roads
+          -- whose boxes fit inside it need no geometry intersection at all.
+          ST_Length((CASE WHEN $1::float8 < $3::float8 AND rs.geom @ a.geom
+            THEN rs.geom
+            ELSE ST_CollectionExtract(ST_Intersection(rs.geom,a.geom),2)
+          END)::geography) AS visible_length
         FROM road_segments rs CROSS JOIN area a
         WHERE rs.is_active AND ST_Intersects(rs.geom,a.geom)
       ), segments AS MATERIALIZED (
@@ -40,9 +47,11 @@ export async function GET(req: NextRequest) {
         SELECT i.* FROM incidents i CROSS JOIN area a
         WHERE i.merged_into_incident_id IS NULL AND ST_Intersects(i.centroid,a.geom)
           AND EXISTS (SELECT 1 FROM reports r WHERE r.incident_id=i.id AND r.publication_status='published')
+      ), responsible_roads AS MATERIALIZED (
+        SELECT id,authority_name FROM roads
+        WHERE authority_name IS NOT NULL AND authority_name <> 'Local Public Authority'
       ), authorities AS (
-        SELECT DISTINCT r.authority_name AS name FROM roads r JOIN segments s ON s.road_id=r.id
-        WHERE r.authority_name IS NOT NULL AND r.authority_name <> 'Local Public Authority'
+        SELECT DISTINCT r.authority_name AS name FROM responsible_roads r JOIN segments s ON s.road_id=r.id
         UNION SELECT authority_name FROM budgets
       ), boundary_overlap AS (
         SELECT db.district, db.osm_relation_id,
@@ -84,6 +93,7 @@ export async function GET(req: NextRequest) {
         (SELECT row_to_json(b) FROM boundary_overlap b) AS coverage_boundary,
         (SELECT row_to_json(li) FROM latest_import li) AS last_successful_import
     `, bounds);
+    });
     const row = result.rows[0] || {};
     const inBoundary = row.coverage_boundary?.intersects_boundary ?? true;
     const coverageState = !inBoundary

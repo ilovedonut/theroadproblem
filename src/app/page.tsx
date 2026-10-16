@@ -56,6 +56,8 @@ export default function GeospatialDeckPage() {
 
     try {
       const qs = new URLSearchParams();
+      qs.set('include_index_stats', 'false');
+      if (zoom !== undefined && zoom < 11.5) qs.set('limit', '2500');
       if (bounds) qs.set('bbox', bounds.join(','));
       if (zoom !== undefined && Number.isFinite(zoom)) qs.set('zoom', String(zoom));
       if (selectedRoadIdRef.current) qs.set('selected_road_id', selectedRoadIdRef.current);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server.js';
-import { query } from '../../../../../db/client.ts';
+import { query, withTransaction } from '../../../../../db/client.ts';
 import { parseMapBounds } from '../../../../../lib/map-bounds.ts';
 
 export const dynamic = 'force-dynamic';
@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
     const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 10), 2500) : 600;
     const selectedRoadId = searchParams.get('selected_road_id') || null;
     const cursor = searchParams.get('cursor');
+    const includeIndexStats = searchParams.get('include_index_stats') !== 'false';
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if ((cursor && !uuid.test(cursor)) || (selectedRoadId && !uuid.test(selectedRoadId))) {
       return NextResponse.json({ error: 'Invalid road cursor or selection.' }, { status: 400 });
@@ -55,13 +56,8 @@ export async function GET(req: NextRequest) {
     // Notice that segments, works, and incidents are aggregated in independent subqueries/CTEs
     // so segment lengths and work budgets are NEVER multiplied by cross-joins!
     const params: any[] = [];
-    let bboxFilterSql = 'TRUE';
     if (bounds) {
       params.push(bounds[0], bounds[1], bounds[2], bounds[3]);
-      bboxFilterSql = `(
-        rs.geom && ST_MakeEnvelope($1, $2, $3, $4, 4326)
-        AND ST_Intersects(rs.geom, ST_MakeEnvelope($1, $2, $3, $4, 4326))
-      )`;
     }
 
     params.push(selectedRoadId);
@@ -78,6 +74,7 @@ export async function GET(req: NextRequest) {
     params.push(cursor || null);
     const cursorIdx = params.length;
 
+    const majorClasses = "'motorway','trunk','primary','secondary','tertiary','motorway_link','trunk_link','primary_link','secondary_link'";
     const roadsQuery = `
       WITH active_works_segs AS (
         SELECT DISTINCT road_segment_id FROM work_segments WHERE road_segment_id IS NOT NULL
@@ -85,7 +82,15 @@ export async function GET(req: NextRequest) {
       active_incidents_segs AS (
         SELECT DISTINCT road_segment_id FROM incidents WHERE lifecycle_status = 'active' AND road_segment_id IS NOT NULL
       ),
-      visible_segments AS (
+      ${majorClassesOnly ? `eligible_segment_ids AS MATERIALIZED (
+        SELECT id FROM road_segments WHERE is_active AND road_class IN (${majorClasses})
+        UNION SELECT rs.id FROM roads r JOIN road_segments rs ON rs.road_id=r.id
+          WHERE r.is_official_corridor OR (rs.road_class IS NULL AND r.road_class IN (${majorClasses}))
+        UNION SELECT road_segment_id FROM active_works_segs
+        UNION SELECT road_segment_id FROM active_incidents_segs
+        UNION SELECT id FROM road_segments WHERE road_id=$${selectedIdx}::uuid
+      ),` : ''}
+      candidate_segments AS MATERIALIZED (
         SELECT
           rs.id,
           rs.road_id,
@@ -101,14 +106,17 @@ export async function GET(req: NextRequest) {
           (aws.road_segment_id IS NOT NULL) AS has_work,
           (ais.road_segment_id IS NOT NULL) AS has_incident
         FROM road_segments rs
+        ${majorClassesOnly ? 'JOIN eligible_segment_ids eligible ON eligible.id=rs.id' : ''}
         JOIN roads r ON r.id = rs.road_id
         LEFT JOIN active_works_segs aws ON aws.road_segment_id = rs.id
         LEFT JOIN active_incidents_segs ais ON ais.road_segment_id = rs.id
         WHERE rs.is_active = TRUE
           AND r.name NOT LIKE 'Test %'
-          AND COALESCE(rs.usage_category, 'public_motor') IN ('public_motor', 'restricted_motor')
+          ${bounds && !majorClassesOnly ? `AND (rs.geom && ST_MakeEnvelope($1,$2,$3,$4,4326) OR ($${selectedIdx}::uuid IS NOT NULL AND rs.road_id=$${selectedIdx}::uuid))` : ''}
+          AND ($${cursorIdx}::uuid IS NULL OR rs.road_id > $${cursorIdx}::uuid)
+          AND (rs.usage_category IS NULL OR rs.usage_category IN ('public_motor', 'restricted_motor'))
           AND (
-            (${bboxFilterSql} AND (
+            ((
               NOT $${majorOnlyIdx}::boolean
               OR COALESCE(rs.road_class, r.road_class) IN (
                 'motorway', 'trunk', 'primary', 'secondary', 'tertiary',
@@ -120,6 +128,11 @@ export async function GET(req: NextRequest) {
             ))
             OR ($${selectedIdx}::uuid IS NOT NULL AND rs.road_id = $${selectedIdx}::uuid)
           )
+      ),
+      visible_segments AS MATERIALIZED (
+        SELECT * FROM candidate_segments
+        WHERE ${bounds ? `(geom && ST_MakeEnvelope($1,$2,$3,$4,4326) AND ST_Intersects(geom, ST_MakeEnvelope($1,$2,$3,$4,4326)))
+          OR ($${selectedIdx}::uuid IS NOT NULL AND road_id=$${selectedIdx}::uuid)` : 'TRUE'}
       ),
       prioritized_roads AS (
         SELECT
@@ -146,6 +159,17 @@ export async function GET(req: NextRequest) {
         GROUP BY r.id
         ORDER BY r.id ASC
         LIMIT $${limitIdx}
+      ),
+      page_segments AS (
+        SELECT vs.road_id, json_agg(jsonb_build_object(
+          'segment_id', vs.id, 'osm_way_id', vs.osm_way_id,
+          'chainage_from', vs.chainage_from, 'chainage_to', vs.chainage_to,
+          'length_m', vs.within_boundary_length_m, 'access_status', vs.access_status,
+          'geojson', ST_AsGeoJSON(CASE WHEN $${tolIdx}::float8 > 0
+            THEN ST_SimplifyPreserveTopology(vs.geom,$${tolIdx}::float8) ELSE vs.geom END)::json
+        ) ORDER BY vs.chainage_from ASC NULLS LAST, vs.id ASC) AS segments
+        FROM visible_segments vs JOIN prioritized_roads pr ON pr.id=vs.road_id
+        GROUP BY vs.road_id
       )
       SELECT
         pr.id,
@@ -162,25 +186,7 @@ export async function GET(req: NextRequest) {
         pr.total_length_m,
         pr.active_segments_count,
         pr.unique_ways_count,
-        COALESCE((
-          SELECT json_agg(
-            jsonb_build_object(
-              'segment_id', vs.id,
-              'osm_way_id', vs.osm_way_id,
-              'chainage_from', vs.chainage_from,
-              'chainage_to', vs.chainage_to,
-              'length_m', vs.within_boundary_length_m,
-              'access_status', vs.access_status,
-              'geojson', CASE
-                WHEN $${tolIdx}::float8 > 0 THEN ST_AsGeoJSON(ST_SimplifyPreserveTopology(vs.geom, $${tolIdx}::float8))::json
-                ELSE ST_AsGeoJSON(vs.geom)::json
-              END
-            )
-            ORDER BY vs.chainage_from ASC NULLS LAST, vs.id ASC
-          )
-          FROM visible_segments vs
-          WHERE vs.road_id = pr.id
-        ), '[]'::json) AS segments,
+        COALESCE(ps.segments, '[]'::json) AS segments,
         COALESCE((
           SELECT json_agg(DISTINCT jsonb_build_object(
             'work_id', w.id,
@@ -222,10 +228,16 @@ export async function GET(req: NextRequest) {
             AND i.lifecycle_status = 'active'
         ), '[]'::json) AS incidents
       FROM prioritized_roads pr
+      LEFT JOIN page_segments ps ON ps.road_id=pr.id
       ORDER BY pr.id ASC;
     `;
 
-    const roadsRes = await query(roadsQuery, params);
+    const roadsRes = await withTransaction(async client => {
+      // Abandoned viewport requests must not occupy an origin connection for
+      // minutes. LOCAL settings cannot leak into another pooled request.
+      await client.query("SET TRANSACTION READ ONLY; SET LOCAL statement_timeout = '20000'; SET LOCAL lock_timeout = '2000'");
+      return client.query(roadsQuery, params);
+    });
     const returnedRoads = roadsRes.rows.slice(0, limit);
     const pagination = {
       has_more: roadsRes.rows.length > limit,
@@ -240,7 +252,7 @@ export async function GET(req: NextRequest) {
     });
 
     // 2. Fetch truthful district-wide index metrics without join multiplication
-    const indexStatsRes = await query(`
+    const indexStatsRes = includeIndexStats ? await query(`
       SELECT
         COUNT(DISTINCT rs.osm_way_id) FILTER (WHERE rs.osm_way_id IS NOT NULL) AS unique_source_ways,
         COUNT(rs.id) AS active_physical_segments,
@@ -253,11 +265,11 @@ export async function GET(req: NextRequest) {
       JOIN roads r ON r.id = rs.road_id
       WHERE rs.is_active = TRUE
         AND r.name NOT LIKE 'Test %';
-    `);
+    `) : { rows: [] };
     const statsRow = indexStatsRes.rows[0] || {};
 
     // 3. Fetch coverage boundary & last successful import metadata
-    const boundaryRes = await query(`
+    const boundaryRes = includeIndexStats ? await query(`
       SELECT district, state, osm_relation_id, source,
              COALESCE(boundary_type, 'administrative_district') AS boundary_type,
              COALESCE(boundary_version, 'osm-rel-2020589-v1') AS boundary_version,
@@ -267,9 +279,9 @@ export async function GET(req: NextRequest) {
       FROM district_boundaries
       WHERE district = 'Bengaluru Urban'
       LIMIT 1;
-    `);
+    `) : { rows: [] };
 
-    const lastImportRes = await query(`
+    const lastImportRes = includeIndexStats ? await query(`
       SELECT id, district, source_url, checksum_sha256, ways_count,
              inserted_count, updated_count, skipped_count,
              COALESCE(rejected_count, 0) AS rejected_count,
@@ -282,7 +294,7 @@ export async function GET(req: NextRequest) {
       WHERE district = 'Bengaluru Urban' AND status = 'completed'
       ORDER BY completed_at DESC NULLS LAST, started_at DESC
       LIMIT 1;
-    `);
+    `) : { rows: [] };
 
     // 4. Query live intelligence stream from database source_records
     const sourceRecordsRes = await query(`
@@ -368,7 +380,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        summary: {
+        summary: includeIndexStats ? {
           total_roads_indexed: totalCorridors,
           corridors_or_roads: totalCorridors,
           active_physical_segments: activeSegments,
@@ -398,7 +410,7 @@ export async function GET(req: NextRequest) {
             simplified: simplifyTolerance > 0,
           },
           timestamp: new Date().toISOString(),
-        },
+        } : undefined,
         roads: returnedRoads,
         pagination,
         signals: multiSourceSignals,

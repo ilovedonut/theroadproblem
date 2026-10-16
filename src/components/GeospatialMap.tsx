@@ -193,7 +193,11 @@ export function GeospatialMap({
     const themeObserver = new MutationObserver(applyMapTheme);
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
+    let viewportReady = false;
     const publishBounds = () => {
+      // Initialization and ResizeObserver emit moveend before the requested
+      // location is fitted. Do not launch abandoned city-wide queries then.
+      if (!viewportReady) return;
       const b = map.getBounds();
       const z = Number(map.getZoom().toFixed(2));
       viewportCallback.current?.(
@@ -213,6 +217,7 @@ export function GeospatialMap({
       map.resize();
       const requested = parseMapBounds(new URLSearchParams(window.location.search).get('bbox'));
       if (requested) map.fitBounds([[requested[0], requested[1]], [requested[2], requested[3]]], { padding: 50, duration: 0 });
+      viewportReady = true;
       publishBounds();
     });
 
