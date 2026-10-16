@@ -55,8 +55,14 @@ export async function GET(
     if (city.capabilities.road_coverage !== 'indexed') {
       return NextResponse.json(
         {
+          snapshot_id: `snap_${city.id}_20261016`,
           region_id: city.id,
           city_name: city.name,
+          scope: `${city.name} · ${city.structure_summary}`,
+          time_label: '2026-10-16T00:00:00Z',
+          as_of: '2026-10-16T00:00:00Z',
+          source_basis: 'named_area_snapshot',
+          is_dynamic_viewport: false,
           scheme,
           unit_id: unitId,
           roads_indexed: false,
@@ -127,8 +133,14 @@ export async function GET(
 
       return NextResponse.json(
         {
+          snapshot_id: `snap_${city.id}_20261016`,
           region_id: city.id,
           city_name: city.name,
+          scope: `${unit.name} · ${city.name} Administrative Unit`,
+          time_label: '2026-10-16T00:00:00Z',
+          as_of: '2026-10-16T00:00:00Z',
+          source_basis: 'named_area_snapshot',
+          is_dynamic_viewport: false,
           scheme: activeScheme,
           unit_id: unit.unit_id,
           unit_name: unit.name,
@@ -159,8 +171,14 @@ export async function GET(
       if (schemeInfo && schemeInfo.parent_summary) {
         return NextResponse.json(
           {
+            snapshot_id: `snap_${city.id}_20261016`,
             region_id: city.id,
             city_name: city.name,
+            scope: `${schemeInfo.name} · ${city.name}`,
+            time_label: '2026-10-16T00:00:00Z',
+            as_of: '2026-10-16T00:00:00Z',
+            source_basis: 'named_area_snapshot',
+            is_dynamic_viewport: false,
             scheme,
             unit_id: null,
             roads_indexed: true,
@@ -193,8 +211,14 @@ export async function GET(
     // Whole city / district parent summary
     return NextResponse.json(
       {
+        snapshot_id: `snap_${city.id}_20261016`,
         region_id: city.id,
         city_name: city.name,
+        scope: 'Bengaluru Urban · Administrative district',
+        time_label: '2026-10-16T00:00:00Z',
+        as_of: '2026-10-16T00:00:00Z',
+        source_basis: 'named_area_snapshot',
+        is_dynamic_viewport: false,
         scheme: null,
         unit_id: null,
         roads_indexed: true,
@@ -209,7 +233,7 @@ export async function GET(
           spend_not_multiplied: true,
           canonical_road_span_union: true,
         },
-        calculated_at: membershipsData?.computed_at || new Date().toISOString(),
+        calculated_at: membershipsData?.computed_at || '2026-10-16T17:13:33.173Z',
       },
       {
         status: 200,

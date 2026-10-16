@@ -151,12 +151,27 @@ function buildRegionManifest(city: CityEntry) {
     schema_version: '1.0.0',
     region_id: city.id,
     publication_id: `pub_${city.id}_20261016_v1`,
-    active_version: '2026.10.16',
+    active_version: '20261016',
+    status: isBengaluru ? 'indexed' : 'pending',
+    tile_template: isBengaluru
+      ? `/api/v1/roads/${city.id}/20261016/{z}/{x}/{y}.mvt`
+      : null,
+    tileset_url: isBengaluru
+      ? `/api/v1/roads/${city.id}/20261016/{z}/{x}/{y}.mvt`
+      : null,
+    bounds: isBengaluru
+      ? [77.475902, 12.817922, 77.738359, 13.153546]
+      : city.bounds,
+    min_zoom: 10,
+    max_zoom: 16,
+    format: 'mvt',
     discovery_footprint: {
       label_anchor: city.center,
-      bounds: city.bounds,
+      bounds: isBengaluru
+        ? [77.475902, 12.817922, 77.738359, 13.153546]
+        : city.bounds,
       scope: city.structure_summary,
-      geometry_version: '2026.10.16',
+      geometry_version: '20261016',
       provenance: {
         source: 'Official Gazette / Municipal GIS / LGD',
         crs: 'EPSG:4326',
@@ -172,9 +187,11 @@ function buildRegionManifest(city: CityEntry) {
           source: 'OpenStreetMap complete motor-road extract',
           osm_relation_id: 2020589,
           crs: 'EPSG:4326',
-          tileset_url: '/api/v1/map/tiles/roads/bengaluru/{z}/{x}/{y}.pbf',
+          tile_template: `/api/v1/roads/${city.id}/20261016/{z}/{x}/{y}.mvt`,
+          tileset_url: `/api/v1/roads/${city.id}/20261016/{z}/{x}/{y}.mvt`,
+          bounds: [77.475902, 12.817922, 77.738359, 13.153546],
           format: 'mvt',
-          min_zoom: 6,
+          min_zoom: 10,
           max_zoom: 16,
         }
       : {
@@ -182,8 +199,12 @@ function buildRegionManifest(city: CityEntry) {
           status: 'pending',
           scope: 'none',
           source: null,
+          tile_template: null,
           tileset_url: null,
+          bounds: city.bounds,
           format: 'mvt',
+          min_zoom: 10,
+          max_zoom: 16,
           notice: city.notice,
         },
     membership_release: isBengaluru
@@ -211,7 +232,6 @@ function buildRegionManifest(city: CityEntry) {
           : 'pending',
     },
     capabilities: city.capabilities,
-    format: 'mvt',
   };
 }
 
