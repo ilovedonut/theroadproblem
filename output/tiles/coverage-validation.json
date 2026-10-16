@@ -1,75 +1,200 @@
 {
-  "timestamp": "2026-10-16T17:24:15.972Z",
+  "timestamp": "2026-10-16T17:57:19.533Z",
   "status": "PASS",
-  "out_dir": "C:\\Users\\shiva\\Desktop\\the road problem\\output\\tiles\\bengaluru",
-  "manifest_present": true,
-  "manifest": {
-    "name": "bengaluru-roads",
-    "description": "PostGIS Mapbox Vector Tiles for Bengaluru road network",
-    "version": "1.0.0",
-    "format": "mvt",
-    "bounds": [
-      77.58544921875,
-      12.961735843534296,
-      77.607421875,
-      12.983147716796571
-    ],
-    "center": [
-      77.596435546875,
-      12.972441780165433,
-      14
-    ],
-    "minzoom": 14,
-    "maxzoom": 14,
-    "attribution": "© OpenStreetMap contributors, BBMP, KRDCL, NHAI",
-    "layers": [
-      {
-        "id": "roads",
-        "description": "Active road carriageways with official attributes",
-        "fields": {
-          "road_id": "String (UUID)",
-          "name": "String",
-          "ref": "String",
-          "road_class": "String",
-          "authority_name": "String"
+  "out_dir": "C:\\Users\\shiva\\.gemini\\antigravity\\worktrees\\e82a2014-f5a5-42d5-8a8c-dbb72256f4e4\\subagent-Tile-Pipeline-Engineer-self-3bfc1d76\\output\\tiles\\bengaluru",
+  "publish_dir": "C:\\Users\\shiva\\.gemini\\antigravity\\worktrees\\e82a2014-f5a5-42d5-8a8c-dbb72256f4e4\\subagent-Tile-Pipeline-Engineer-self-3bfc1d76\\public\\tiles\\roads\\bengaluru\\20261016",
+  "manifests": {
+    "output_manifest": {
+      "name": "bengaluru-roads",
+      "description": "PostGIS Mapbox Vector Tiles for Bengaluru road network",
+      "version": "1.0.0",
+      "active_version": "20261016",
+      "city": "bengaluru",
+      "format": "mvt",
+      "bounds": [
+        77.4759,
+        12.8179,
+        77.7384,
+        13.1535
+      ],
+      "center": [
+        77.60714999999999,
+        12.9857,
+        12
+      ],
+      "minzoom": 10,
+      "maxzoom": 14,
+      "min_zoom": 10,
+      "max_zoom": 14,
+      "tile_template": "/tiles/roads/bengaluru/20261016/{z}/{x}/{y}.mvt",
+      "attribution": "© OpenStreetMap contributors, BBMP, KRDCL, NHAI",
+      "layers": [
+        {
+          "id": "roads",
+          "description": "Active road carriageways with official attributes",
+          "fields": {
+            "road_id": "String (UUID)",
+            "name": "String",
+            "ref": "String",
+            "road_class": "String",
+            "authority_name": "String"
+          }
         }
-      }
-    ],
-    "vector_layers": [
-      {
-        "id": "roads",
-        "description": "Active road carriageways with official attributes",
-        "fields": {
-          "road_id": "String (UUID)",
-          "name": "String",
-          "ref": "String",
-          "road_class": "String",
-          "authority_name": "String"
+      ],
+      "vector_layers": [
+        {
+          "id": "roads",
+          "description": "Active road carriageways with official attributes",
+          "fields": {
+            "road_id": "String (UUID)",
+            "name": "String",
+            "ref": "String",
+            "road_class": "String",
+            "authority_name": "String"
+          }
         }
-      }
-    ],
-    "tile_stats": {
-      "total_tiles": 4,
-      "written_tiles": 4,
-      "skipped_empty_tiles": 0,
-      "total_bytes": 393048
+      ],
+      "tile_stats": {
+        "total_tiles": 269,
+        "written_tiles": 269,
+        "skipped_empty_tiles": 0,
+        "total_bytes": 15473800
+      },
+      "last_generated_at": "2026-10-16T17:57:09.241Z"
     },
-    "last_generated_at": "2026-10-16T16:48:02.680Z"
+    "published_manifest": {
+      "name": "bengaluru-roads",
+      "description": "PostGIS Mapbox Vector Tiles for Bengaluru road network",
+      "version": "1.0.0",
+      "active_version": "20261016",
+      "city": "bengaluru",
+      "format": "mvt",
+      "bounds": [
+        77.4759,
+        12.8179,
+        77.7384,
+        13.1535
+      ],
+      "center": [
+        77.60714999999999,
+        12.9857,
+        12
+      ],
+      "minzoom": 10,
+      "maxzoom": 14,
+      "min_zoom": 10,
+      "max_zoom": 14,
+      "tile_template": "/tiles/roads/bengaluru/20261016/{z}/{x}/{y}.mvt",
+      "attribution": "© OpenStreetMap contributors, BBMP, KRDCL, NHAI",
+      "layers": [
+        {
+          "id": "roads",
+          "description": "Active road carriageways with official attributes",
+          "fields": {
+            "road_id": "String (UUID)",
+            "name": "String",
+            "ref": "String",
+            "road_class": "String",
+            "authority_name": "String"
+          }
+        }
+      ],
+      "vector_layers": [
+        {
+          "id": "roads",
+          "description": "Active road carriageways with official attributes",
+          "fields": {
+            "road_id": "String (UUID)",
+            "name": "String",
+            "ref": "String",
+            "road_class": "String",
+            "authority_name": "String"
+          }
+        }
+      ],
+      "tile_stats": {
+        "total_tiles": 269,
+        "written_tiles": 269,
+        "skipped_empty_tiles": 0,
+        "total_bytes": 15473800
+      },
+      "last_generated_at": "2026-10-16T17:57:09.267Z"
+    }
   },
-  "total_tiles_on_disk": 1,
-  "sample_tile": {
-    "z": 14,
-    "x": 11723,
-    "y": 7596,
-    "file_path": "C:\\Users\\shiva\\Desktop\\the road problem\\output\\tiles\\bengaluru\\14\\11723\\7596.mvt",
-    "file_size_bytes": 98262,
-    "layer_name": "roads",
-    "feature_count": 1506,
-    "distinct_road_ids_in_tile": 1230,
-    "db_active_roads_count": 1230,
-    "missing_roads_count": 0,
-    "completeness_percentage": 100,
-    "feature_properties": [
+  "disk_inventory": {
+    "total_tiles_on_disk": 269,
+    "published_tiles_on_disk": 269,
+    "total_bytes_on_disk": 15473800,
+    "tiles_by_zoom": {
+      "10": 4,
+      "11": 9,
+      "12": 16,
+      "13": 48,
+      "14": 192
+    }
+  },
+  "zoom_hierarchy": {
+    "zoom_10": {
+      "classes_observed": [
+        "secondary",
+        "tertiary",
+        "primary_link",
+        "secondary_link",
+        "tertiary_link",
+        "primary",
+        "motorway_link",
+        "motorway",
+        "trunk",
+        "trunk_link",
+        "service"
+      ],
+      "non_major_violations": 0,
+      "passed": true
+    },
+    "zoom_12_13": {
+      "classes_observed": [
+        "tertiary",
+        "secondary",
+        "primary",
+        "tertiary_link",
+        "secondary_link",
+        "motorway",
+        "unclassified",
+        "primary_link",
+        "motorway_link",
+        "trunk",
+        "trunk_link",
+        "road",
+        "service"
+      ],
+      "minor_violations": 0,
+      "passed": true
+    },
+    "zoom_14": {
+      "classes_observed": [
+        "tertiary",
+        "residential",
+        "service",
+        "secondary",
+        "primary",
+        "unclassified",
+        "living_street",
+        "motorway",
+        "motorway_link",
+        "tertiary_link",
+        "trunk",
+        "secondary_link",
+        "primary_link",
+        "trunk_link"
+      ],
+      "residential_count": 10927,
+      "passed": true
+    }
+  },
+  "schema_validation": {
+    "inspected_tiles_count": 38,
+    "total_features_audited": 54243,
+    "observed_properties": [
       "road_id",
       "name",
       "road_class",
@@ -78,29 +203,71 @@
     ],
     "unauthorized_properties": []
   },
+  "sample_tile_completeness": {
+    "sample_tile": "14/11723/7596",
+    "file_path": "C:\\Users\\shiva\\.gemini\\antigravity\\worktrees\\e82a2014-f5a5-42d5-8a8c-dbb72256f4e4\\subagent-Tile-Pipeline-Engineer-self-3bfc1d76\\output\\tiles\\bengaluru\\14\\11723\\7596.mvt",
+    "file_size_bytes": 98262,
+    "distinct_road_ids_in_tile": 1230,
+    "db_active_roads_count": 1230,
+    "missing_roads_count": 0,
+    "completeness_percentage": 100,
+    "passed": true
+  },
   "assertions": [
     {
-      "name": "Tile file exists and is non-empty",
+      "name": "Output directory manifest exists and is valid",
       "passed": true
     },
     {
-      "name": "Vector tile contains roads layer",
+      "name": "Published directory manifest exists and is valid",
       "passed": true
     },
     {
-      "name": "Features contain road_id, name, and road_class",
+      "name": "Distinct tile count on disk > 0",
       "passed": true
     },
     {
-      "name": "No works or incidents baked in",
+      "name": "All zoom levels 10 to 14 represented on disk",
       "passed": true
     },
     {
-      "name": "Feature completeness >= 99%",
+      "name": "Manifest written_tiles matches distinct files on disk",
       "passed": true
     },
     {
-      "name": "Manifest index exists in output directory",
+      "name": "Manifest total_bytes matches sum of files on disk",
+      "passed": true
+    },
+    {
+      "name": "Published tile count matches output directory tile count",
+      "passed": true
+    },
+    {
+      "name": "All inspected vector tiles decode and contain roads layer",
+      "passed": true
+    },
+    {
+      "name": "Required properties present (road_id, name, ref, road_class, authority_name)",
+      "passed": true
+    },
+    {
+      "name": "No unauthorized properties baked into road tiles",
+      "passed": true
+    },
+    {
+      "name": "Zoom 10 contains only major highway classes / corridors",
+      "passed": true
+    },
+    {
+      "name": "Zoom 12-13 contains only major classes and collectors",
+      "passed": true
+    },
+    {
+      "name": "Zoom 14 contains full active motor network including residential",
+      "passed": true
+    },
+    {
+      "name": "Sample tile feature completeness >= 99.0%",
       "passed": true
     }
   ]

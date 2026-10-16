@@ -68,15 +68,15 @@ export function tile2bbox(z, x, y) {
 
 /**
  * Zoom hierarchy SQL filter:
- * - Zoom 10-11: Major highways only ('motorway','trunk','primary','secondary','tertiary',
- *   'motorway_link','trunk_link','primary_link','secondary_link') and official corridors.
- * - Zoom 12-13: Secondary, tertiary, and collectors.
+ * - Zoom 10-11: Major highways ('motorway','trunk','primary','secondary','tertiary' and links)
+ *   or official corridors.
+ * - Zoom 12-13: Major highways + collectors ('unclassified','road').
  * - Zoom 14+: All active motor carriageways.
  */
 export function getZoomHierarchyFilter(z) {
   if (z <= 11) {
     const majorClasses =
-      "'motorway','trunk','primary','secondary','tertiary','motorway_link','trunk_link','primary_link','secondary_link'";
+      "'motorway','trunk','primary','secondary','tertiary','motorway_link','trunk_link','primary_link','secondary_link','tertiary_link'";
     return `AND (COALESCE(rs.road_class, r.road_class) IN (${majorClasses}) OR r.is_official_corridor = true)`;
   } else if (z <= 13) {
     const collectorClasses =
@@ -133,15 +133,55 @@ export async function buildRoadTile(z, x, y) {
   return Buffer.isBuffer(mvt) ? mvt : Buffer.alloc(0);
 }
 
+export function findMvtFiles(dir) {
+  const files = [];
+  if (!fs.existsSync(dir)) return files;
+  function walk(currentDir) {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith('.mvt')) {
+        files.push(fullPath);
+      }
+    }
+  }
+  walk(dir);
+  return files;
+}
+
+export function calculateDiskStats(dir, totalGridTiles) {
+  const files = findMvtFiles(dir);
+  let totalBytes = 0;
+  for (const file of files) {
+    const stat = fs.statSync(file);
+    totalBytes += stat.size;
+  }
+  const writtenTiles = files.length;
+  const totalTiles = Math.max(totalGridTiles || 0, writtenTiles);
+  const skippedTiles = Math.max(0, totalTiles - writtenTiles);
+  return {
+    total_tiles: totalTiles,
+    written_tiles: writtenTiles,
+    skipped_empty_tiles: skippedTiles,
+    total_bytes: totalBytes,
+  };
+}
+
 export function parseCliArgs(argv) {
   const opts = {
     bbox: [77.4759, 12.8179, 77.7384, 13.1535], // default Bengaluru Urban
     minZoom: 10,
     maxZoom: 14,
     outDir: path.resolve('output/tiles/bengaluru'),
+    publishDir: path.resolve('public/tiles/roads/bengaluru'),
+    version: '20261016',
+    publish: true,
     single: null,
     dryRun: false,
     concurrency: 4,
+    clean: true,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -162,6 +202,18 @@ export function parseCliArgs(argv) {
       opts.outDir = path.resolve(argv[++i]);
     } else if (arg.startsWith('--out-dir=')) {
       opts.outDir = path.resolve(arg.slice(10));
+    } else if (arg === '--publish-dir' && argv[i + 1]) {
+      opts.publishDir = path.resolve(argv[++i]);
+    } else if (arg.startsWith('--publish-dir=')) {
+      opts.publishDir = path.resolve(arg.slice(14));
+    } else if (arg === '--version' && argv[i + 1]) {
+      opts.version = argv[++i].trim();
+    } else if (arg.startsWith('--version=')) {
+      opts.version = arg.slice(10).trim();
+    } else if (arg === '--publish') {
+      opts.publish = true;
+    } else if (arg === '--no-publish' || arg === '--publish=false') {
+      opts.publish = false;
     } else if (arg === '--single' && argv[i + 1]) {
       const parts = argv[++i].split(',').map((v) => parseInt(v.trim(), 10));
       opts.single = { z: parts[0], x: parts[1], y: parts[2] };
@@ -174,25 +226,26 @@ export function parseCliArgs(argv) {
       opts.concurrency = parseInt(argv[++i], 10);
     } else if (arg.startsWith('--concurrency=')) {
       opts.concurrency = parseInt(arg.slice(14), 10);
+    } else if (arg === '--clean') {
+      opts.clean = true;
+    } else if (arg === '--no-clean') {
+      opts.clean = false;
     }
   }
 
   return opts;
 }
 
-export function writeTileManifest(outDir, stats, bbox, minZoom, maxZoom) {
-  const manifestPath = path.join(outDir, 'manifest.json');
-  let existing = {};
-  if (fs.existsSync(manifestPath)) {
-    try {
-      existing = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    } catch {}
-  }
+export function writeTileManifest(targetDir, stats, bbox, minZoom, maxZoom, extraMeta = {}) {
+  const manifestPath = path.join(targetDir, 'manifest.json');
+  const diskStats = calculateDiskStats(targetDir, stats?.total_tiles);
 
   const manifest = {
     name: 'bengaluru-roads',
     description: 'PostGIS Mapbox Vector Tiles for Bengaluru road network',
     version: '1.0.0',
+    active_version: extraMeta.activeVersion || '20261016',
+    city: 'bengaluru',
     format: 'mvt',
     bounds: bbox,
     center: [
@@ -202,6 +255,9 @@ export function writeTileManifest(outDir, stats, bbox, minZoom, maxZoom) {
     ],
     minzoom: minZoom,
     maxzoom: maxZoom,
+    min_zoom: minZoom,
+    max_zoom: maxZoom,
+    tile_template: extraMeta.tileTemplate || `/tiles/roads/bengaluru/${extraMeta.activeVersion || '20261016'}/{z}/{x}/{y}.mvt`,
     attribution: '© OpenStreetMap contributors, BBMP, KRDCL, NHAI',
     layers: [
       {
@@ -229,16 +285,11 @@ export function writeTileManifest(outDir, stats, bbox, minZoom, maxZoom) {
         },
       },
     ],
-    tile_stats: {
-      total_tiles: (existing.tile_stats?.total_tiles || 0) + (stats.written + stats.skipped),
-      written_tiles: (existing.tile_stats?.written_tiles || 0) + stats.written,
-      skipped_empty_tiles: (existing.tile_stats?.skipped_empty_tiles || 0) + stats.skipped,
-      total_bytes: (existing.tile_stats?.total_bytes || 0) + stats.totalBytes,
-    },
+    tile_stats: diskStats,
     last_generated_at: new Date().toISOString(),
   };
 
-  fs.mkdirSync(outDir, { recursive: true });
+  fs.mkdirSync(targetDir, { recursive: true });
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
   return manifest;
 }
@@ -250,6 +301,9 @@ async function run() {
   console.log(' BENGALURU ROAD VECTOR TILE GENERATOR (MVT)');
   console.log('='.repeat(78));
   console.log(` Output Directory:   ${opts.outDir}`);
+  if (opts.publish) {
+    console.log(` Publish Directory:  ${path.join(opts.publishDir, opts.version)}`);
+  }
   console.log(` Bounding Box:       [${opts.bbox.join(', ')}]`);
   console.log(` Mode:               ${opts.dryRun ? 'DRY RUN' : opts.single ? 'SINGLE TILE' : 'BATCH PYRAMID'}`);
 
@@ -279,9 +333,24 @@ async function run() {
     console.log(`   Tile size:        ${mvt.length.toLocaleString()} bytes`);
     console.log(`   Generation time:  ${duration}ms`);
 
-    const stats = { written: 1, skipped: 0, totalBytes: mvt.length };
-    writeTileManifest(opts.outDir, stats, [bbox.west, bbox.south, bbox.east, bbox.north], z, z);
+    writeTileManifest(opts.outDir, { total_tiles: 1 }, [bbox.west, bbox.south, bbox.east, bbox.north], z, z, {
+      activeVersion: opts.version,
+    });
     console.log(` ✓ Manifest updated: ${path.join(opts.outDir, 'manifest.json')}`);
+
+    if (opts.publish) {
+      const pubTileDir = path.join(opts.publishDir, opts.version, String(z), String(x));
+      const pubTilePath = path.join(pubTileDir, `${y}.mvt`);
+      fs.mkdirSync(pubTileDir, { recursive: true });
+      fs.writeFileSync(pubTilePath, mvt);
+      console.log(` ✓ Published tile:   ${pubTilePath}`);
+
+      writeTileManifest(opts.publishDir, { total_tiles: 1 }, [bbox.west, bbox.south, bbox.east, bbox.north], z, z, {
+        activeVersion: opts.version,
+        tileTemplate: `/tiles/roads/bengaluru/${opts.version}/{z}/{x}/{y}.mvt`,
+      });
+      console.log(` ✓ Published manifest updated: ${path.join(opts.publishDir, 'manifest.json')}`);
+    }
 
     await pool.end();
     return;
@@ -318,6 +387,22 @@ async function run() {
     process.exit(0);
   }
 
+  // Clean output directory for target zooms if clean is requested
+  if (opts.clean) {
+    for (let z = opts.minZoom; z <= opts.maxZoom; z++) {
+      const zDir = path.join(opts.outDir, String(z));
+      if (fs.existsSync(zDir)) {
+        fs.rmSync(zDir, { recursive: true, force: true });
+      }
+      if (opts.publish) {
+        const pubZDir = path.join(opts.publishDir, opts.version, String(z));
+        if (fs.existsSync(pubZDir)) {
+          fs.rmSync(pubZDir, { recursive: true, force: true });
+        }
+      }
+    }
+  }
+
   let written = 0;
   let skipped = 0;
   let totalBytes = 0;
@@ -338,6 +423,14 @@ async function run() {
         const tilePath = path.join(tileDir, `${y}.mvt`);
         fs.mkdirSync(tileDir, { recursive: true });
         fs.writeFileSync(tilePath, mvt);
+
+        if (opts.publish) {
+          const pubTileDir = path.join(opts.publishDir, opts.version, String(z), String(x));
+          const pubTilePath = path.join(pubTileDir, `${y}.mvt`);
+          fs.mkdirSync(pubTileDir, { recursive: true });
+          fs.writeFileSync(pubTilePath, mvt);
+        }
+
         written++;
         totalBytes += mvt.length;
       }
@@ -359,8 +452,25 @@ async function run() {
   console.log(`  Total Tile Payload:  ${(totalBytes / (1024 * 1024)).toFixed(2)} MB`);
   console.log(`  Duration:            ${(totalDuration / 1000).toFixed(2)}s`);
 
-  writeTileManifest(opts.outDir, { written, skipped, totalBytes }, opts.bbox, opts.minZoom, opts.maxZoom);
+  writeTileManifest(opts.outDir, { total_tiles: tilesToGenerate.length }, opts.bbox, opts.minZoom, opts.maxZoom, {
+    activeVersion: opts.version,
+  });
   console.log(` ✓ Manifest saved:     ${path.join(opts.outDir, 'manifest.json')}`);
+
+  if (opts.publish) {
+    writeTileManifest(
+      opts.publishDir,
+      { total_tiles: tilesToGenerate.length },
+      opts.bbox,
+      opts.minZoom,
+      opts.maxZoom,
+      {
+        activeVersion: opts.version,
+        tileTemplate: `/tiles/roads/bengaluru/${opts.version}/{z}/{x}/{y}.mvt`,
+      }
+    );
+    console.log(` ✓ Published manifest: ${path.join(opts.publishDir, 'manifest.json')}`);
+  }
 
   await pool.end();
 }
